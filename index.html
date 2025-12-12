@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工程報價系統 - 完整版</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/react-to-print/dist/index.umd.js"></script>
+
+    <style>
+        /* 確保列印時的排版 */
+        @media print {
+            .print-page {
+                margin: 0 !important;
+                padding: 10mm !important; /* 確保內容不會頂到邊緣 */
+                min-height: 297mm;
+                page-break-after: always;
+            }
+            /* 讓圖片不要跨頁 */
+            .print-image {
+                page-break-inside: avoid;
+            }
+            /* 讓表格行不要跨頁 */
+            .main-item-row, .sub-item-row, .sub-item-note {
+                page-break-inside: avoid;
+            }
+            /* 隱藏非列印元素 */
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+<script type="text/babel">
+// --------------------------------------------------
+// 0. 模擬外部函式、數據和 Context (必須存在才能運行)
+// --------------------------------------------------
+
+// 模擬公司數據 (使用您程式碼中唯一的 key 'herhsin'，並保持通用名稱)
+const COMPANY_DATA = {
+    'herhsin': {
+        name: '公司名稱 (報價單標題)',
+        tel: '02-12345678',
+        fax: '02-87654321',
+        email: 'info@company.com',
+        address: '公司地址',
+        stamp: 'https://via.placeholder.com/60x60?text=Company+Stamp' // 模擬印章圖片
+    }
+};
+
+// 模擬格式化金額的函式 (添加千位分隔符)
+const formatMoney = (amount) => {
+    // 確保輸入是數字
+    const num = Number(amount) || 0;
+    return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+};
+
+// 模擬計算單項金額的函式
+const calcAmount = (item) => {
+    const price = Number(item.price) || 0;
+    const qty = Number(item.qty) || 0;
+    return price * qty;
+};
+
+// 模擬計算所有項目總金額的函式
+const calcTotal = (items) => {
+    if (!items) return 0;
+    let total = 0;
+    items.forEach(item => {
+        // 主項目金額
+        total += calcAmount(item);
+        // 子項目金額 (只有 type === 'item' 且有價錢數量才計入)
+        (item.subItems || []).forEach(sub => {
+            if (sub.type === 'item') {
+                total += calcAmount(sub);
+            }
+        });
+    });
+    return total;
+};
+
+// 模擬計算最終報價的函式
+const calcNegotiated = (total, discountPercent, negotiatedPrice) => {
+    const customPrice = Number(negotiatedPrice);
+    if (customPrice > 0) {
+        return customPrice;
+    }
+    const discount = Number(discountPercent) || 0;
+    if (discount > 0 && discount <= 100) {
+        return total * (1 - discount / 100);
+    }
+    return total;
+};
+
+
+// 模擬初始報價數據 (確保數據結構完整)
+const mockQuote = {
+    id: 'Q-20240101',
+    company: 'herhsin',
+    quoteNo: 'Q-20240101',
+    date: '2024/01/01',
+    title: '南港區辦公室裝修工程',
+    customerName: 'A 科技股份有限公司',
+    contact: '王小姐',
+    phone: '0912-345678',
+    location: '台北市南港區某路 101 號 3F',
+    discountPercent: 5, // 5% 折扣
+    negotiatedPrice: null,
+    notes: '1. 報價不含稅，稅金另計。\n2. 施工期間預計 30 天，自簽約日起算。',
+    payment: '頭期款 30%，結構完工 30%，完工驗收 40%。',
+    items: [
+        { id: 1, name: '輕隔間工程', specMain: '單面石膏板, 10cm 輕鋼架', unit: 'M2', qty: 150, price: 1500, remarks: '符合防火規範', specMaterial: '9.5mm 防潮石膏板' },
+        {
+            id: 2, name: '水電佈線工程', specMain: '依設計圖施工', unit: '式', qty: 1, price: 50000, remarks: '費用包含燈具安裝', specMaterial: '' ,
+            subItems: [
+                { id: 21, name: '電線拉線', type: 'item', specMain: 'TPE 2.0mm', unit: 'M', qty: 500, price: 20, remarks: '主線路', specMaterial: '' },
+                { id: 22, name: '網路線拉線', type: 'item', specMain: 'CAT6', unit: 'M', qty: 200, price: 15, remarks: '辦公桌用', specMaterial: '' },
+                { id: 23, name: '安全警告', type: 'text', name: '施工注意事項', remarks: '施工前需申請斷電許可，並由貴公司負責人簽署。' },
+                { id: 24, name: '設計圖參考', type: 'image', imageUrl: 'https://via.placeholder.com/300x150?text=Design+Layout', remarks: '' },
+            ]
+        },
+        { id: 3, name: '油漆工程', specMain: '立邦乳膠漆', unit: '式', qty: 1, price: 30000, remarks: '', specMaterial: '五加侖' },
+    ]
+};
+
+// 模擬 Context
+const AppContext = React.createContext();
+
+const AppProvider = ({ children }) => {
+    // 這裡只提供 activeQuote 數據，用於組件測試
+    const [activeQuote, setActiveQuote] = React.useState(mockQuote);
+    
+    // 模擬其他未使用的 Context 數據
+    const contextValue = React.useMemo(() => ({
+        activeQuote,
+        setActiveQuote,
+    }), [activeQuote]);
+
+    return (
+        <AppContext.Provider value={contextValue}>
+            {children}
+        </AppContext.AppContext.Provider>
+    );
+};
+
+
+// --------------------------------------------------
+// Excel 匯出按鈕 (已修正總計行號和數字格式問題)
+// --------------------------------------------------
+function ExportButton() {
+    const { activeQuote } = React.useContext(AppContext);
+
+    const handleExport = () => {
+        if (!activeQuote || activeQuote.items.length === 0) {
+            alert("請先新增報價項目。");
+            return;
+        }
+
+        const companyKey = activeQuote.company || 'herhsin';
+        const quoteData = COMPANY_DATA[companyKey] || COMPANY_DATA['herhsin'];
+
+        // 整理表格數據
+        const tableData = [];
+        let index = 1;
+
+        activeQuote.items.forEach(item => {
+            // 主項
+            tableData.push([
+                index++,
+                item.name || "未命名",
+                item.specMain,
+                item.unit,
+                item.qty,
+                item.price,
+                calcAmount(item),
+                item.remarks,
+                item.specMaterial
+            ]);
+
+            // 子項
+            (item.subItems || []).forEach(sub => {
+                const subRow = ["", "", sub.specMain || "", sub.unit || "", sub.qty || 0, sub.price || 0, 0, sub.remarks || "", sub.specMaterial || ""];
+
+                if (sub.type === 'item') {
+                    // 計入金額的子項目
+                    subRow[1] = `--- ${sub.name || "子項目"}`;
+                    subRow[6] = calcAmount(sub); // 金額 (數字)
+                    tableData.push(subRow);
+                }
+
+                if (sub.type === 'text') {
+                    // 補充文字 (內容在規格欄位 C 欄)
+                    subRow[1] = `**補充文字: ${sub.name || "無標題"}**`;
+                    subRow[2] = sub.remarks;
+                    subRow[6] = 0;
+                    tableData.push(subRow);
+                }
+
+                if (sub.type === 'image' && sub.imageUrl) {
+                    // 補充圖片 (URL 在規格欄位 C 欄)
+                    subRow[1] = `**補充圖片: ${sub.name || "無標題"}**`;
+                    subRow[2] = sub.imageUrl;
+                    subRow[6] = 0;
+                    tableData.push(subRow);
+                }
+            });
+        });
+
+        // 計算總金額
+        const total = calcTotal(activeQuote.items);
+        const negotiated = calcNegotiated(total, activeQuote.discountPercent, activeQuote.negotiatedPrice);
+
+        // 整理工作表內容
+        const header = [
+            [quoteData.name],
+            ['工程報價單'],
+            [],
+            ['報價單號:', activeQuote.quoteNo, '報價日期:', activeQuote.date],
+            ['工程名稱:', activeQuote.title],
+            ['客戶名稱:', activeQuote.customerName, '聯絡人:', activeQuote.contact, '電話:', activeQuote.phone],
+            ['工程地點:', activeQuote.location],
+            [],
+            ['項次', '品名', '規格/用料明細/補充內容', '單位', '數量', '單價', '金額(小計)', '備註(規格品)', '用料明細(規格品)'],
+        ];
+
+        // 腳部數據 (傳入未格式化的數字，以便 XLSX 進行格式化)
+        const footer = [
+            [],
+            ['總計金額 (未稅):', '', '', '', '', '', total], // <--- 傳入數字 total
+            ['折扣 (%):', activeQuote.discountPercent || '', '最終報價 (自定義):', activeQuote.negotiatedPrice || ''],
+            ['最終報價金額 (未稅):', '', '', '', '', '', negotiated], // <--- 傳入數字 negotiated
+            [],
+            ['備註 (不含稅):', ''],
+            [activeQuote.notes],
+            [],
+            ['付款條件:', ''],
+            [activeQuote.payment],
+        ];
+
+        // 組合最終數據
+        const wsData = header.concat(tableData).concat(footer);
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // 簡單樣式 - 寬度調整
+        const wscols = [
+            { wch: 6 }, { wch: 30 }, { wch: 40 }, { wch: 6 }, { wch: 8 }, 
+            { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 30 },
+        ];
+        ws['!cols'] = wscols;
+
+        // 總計金額數字格式 (位於 G 欄)
+        // 行號 = Header 長度 + TableData 長度 + 總計行在 Footer 中的位置 (從 1 開始)
+        // 總計行是 Footer 的第 2 行 (Footer[1])
+        const totalRowIndex = header.length + tableData.length + 2;
+        const totalCellRef = 'G' + totalRowIndex;
+        if(ws[totalCellRef]) ws[totalCellRef].z = '#,##0';
+        
+        // 最終報價行是 Footer 的第 4 行 (Footer[3])
+        const negotiatedRowIndex = totalRowIndex + 2;
+        const negotiatedCellRef = 'G' + negotiatedRowIndex;
+        if(ws[negotiatedCellRef]) ws[negotiatedCellRef].z = '#,##0';
+
+        // 創建工作簿
+        const wb = XLSX.utils.book_new();
+        const sheetName = (activeQuote.title || '報價單').substring(0, 30);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+        // 匯出檔案
+        const filename = `${activeQuote.quoteNo}_${activeQuote.customerName}_${activeQuote.title}.xlsx`.replace(/[\\/:*?"<>|]/g, '');
+        XLSX.writeFile(wb, filename);
+    };
+
+    return (
+        <button
+            className="bg-gray-500 text-white px-4 py-2 rounded disabled:opacity-50 hover:bg-gray-600"
+            onClick={handleExport}
+            disabled={!activeQuote || !window.XLSX}
+        >
+            導出 Excel (XLSX)
+        </button>
+    );
+}
+
+// --------------------------------------------------
+// PrintButton 組件
+// --------------------------------------------------
+function PrintButton({ quote, componentRef }) {
+    // 確保 window.ReactToPrint 存在
+    const useReactToPrint = window.ReactToPrint?.useReactToPrint;
+
+    if (!useReactToPrint) {
+        return (
+             <button disabled className="bg-red-800 text-white p-2 rounded opacity-50 no-print">
+                 列印組件未加載
+             </button>
+        );
+    }
+    
+    // 使用 useReactToPrint Hook 建立列印函式
+    const handlePrint = useReactToPrint({
+        content: () => componentRef.current,
+        documentTitle: `報價單_${quote?.customerName || '客戶'}_${quote?.quoteNo || ''}`,
+        pageStyle: '@page { size: A4; margin: 0; }',
+        // 確保列印功能準備就緒後再顯示列印對話框
+        onAfterPrint: () => console.log("列印完成"),
+    });
+
+    return (
+        <button
+            className="bg-red-800 text-white p-2 rounded hover:bg-red-700 transition no-print"
+            onClick={handlePrint}
+            disabled={!quote}
+        >
+            列印報價單
+        </button>
+    );
+}
+
+
+// --------------------------------------------------
+// 列印排版組件 (已修正 DOM 嵌套和樣式邏輯)
+// --------------------------------------------------
+
+// 集中定義表格樣式
+const PrintStyles = {
+    // 通用單元格樣式
+    TH_TD_STYLE: {
+        border: '1px solid black',
+        padding: '5px',
+        verticalAlign: 'top',
+        textAlign: 'left',
+        fontSize: '13px'
+    },
+    // 表頭樣式
+    TH_STYLE: {
+        border: '1px solid black',
+        padding: '5px',
+        verticalAlign: 'top',
+        textAlign: 'center',
+        backgroundColor: '#f0f0f0',
+        fontWeight: 'bold',
+        fontSize: '13px'
+    },
+};
+
+function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
+    
+    // 防禦性檢查
+    if (!quote || !quote.company || !COMPANY_DATA[quote.company]) {
+        if (isPreview) {
+            return <div style={{ textAlign: 'center', padding: '20px', color: '#888' }}>
+                請選擇或新增報價單以顯示預覽
+            </div>;
+        }
+        return null;
+    }
+
+    const companyInfo = COMPANY_DATA[quote.company];
+
+    const TH_TD_STYLE = PrintStyles.TH_TD_STYLE;
+    const TH_STYLE = PrintStyles.TH_STYLE;
+    // 右對齊樣式
+    const TD_ALIGN_RIGHT_STYLE = { ...TH_TD_STYLE, textAlign: 'right' };
+
+
+    // --------------------------------------------------
+    // 小計金額/最終報價總結 (用於右下角簽章區的詳細顯示)
+    // --------------------------------------------------
+    const TotalSummary = () => {
+        const hasDiscount = Number(quote.discountPercent) > 0 || Number(quote.negotiatedPrice) > 0;
+        const totalDisplay = `NT$ ${formatMoney(totalAmount)}`;
+        const negotiatedDisplay = `NT$ ${formatMoney(negotiatedAmount)}`;
+
+        return (
+            <div className="print-total-box" style={{ padding: '0px 0px 5px 0px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <tbody>
+                        <tr>
+                            <td style={{ textAlign: 'right', fontWeight: 'bold', border: 'none', padding: '2px', fontSize: '13px', width: '60%' }}>
+                                總計金額 (未稅):
+                            </td>
+                            <td style={{ textAlign: 'right', fontWeight: 'bold', border: 'none', padding: '2px', color: '#0000FF', fontSize: '13px', width: '40%' }}>
+                                {totalDisplay}
+                            </td>
+                        </tr>
+                        
+                        {hasDiscount && (
+                            <tr>
+                                <td style={{ textAlign: 'right', fontWeight: 'bold', border: 'none', padding: '2px', fontSize: '13px' }}>
+                                    最終報價金額 (未稅):
+                                </td>
+                                <td style={{ textAlign: 'right', fontWeight: 'bold', border: 'none', padding: '2px', color: '#FF0000', fontSize: '16px' }}>
+                                    {negotiatedDisplay}
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
+    // --------------------------------------------------
+    // 渲染單個報價項目
+    // --------------------------------------------------
+    const renderPrintItem = (item, index) => {
+        const rows = [];
+        // 如果 index 為 null，則視為子項目
+        const isSubItem = !index;
+        
+        // 規格描述與用料明細合併
+        const specDescription = item.specMain || "";
+        // 修正：確保 specMaterial 不為空才添加 ' | 用料明細'
+        const materialDescription = item.specMaterial ?
+            `${specDescription}${specDescription ? ' | ' : ''}用料明細: ${item.specMaterial}` : specDescription;
+        
+        // 1. 主項目行/子項目行
+        rows.push(
+            <tr key={item.id} className={isSubItem ? 'sub-item-row' : 'main-item-row'}>
+                {/* 項次 */}
+                <td style={{ ...TH_TD_STYLE, textAlign: 'center', width: '5%' }}>
+                    {isSubItem ? '' : index}
+                </td>
+                
+                {/* 品名 (子項目使用縮排) */}
+                <td style={{ ...TH_TD_STYLE, width: '20%', paddingLeft: isSubItem ? '15px' : '5px' }}>
+                    {isSubItem ? `--- ${item.name || "子項目"}` : item.name || "未命名"}
+                </td>
+                
+                {/* 規格/用料明細 */}
+                <td style={{ ...TH_TD_STYLE, width: '30%' }}>
+                    {materialDescription}
+                </td>
+                
+                {/* 單位 */}
+                <td style={{ ...TH_TD_STYLE, textAlign: 'center', width: '5%' }}>
+                    {item.unit}
+                </td>
+                
+                {/* 數量 */}
+                <td style={{ ...TH_TD_STYLE, textAlign: 'center', width: '5%' }}>
+                    {item.qty}
+                </td>
+                
+                {/* 單價 */}
+                <td style={{ ...TD_ALIGN_RIGHT_STYLE, width: '10%' }}>
+                    {formatMoney(item.price)}
+                </td>
+                
+                {/* 金額 (小計) */}
+                <td style={{ ...TD_ALIGN_RIGHT_STYLE, fontWeight: 'bold', width: '10%' }}>
+                    {formatMoney(calcAmount(item))}
+                </td>
+                
+                {/* 備註 */}
+                <td style={{ ...TH_TD_STYLE, width: '15%' }}>
+                    {item.remarks}
+                </td>
+            </tr>
+        );
+        
+        // 2. 處理子項目/補充文字/圖片
+        if (item.subItems && item.subItems.length > 0) {
+            item.subItems.forEach(sub => {
+                // 為遞歸子項目建立唯一 key
+                const subKey = `${item.id}-${sub.id}`;
+
+                if (sub.type === 'item') {
+                    // 遞歸渲染子項目
+                    rows.push(...renderPrintItem({ ...sub, id: subKey }, null));
+                } else if (sub.type === 'text') {
+                    // 補充文字
+                    rows.push(
+                        <tr key={`${subKey}-text`} className="sub-item-note">
+                            <td colSpan="8"
+                                style={{
+                                    ...TH_TD_STYLE,
+                                    padding: '2px 6px',
+                                    border: 'none',
+                                    borderLeft: '1px solid black',
+                                    borderRight: '1px solid black',
+                                    borderBottom: '1px dotted #ccc', /* 增加分隔線 */
+                                    fontStyle: 'italic',
+                                    backgroundColor: '#f9f9f9',
+                                    color: '#333'
+                                }}>
+                                <strong>{sub.name || "補充文字"}:</strong>
+                                <span style={{ whiteSpace: 'pre-wrap', margin: '0 0 0 10px' }}>
+                                    {sub.remarks}
+                                </span>
+                            </td>
+                        </tr>
+                    );
+                } else if (sub.type === 'image' && sub.imageUrl) {
+                    // 補充圖片
+                    rows.push(
+                        <tr key={`${subKey}-image`} className="sub-item-note">
+                             <td colSpan="8" style={{ ...TH_TD_STYLE, padding: '10px 6px', textAlign: 'center', border: 'none', borderLeft: '1px solid black', borderRight: '1px solid black', borderBottom: '1px dotted #ccc' }}>
+                                 <strong>{sub.name || "補充圖片"}:</strong>
+                                 <img 
+                                     src={sub.imageUrl} 
+                                     alt="補充圖片" 
+                                     className="print-image" 
+                                     style={{ maxWidth: '300px', height: 'auto', margin: '5px auto', display: 'block' }}
+                                 />
+                             </td>
+                        </tr>
+                    );
+                }
+            });
+        }
+        
+        return rows;
+    };
+    
+    // --------------------------------------------------
+    // 主要渲染
+    // --------------------------------------------------
+    return (
+        // 確保列印排版正確
+        <div className="print-page p-6" style={{ margin: '0 auto', maxWidth: '210mm', minHeight: '297mm', fontSize: '13px', fontFamily: 'sans-serif', backgroundColor: 'white' }}>
+            
+            {/* 標頭：公司資訊 */}
+            <div className="print-header mb-4" style={{ marginBottom: '15px' }}>
+                <h1 style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', margin: '0' }}>
+                    {companyInfo.name}
+                </h1>
+                <div style={{ textAlign: 'center', fontSize: '12px' }}>
+                    統一編號: XXX | 電話: {companyInfo.tel} | 傳真: {companyInfo.fax} | Email: {companyInfo.email}
+                </div>
+                <div style={{ textAlign: 'center', fontSize: '12px', marginBottom: '15px' }}>
+                    地址: {companyInfo.address}
+                </div>
+                <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', margin: '0', borderBottom: '2px solid #333', paddingBottom: '5px' }}>
+                    工程報價單
+                </h2>
+            </div>
+
+            {/* 客戶/工程資訊表格 */}
+            <table className="print-info-table mb-4" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '15px' }}>
+                <tbody>
+                    <tr>
+                        <td style={{ ...TH_STYLE, width: '15%' }} className="print-info-label">客戶名稱:</td>
+                        <td style={{ ...TH_TD_STYLE, width: '35%' }}>{quote.customerName}</td>
+                        <td style={{ ...TH_STYLE, width: '15%' }} className="print-info-label">聯絡人:</td>
+                        <td style={{ ...TH_TD_STYLE, width: '35%' }}>{quote.contact}</td>
+                    </tr>
+                    <tr>
+                        <td style={TH_STYLE} className="print-info-label">工程名稱:</td>
+                        <td style={TH_TD_STYLE}>{quote.title}</td>
+                        <td style={TH_STYLE} className="print-info-label">報價日期:</td>
+                        <td style={TH_TD_STYLE}>{quote.date}</td>
+                    </tr>
+                    <tr>
+                        <td style={TH_STYLE} className="print-info-label">報價單號:</td>
+                        <td style={TH_TD_STYLE}>{quote.quoteNo}</td>
+                        <td style={TH_STYLE} className="print-info-label">電話:</td>
+                        <td style={TH_TD_STYLE}>{quote.phone}</td>
+                    </tr>
+                    <tr>
+                        <td style={TH_STYLE} className="print-info-label">工程地點:</td>
+                        <td colSpan="3" style={TH_TD_STYLE}>{quote.location}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            {/* 報價項目表格 */}
+            <table className="print-items-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '15px' }}>
+                <thead>
+                    <tr>
+                        <th style={{ ...TH_STYLE, width: '5%' }}>項次</th>
+                        <th style={{ ...TH_STYLE, width: '20%' }}>品名</th>
+                        <th style={{ ...TH_STYLE, width: '30%' }}>規格 / 用料明細</th>
+                        <th style={{ ...TH_STYLE, width: '5%' }}>單位</th>
+                        <th style={{ ...TH_STYLE, width: '5%' }}>數量</th>
+                        <th style={{ ...TH_STYLE, width: '10%' }}>單價</th>
+                        <th style={{ ...TH_STYLE, width: '10%' }}>金額 (小計)</th>
+                        <th style={{ ...TH_STYLE, width: '15%' }}>備註</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {/* 渲染所有項目和子項目 */}
+                    {quote.items.map((item, index) => renderPrintItem(item, index + 1))}
+                    
+                    {/* 表格底部總計行 (最終報價若有折扣/自定義價格，會略過此行，以右下角為準) */}
+                    <tr>
+                        <td colSpan="6" style={{ ...TH_TD_STYLE, textAlign: 'right', fontWeight: 'bold', fontSize: '14px', borderRight: 'none' }}>
+                            總計金額 (未稅):
+                        </td>
+                        <td style={{ ...TD_ALIGN_RIGHT_STYLE, fontWeight: 'bold', fontSize: '15px', color: 'blue', borderLeft: 'none' }}>
+                            {formatMoney(totalAmount)}
+                        </td>
+                        <td style={TH_TD_STYLE}></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            {/* 備註 / 付款條件 / 簽章區 */}
+            <div className='print-footer-container' style={{ display: 'flex', marginTop: '30px' }}>
+                
+                {/* 左側：備註與付款條件 (佔 60%) */}
+                <div style={{ flex: '2', marginRight: '20px' }}>
+                    <div className="print-notes-box" style={{ width: '100%', border: '1px solid black', padding: '10px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 'bold', margin: '0 0 5px 0', borderBottom: '1px dotted #ccc', paddingBottom: '3px' }}>備註 (不含稅):</h3>
+                        <div style={{ whiteSpace: 'pre-wrap', margin: '0 0 10px 0', fontSize: '12px', minHeight: '50px' }}>{quote.notes}</div>
+                        
+                        <h3 style={{ fontSize: '14px', fontWeight: 'bold', margin: '10px 0 5px 0', borderBottom: '1px dotted #ccc', paddingBottom: '3px' }}>付款條件:</h3>
+                        <div style={{ whiteSpace: 'pre-wrap', margin: '0', fontSize: '12px', minHeight: '30px' }}>{quote.payment}</div>
+                    </div>
+                </div>
+
+                {/* 右側：總結金額與簽章區 (佔 40%) */}
+                <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
+                    
+                    {/* 最終報價總結 (包含折扣/自定義價格) */}
+                    <div style={{ border: '1px solid black', padding: '5px', marginBottom: '10px', backgroundColor: '#eee' }}>
+                         <TotalSummary />
+                    </div>
+
+                    {/* 簽章表格 */}
+                    <table style={{ width: '100%', borderCollapse: 'collapse', flexGrow: '1' }}>
+                        <tbody>
+                            <tr>
+                                <td style={{ ...TH_STYLE, width: '50%', height: '20px' }}>報價公司簽章:</td>
+                                <td style={{ ...TH_STYLE, width: '50%', height: '20px' }}>客戶確認簽章:</td>
+                            </tr>
+                            <tr style={{ height: '70px', verticalAlign: 'bottom', position: 'relative' }}>
+                                <td style={{ ...TH_TD_STYLE, position: 'relative' }}>
+                                    {/* 印章圖應顯示在簽章區上方 */}
+                                    <img 
+                                        src={companyInfo.stamp} 
+                                        alt="公司印章" 
+                                        style={{ maxWidth: '60px', height: 'auto', position: 'absolute', top: '5px', left: '50%', transform: 'translateX(-50%)' }}
+                                    />
+                                    <div style={{ marginTop: '10px' }}>
+                                        代表人: __________________
+                                    </div>
+                                </td>
+                                <td style={TH_TD_STYLE}>
+                                    代表人: __________________
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={TH_TD_STYLE}>
+                                    日期: __________________
+                                </td>
+                                <td style={TH_TD_STYLE}>
+                                    日期: __________________
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            {/* 頁腳 */}
+            <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: '#666' }}>
+                {companyInfo.address}
+            </div>
+
+        </div>
+    );
+}
+
+// --------------------------------------------------
+// 應用程式根部 (App)
+// --------------------------------------------------
+function App() {
+    const { activeQuote } = React.useContext(AppContext);
+
+    // 計算總金額 (使用 useMemo 確保性能)
+    const totalAmount = React.useMemo(() => activeQuote ? calcTotal(activeQuote.items) : 0, [activeQuote]);
+    const negotiatedAmount = React.useMemo(() => {
+        return activeQuote ? calcNegotiated(totalAmount, activeQuote.discountPercent, activeQuote.negotiatedPrice) : 0;
+    }, [activeQuote, totalAmount]);
+    
+    // 建立用於 PrintButton 的 Ref
+    const componentRef = React.useRef(null);
+
+    return (
+        <div className="min-h-screen bg-gray-50 flex">
+            
+            {/* 左側邊欄/工具區 */}
+            <div className="w-64 bg-white p-4 shadow-lg flex-shrink-0 sticky top-0 h-screen overflow-y-auto no-print">
+                <h1 className="text-xl font-extrabold mb-6 text-center text-blue-700">工程報價系統</h1>
+                {/* 模擬其他組件的佔位符 */}
+                <div className='mb-4'>
+                    <button className="bg-blue-500 text-white w-full py-2 rounded mb-2">CompanySelector</button>
+                    <button className="bg-blue-500 text-white w-full py-2 rounded mb-2">ModeSelector</button>
+                    <button className="bg-blue-500 text-white w-full py-2 rounded">QuoteList</button>
+                </div>
+
+                <div className='mt-8'>
+                    <ExportButton />
+                </div>
+            </div>
+            
+            {/* 右側內容區 (模擬 QuoteEditor) */}
+            <div className="flex-grow p-8">
+                
+                {/* 列印按鈕 */}
+                <div className='flex justify-end mb-4 no-print'>
+                    <PrintButton 
+                        quote={activeQuote} 
+                        componentRef={componentRef} 
+                    />
+                </div>
+                
+                {/* 報價單預覽區 (使用 ref 綁定，以供列印) */}
+                <div 
+                    className="bg-white shadow-xl p-0 border border-gray-300 overflow-auto" 
+                    style={{ height: 'calc(100vh - 80px)' }}>
+                    <div ref={componentRef}>
+                        <PrintLayout 
+                            quote={activeQuote} 
+                            totalAmount={totalAmount} 
+                            negotiatedAmount={negotiatedAmount}
+                            isPreview={true} 
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --------------------------------------------------
+// 啟動應用程式
+// --------------------------------------------------
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <AppProvider>
+    <App />
+  </AppProvider>
+);
+</script>
+</body>
+</html>
