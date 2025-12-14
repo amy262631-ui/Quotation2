@@ -1413,9 +1413,21 @@ const renderPrintItem = (item, index) => {
     const isMainItem = !item.isSubItem;
 
     const specDescription = item.specMain || "";
-    const materialDescription = item.specMaterial
-        ? `${specDescription}${specDescription ? " | " : ""}用料明細: ${item.specMaterial}`
+
+// ✅ 把用料 1~3 動態組合
+const materialParts = [
+    item.material1,
+    item.material2,
+    item.material3
+].filter(v => v && v.trim() !== "");
+
+const materialText = materialParts.join("、");
+
+const materialDescription =
+    materialText
+        ? `${specDescription}${specDescription ? " | " : ""}用料明細：${materialText}`
         : specDescription;
+
 
     /* === 主品項列 === */
     rows.push(
