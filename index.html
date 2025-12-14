@@ -31,49 +31,49 @@
   }
 
   /* =========================
-     列印樣式（關鍵）
-     ========================= */
-  @media print {
+   列印樣式（圖片不消失版）
+   ========================= */
+@media print {
 
-  /* 不列印編輯介面（只藏有 .no-print 的區塊） */
+  /* 不列印編輯介面 */
   .no-print {
     display: none !important;
   }
 
-  /* ❌【已移除】不能再隱藏 #root，否則圖片/預覽會消失 */
-  /* #root {
-       display: none !important;
-     }
-  */
+  /* ❌ 千萬不要隱藏 #root */
 
-  /* ===== 表格跨頁時，自動重複表頭 ===== */
+  /* 表格跨頁重複表頭 */
   thead {
     display: table-header-group;
   }
 
-  tfoot {
-    display: table-footer-group;
+  /* 圖片列印保證顯示 */
+  img {
+    display: block !important;
+    visibility: visible !important;
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
   }
 
-  /* ===== 頁首（公司資訊＋圖片）避免被切斷 ===== */
+  /* 頁首不被切 */
   .print-header {
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* ===== 避免單一品項被切成兩頁 ===== */
+  /* 單一列不被切 */
   tr {
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* ===== 印章 / 簽名區只出現在最後一頁、不被切 ===== */
+  /* 印章區 */
   .print-signature-area {
     page-break-inside: avoid;
     break-inside: avoid;
   }
 
-  /* ===== A4 版面設定 ===== */
   @page {
     size: A4;
     margin: 15mm;
