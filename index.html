@@ -1461,30 +1461,33 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                             </td>
                         </tr>
                     );
-                } else if (sub.type === 'image' && sub.imageUrl) {
-                    rows.push(
-                        <tr key={sub.id + '-image'} className="sub-item-note">
-                            <td colSpan="8"
-                                style={{ 
-                                    ...TH_TD_STYLE,
-                                    padding: '2px 6px',
-                                    borderLeft: 'none',
-                                    borderRight: 'none',
-                                    textAlign: 'center'
-                                }}>
-                                <strong>{sub.name || "補充圖片"}:</strong>
-                                <img
-                                    src={sub.imageUrl}
-                                    alt="補充圖片"
-                                    className="print-image"
-                                    style={{ maxWidth: '400px', height: 'auto', margin: '5px auto', display: 'block' }}
-                                />
-                            </td>
-                        </tr>
-                    );
-                }
-            });
-        }
+                } else if (sub.type === 'image' && sub.imageData) {
+    rows.push(
+        <tr key={sub.id + '-image'} className="sub-item-note">
+            <td colSpan="8"
+                style={{ 
+                    ...TH_TD_STYLE,
+                    padding: '6px',
+                    borderLeft: 'none',
+                    borderRight: 'none',
+                    textAlign: 'center'
+                }}>
+                <strong>{sub.name || "補充圖片"}:</strong>
+                <img
+                    src={sub.imageData}
+                    alt="補充圖片"
+                    style={{
+                        maxWidth: '100%',
+                        maxHeight: '250px',
+                        margin: '8px auto',
+                        display: 'block'
+                    }}
+                />
+            </td>
+        </tr>
+    );
+}
+
         
         return rows;
     };
