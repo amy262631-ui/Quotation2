@@ -1480,14 +1480,16 @@ const renderPrintItem = (item, index) => {
                                 補充圖片
                             </div>
                             <img
-                                src={sub.imageData}
-                                alt="補充圖片"
-                                style={{
-                                    maxWidth: "100%",
-                                    maxHeight: "250px",
-                                    border: "1px solid #000"
-                                }}
-                            />
+    src={sub.imageData}
+    alt="補充圖片"
+    style={{
+        display: "block",
+        margin: "0 auto",        // ⬅️ 關鍵：左右自動
+        maxWidth: "90%",         // 留白比較好看
+        maxHeight: "250px",
+        border: "1px solid #000"
+    }}
+/>
                         </td>
                     </tr>
                 );
