@@ -640,7 +640,7 @@ function QuoteList() {
 }
 
 /***********************************************************
- * P4-2 — 單一報價項目編輯（保持資料結構）
+ * P4-2 — 單一報價項目編輯（改為補充圖片＝電腦選檔）
  ***********************************************************/
 function QuoteItem({ item, index, updateItem, deleteItem }) {
     const [showSub, setShowSub] = React.useState(true);
@@ -649,6 +649,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
         updateItem({ [field]: value });
     };
 
+    /* ===== 新增子項：文字 ===== */
     const handleAddSubText = () => {
         const newSub = {
             id: uuid(),
@@ -659,14 +660,23 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
         updateItem({ subItems: [...(item.subItems || []), newSub] });
     };
 
-    const handleAddSubImage = () => {
-        const newSub = {
-            id: uuid(),
-            type: "image",
-            name: "",
-            imageUrl: "",
+    /* ===== 新增子項：圖片（電腦選檔） ===== */
+    const handleAddSubImage = (file) => {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const newSub = {
+                id: uuid(),
+                type: "image",
+                name: "",
+                imageData: reader.result, // base64
+            };
+            updateItem({
+                subItems: [...(item.subItems || []), newSub],
+            });
         };
-        updateItem({ subItems: [...(item.subItems || []), newSub] });
+        reader.readAsDataURL(file);
     };
 
     const handleUpdateSub = (subId, data) => {
@@ -703,6 +713,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                 </div>
             </div>
 
+            {/* ===== 主項目欄位 ===== */}
             <div className="grid grid-cols-6 gap-2 text-sm">
                 <div className="col-span-2">
                     <label className="block text-xs text-gray-600">品名</label>
@@ -713,6 +724,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                         onChange={(e) => handleChange("name", e.target.value)}
                     />
                 </div>
+
                 <div>
                     <label className="block text-xs text-gray-600">單位</label>
                     <input
@@ -722,6 +734,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                         onChange={(e) => handleChange("unit", e.target.value)}
                     />
                 </div>
+
                 <div>
                     <label className="block text-xs text-gray-600">數量</label>
                     <input
@@ -731,6 +744,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                         onChange={(e) => handleChange("qty", Number(e.target.value))}
                     />
                 </div>
+
                 <div>
                     <label className="block text-xs text-gray-600">單價</label>
                     <input
@@ -740,6 +754,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                         onChange={(e) => handleChange("price", Number(e.target.value))}
                     />
                 </div>
+
                 <div>
                     <label className="block text-xs text-gray-600">小計</label>
                     <div className="w-full border rounded px-2 py-1 bg-gray-100 text-right">
@@ -748,7 +763,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                 </div>
 
                 <div className="col-span-3">
-                    <label className="block text-xs text-gray-600">規格說明 (specMain)</label>
+                    <label className="block text-xs text-gray-600">規格說明</label>
                     <textarea
                         className="w-full border rounded px-2 py-1"
                         rows="2"
@@ -756,8 +771,9 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                         onChange={(e) => handleChange("specMain", e.target.value)}
                     />
                 </div>
+
                 <div className="col-span-3">
-                    <label className="block text-xs text-gray-600">用料明細 (specMaterial)</label>
+                    <label className="block text-xs text-gray-600">用料明細</label>
                     <textarea
                         className="w-full border rounded px-2 py-1"
                         rows="2"
@@ -777,23 +793,30 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                 </div>
             </div>
 
+            {/* ===== 子項目 / 補充說明 ===== */}
             {showSub && (
                 <div className="mt-3 border-t pt-2">
                     <div className="flex justify-between items-center mb-2 text-sm">
                         <span className="font-semibold">子項目 / 補充說明</span>
                         <div className="flex gap-2">
+
                             <button
                                 className="text-xs px-2 py-1 bg-gray-200 rounded"
                                 onClick={handleAddSubText}
                             >
                                 + 補充文字
                             </button>
-                            <button
-                                className="text-xs px-2 py-1 bg-gray-200 rounded"
-                                onClick={handleAddSubImage}
-                            >
+
+                            {/* 補充圖片：電腦選檔 */}
+                            <label className="text-xs px-2 py-1 bg-gray-200 rounded cursor-pointer">
                                 + 補充圖片
-                            </button>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleAddSubImage(e.target.files[0])}
+                                />
+                            </label>
                         </div>
                     </div>
 
@@ -807,7 +830,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                         <div key={sub.id} className="mb-2 p-2 border rounded bg-gray-50 text-xs">
                             <div className="flex justify-between mb-1">
                                 <div>
-                                    類型：{sub.type === "text" ? "補充文字" : sub.type === "image" ? "補充圖片" : sub.type}
+                                    類型：{sub.type === "text" ? "補充文字" : "補充圖片"}
                                 </div>
                                 <button
                                     className="text-red-500"
@@ -816,6 +839,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                                     刪除
                                 </button>
                             </div>
+
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="block text-[11px] text-gray-600">名稱</label>
@@ -823,9 +847,12 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                                         type="text"
                                         className="w-full border rounded px-1 py-1"
                                         value={sub.name || ""}
-                                        onChange={(e) => handleUpdateSub(sub.id, { name: e.target.value })}
+                                        onChange={(e) =>
+                                            handleUpdateSub(sub.id, { name: e.target.value })
+                                        }
                                     />
                                 </div>
+
                                 {sub.type === "text" && (
                                     <div className="col-span-2">
                                         <label className="block text-[11px] text-gray-600">內容</label>
@@ -833,18 +860,19 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                                             className="w-full border rounded px-1 py-1"
                                             rows="2"
                                             value={sub.remarks || ""}
-                                            onChange={(e) => handleUpdateSub(sub.id, { remarks: e.target.value })}
+                                            onChange={(e) =>
+                                                handleUpdateSub(sub.id, { remarks: e.target.value })
+                                            }
                                         />
                                     </div>
                                 )}
-                                {sub.type === "image" && (
+
+                                {sub.type === "image" && sub.imageData && (
                                     <div className="col-span-2">
-                                        <label className="block text-[11px] text-gray-600">圖片網址</label>
-                                        <input
-                                            type="text"
-                                            className="w-full border rounded px-1 py-1"
-                                            value={sub.imageUrl || ""}
-                                            onChange={(e) => handleUpdateSub(sub.id, { imageUrl: e.target.value })}
+                                        <img
+                                            src={sub.imageData}
+                                            className="max-h-32 mt-1 border"
+                                            alt="補充圖片"
                                         />
                                     </div>
                                 )}
@@ -856,6 +884,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
         </div>
     );
 }
+
 
 /***********************************************************
  * P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
