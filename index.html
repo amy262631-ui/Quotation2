@@ -904,8 +904,7 @@ function QuoteEditor() {
         );
     }
     
-    // ✨ 列印專用 ref
-    const componentRef = React.useRef(null);
+ 
     
     const handleChange = (field, value) => {
         updateQuote(activeQuote.id, { [field]: value });
