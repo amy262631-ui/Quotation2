@@ -1170,24 +1170,24 @@ function ExportButton() {
                 }
                 
                 if (sub.type === 'text') {
-                     tableData.push([
-                        "", 
-                        `**補充文字: ${sub.name || "無標題"}**`, 
-                        sub.remarks,
-                        "", "", "", 0,
-                        "", "" 
-                    ]);
-                }
-                
-                if (sub.type === 'image' && sub.imageUrl) {
-                     tableData.push([
-                        "", 
-                        `**補充圖片: ${sub.name || "無標題"}**`, 
-                        sub.imageUrl,
-                        "", "", "", 0, 
-                        "", "" 
-                    ]);
-                }
+  tableData.push([
+    "",
+    `補充文字：${sub.name || "無標題"}`,
+    sub.remarks || "",
+    "", "", "", 0,
+    "", ""
+  ]);
+}
+
+if (sub.type === 'image' && sub.imageData) {
+  tableData.push([
+    "",
+    `補充圖片：${sub.name || "未命名"}`,
+    "（圖片請參考報價單列印版本）",
+    "", "", "", 0,
+    "", ""
+  ]);
+}
             });
         });
         
