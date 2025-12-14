@@ -1395,10 +1395,9 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
  /* ========= 品項列（主列 + 用料明細 + 補充項） ========= */
 const renderPrintItem = (item, index) => {
-    console.log("PRINT ITEM", item);
   const rows = [];
 
-  /* ===== 主列（只顯示規格） ===== */
+  // ===== 主列（規格）=====
   rows.push(
     <tr key={item.id}>
       <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{index}</td>
@@ -1414,47 +1413,29 @@ const renderPrintItem = (item, index) => {
     </tr>
   );
 
-  /* ===== 用料明細（獨立下一行，來源統一） ===== */
-  const materialText =
-    item.specMaterial ||
-    item.materialDetail ||
-    item.material ||
-    [item.material1, item.material2, item.material3]
-      .filter(v => v && v.trim())
-      .join("、") ||
-    "";
-
-  if (materialText) {
+  // ===== 用料明細（你現在這裡一定有資料）=====
+  if (item.specMaterial && item.specMaterial.trim()) {
     rows.push(
       <tr key={item.id + "-material"}>
         <td></td>
-        <td
-          colSpan={7}
-          style={{
-            ...TH_TD_STYLE,
-            background: "#fafafa",
-            fontSize: "12px"
-          }}
-        >
+        <td colSpan={7} style={{ ...TH_TD_STYLE, background: "#fafafa" }}>
           <strong>用料明細：</strong>
           <span style={{ whiteSpace: "pre-wrap" }}>
-            {materialText}
+            {item.specMaterial}
           </span>
         </td>
       </tr>
     );
   }
 
-  /* ===== 補充項目 ===== */
+  // ===== 補充項目 =====
   (item.subItems || []).forEach(sub => {
     if (sub.type === "text" && sub.remarks) {
       rows.push(
         <tr key={sub.id}>
           <td colSpan={8} style={TH_TD_STYLE}>
             <strong>補充說明：</strong>
-            <div style={{ whiteSpace: "pre-wrap" }}>
-              {sub.remarks}
-            </div>
+            <div style={{ whiteSpace: "pre-wrap" }}>{sub.remarks}</div>
           </td>
         </tr>
       );
@@ -1483,7 +1464,6 @@ const renderPrintItem = (item, index) => {
 
   return rows;
 };
-
 
   return (
     <div className="print-page">
