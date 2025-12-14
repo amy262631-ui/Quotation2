@@ -1393,28 +1393,9 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
     );
   };
 
-  /* ========= 品項列 ========= */
-  const renderPrintItem = (item, index) => {
-    const rows = [];
-
-    // 主列（只顯示規格）
-    rows.push(
-      <tr key={item.id}>
-        <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{index}</td>
-        <td style={TH_TD_STYLE}>{item.name || ""}</td>
-        <td style={TH_TD_STYLE}>{item.specMain || ""}</td>
-        <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.unit}</td>
-        <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.qty}</td>
-        <td style={TD_RIGHT}>{formatMoney(item.price)}</td>
-        <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
-          {formatMoney(calcAmount(item))}
-        </td>
-        <td style={TH_TD_STYLE}>{item.remarks || ""}</td>
-      </tr>
-    );
-
-/* ========= 品項列（主列 + 用料明細 + 補充項） ========= */
+ /* ========= 品項列（主列 + 用料明細 + 補充項） ========= */
 const renderPrintItem = (item, index) => {
+    console.log("PRINT ITEM", item);
   const rows = [];
 
   /* ===== 主列（只顯示規格） ===== */
@@ -1433,7 +1414,7 @@ const renderPrintItem = (item, index) => {
     </tr>
   );
 
-  /* ===== 用料明細（統一抓取來源，只顯示一次） ===== */
+  /* ===== 用料明細（獨立下一行，來源統一） ===== */
   const materialText =
     item.specMaterial ||
     item.materialDetail ||
@@ -1456,7 +1437,9 @@ const renderPrintItem = (item, index) => {
           }}
         >
           <strong>用料明細：</strong>
-          <span style={{ whiteSpace: "pre-wrap" }}>{materialText}</span>
+          <span style={{ whiteSpace: "pre-wrap" }}>
+            {materialText}
+          </span>
         </td>
       </tr>
     );
@@ -1469,7 +1452,9 @@ const renderPrintItem = (item, index) => {
         <tr key={sub.id}>
           <td colSpan={8} style={TH_TD_STYLE}>
             <strong>補充說明：</strong>
-            <div style={{ whiteSpace: "pre-wrap" }}>{sub.remarks}</div>
+            <div style={{ whiteSpace: "pre-wrap" }}>
+              {sub.remarks}
+            </div>
           </td>
         </tr>
       );
