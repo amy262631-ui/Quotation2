@@ -1407,46 +1407,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         );
     };
 
-   /* ========= 品項列（支援補充文字 / 補充圖片 / 列印跨頁） ========= */
-const renderPrintItem = (item, index) => {
-    const rows = [];
-    const isMainItem = !item.isSubItem;
-
-    const specDescription = item.specMain || "";
-
-// ✅ 把用料 1~3 動態組合
-const materialParts = [
-    item.material1,
-    item.material2,
-    item.material3
-].filter(v => v && v.trim() !== "");
-
-const materialText = materialParts.join("、");
-
-const materialDescription =
-    materialText
-        ? `${specDescription}${specDescription ? " | " : ""}用料明細：${materialText}`
-        : specDescription;
-
-
-    /* === 主品項列 === */
-    rows.push(
-        <tr key={item.id} style={{ pageBreakInside: "avoid" }}>
-            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>
-                {isMainItem ? index : ""}
-            </td>
-            <td style={TH_TD_STYLE}>{item.name}</td>
-            <td style={TH_TD_STYLE}>{materialDescription}</td>
-            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.unit}</td>
-            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.qty}</td>
-            <td style={TD_ALIGN_RIGHT_STYLE}>{formatMoney(item.price)}</td>
-            <td style={{ ...TD_ALIGN_RIGHT_STYLE, fontWeight: "bold" }}>
-                {formatMoney(calcAmount(item))}
-            </td>
-            <td style={TH_TD_STYLE}>{item.remarks}</td>
-        </tr>
-    );
-
+ 
 /* ========= 品項列（主列 + 用料明細獨立一行 + 補充文字 / 圖片） ========= */
 const renderPrintItem = (item, index) => {
     const rows = [];
