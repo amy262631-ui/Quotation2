@@ -24,26 +24,47 @@
     <!-- XLSX：匯出用 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-   <style>
+ <style>
   body {
     background: #f3f4f6;
     font-family: "Microsoft JhengHei", sans-serif;
   }
-/* ===== 實時預覽外框（非列印） ===== */
+
+  /* ===== 實時預覽區（灰底） ===== */
   .live-preview-box {
+    padding: 40px 0;
     background: #f3f4f6;
-    padding: 30px 0;
   }
 
-  /* ===== A4 預覽紙張尺寸 ===== */
+  /* ===== A4 紙張預覽（重點） ===== */
   .print-page {
-    width: 794px;            /* A4 寬度 */
-    min-height: 1123px;      /* A4 高度 */
-    margin: 0 auto;          /* 置中 */
+    width: 794px;              /* A4 寬 */
+    min-height: 1123px;        /* A4 高 */
+    margin: 0 auto;            /* 置中 */
     background: #ffffff;
     padding: 20px;
     box-shadow: 0 0 12px rgba(0,0,0,0.15);
     box-sizing: border-box;
+  }
+
+  /* ===== 列印時用真正 A4（不影響預覽） ===== */
+  @media print {
+    body {
+      background: #ffffff;
+    }
+
+    .live-preview-box {
+      padding: 0;
+      background: #ffffff;
+    }
+
+    .print-page {
+      width: auto;
+      min-height: auto;
+      box-shadow: none;
+      padding: 0;
+      margin: 0;
+    }
   }
 </style>
   /* =========================
