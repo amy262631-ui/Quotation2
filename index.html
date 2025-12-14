@@ -1413,44 +1413,30 @@ const renderPrintItem = (item, index) => {
     const rows = [];
     const isMainItem = !item.isSubItem;
 
-    /* === 主品項列（只放規格） === */
+    /* === 主品項列：只放規格 === */
     rows.push(
-        <tr key={item.id} style={{ pageBreakInside: "avoid" }}>
+        <tr key={item.id}>
             <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>
                 {isMainItem ? index : ""}
             </td>
             <td style={TH_TD_STYLE}>{item.name || ""}</td>
-            <td style={TH_TD_STYLE}>
-                {item.specMain || ""}
-            </td>
-            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>
-                {item.unit}
-            </td>
-            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>
-                {item.qty}
-            </td>
-            <td style={TD_ALIGN_RIGHT_STYLE}>
-                {formatMoney(item.price)}
-            </td>
+            <td style={TH_TD_STYLE}>{item.specMain || ""}</td>
+            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.unit}</td>
+            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.qty}</td>
+            <td style={TD_ALIGN_RIGHT_STYLE}>{formatMoney(item.price)}</td>
             <td style={{ ...TD_ALIGN_RIGHT_STYLE, fontWeight: "bold" }}>
                 {formatMoney(calcAmount(item))}
             </td>
-            <td style={TH_TD_STYLE}>
-                {item.remarks || ""}
-            </td>
+            <td style={TH_TD_STYLE}>{item.remarks || ""}</td>
         </tr>
     );
 
-    /* === 用料明細：獨立下一行 === */
+    /* === 用料明細：獨立下一行（吃 specMaterial） === */
     if (item.specMaterial && item.specMaterial.trim() !== "") {
         rows.push(
-            <tr
-                key={item.id + "-material"}
-                style={{ pageBreakInside: "avoid" }}
-            >
-                <td style={TH_TD_STYLE}></td>
-                <td
-                    colSpan={7}
+            <tr key={item.id + "-material"}>
+                <td></td>
+                <td colSpan={7}
                     style={{
                         ...TH_TD_STYLE,
                         background: "#fafafa",
@@ -1466,6 +1452,8 @@ const renderPrintItem = (item, index) => {
         );
     }
 
+    return rows;
+};
     /* === 子項目（補充文字 / 補充圖片） === */
     if (Array.isArray(item.subItems)) {
         item.subItems.forEach(sub => {
