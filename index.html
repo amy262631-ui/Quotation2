@@ -715,15 +715,43 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
 
             {/* ===== 主項目欄位 ===== */}
             <div className="grid grid-cols-6 gap-2 text-sm">
-                <div className="col-span-2">
-                    <label className="block text-xs text-gray-600">品名</label>
-                    <input
-                        type="text"
-                        className="w-full border rounded px-2 py-1"
-                        value={item.name || ""}
-                        onChange={(e) => handleChange("name", e.target.value)}
-                    />
-                </div>
+                {/* ===== 品名（Autocomplete：可手打＋可下拉） ===== */}
+<div className="col-span-2">
+  <label className="block text-xs text-gray-600">品名</label>
+
+  <input
+    type="text"
+    list={`spec-list-${item.id}`}
+    className="w-full border rounded px-2 py-1"
+    value={item.name || ""}
+    onChange={(e) => {
+      const value = e.target.value;
+      handleChange("name", value);
+
+      // 🔍 嘗試從 specItems 找對應資料
+      const hit = specItems.find(
+        s => s.name === value || s.spec === value
+      );
+
+      if (hit) {
+        handleChange("specMain", hit.spec || hit.specMain || "");
+        handleChange("specMaterial", hit.material || hit.specMaterial || "");
+        if (hit.unit) handleChange("unit", hit.unit);
+      }
+    }}
+  />
+
+  {/* 下拉資料來源（Google Sheet） */}
+  <datalist id={`spec-list-${item.id}`}>
+    {specItems.map((s, i) => (
+      <option
+        key={i}
+        value={s.name || s.spec}
+      />
+    ))}
+  </datalist>
+</div>
+
 
                 <div>
                     <label className="block text-xs text-gray-600">單位</label>
