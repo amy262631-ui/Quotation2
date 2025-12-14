@@ -1482,64 +1482,6 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         </div>
     );
 }
-/>
-
-            {/* ================= 備註 / 付款 ================= */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
-                <tbody>
-                    <tr>
-                        <td style={{ ...TH_TD_STYLE, width: '50%' }}>
-                            <strong>備註 (不含稅)</strong><br />
-                            <div style={{ whiteSpace: 'pre-wrap' }}>{quote.notes}</div>
-                        </td>
-                        <td style={{ ...TH_TD_STYLE, width: '50%' }}>
-                            <strong>付款條件</strong><br />
-                            <div style={{ whiteSpace: 'pre-wrap' }}>{quote.payment}</div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-
-            {/* ================= 簽章區（只在最後一頁） ================= */}
-            <div
-                className="print-signature-area"
-                style={{ marginTop: '30px', pageBreakInside: 'avoid' }}
-            >
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <tbody>
-                        <tr>
-                            <td style={{ ...TH_TD_STYLE, width: '50%', fontWeight: 'bold' }}>
-                                公司報價章
-                            </td>
-                            <td style={{ ...TH_TD_STYLE, width: '50%', fontWeight: 'bold' }}>
-                                客戶回簽欄
-                            </td>
-                        </tr>
-                        <tr style={{ height: '120px' }}>
-                            <td style={TH_TD_STYLE}>
-                                <img
-                                    src={companyInfo.stamp}
-                                    alt="公司印章"
-                                    style={{ maxHeight: '70px', display: 'block', margin: '10px auto' }}
-                                />
-                                <div style={{ borderTop: '1px solid #000' }}>代表人：</div>
-                            </td>
-                            <td style={TH_TD_STYLE}>
-                                <div style={{ height: '70px' }}></div>
-                                <div style={{ borderTop: '1px solid #000' }}>代表人：</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style={TH_TD_STYLE}>日期：</td>
-                            <td style={TH_TD_STYLE}>日期：</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-        </div>
-    );
-}
 
 
 /***********************************************************
