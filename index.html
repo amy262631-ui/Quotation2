@@ -643,7 +643,9 @@ function QuoteList() {
  * P4-2 — 單一報價項目編輯（改為補充圖片＝電腦選檔）
  ***********************************************************/
 function QuoteItem({ item, index, updateItem, deleteItem }) {
+    const { specItems } = React.useContext(AppContext); // ✅ 加這行
     const [showSub, setShowSub] = React.useState(true);
+
 
     const handleChange = (field, value) => {
         updateItem({ [field]: value });
