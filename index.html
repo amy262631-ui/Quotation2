@@ -1407,36 +1407,96 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         );
     };
 
-    /* ========= 品項列 ========= */
-    const renderPrintItem = (item, index) => {
-        const rows = [];
-        const isMainItem = !item.isSubItem;
+   /* ========= 品項列（支援補充文字 / 補充圖片 / 列印跨頁） ========= */
+const renderPrintItem = (item, index) => {
+    const rows = [];
+    const isMainItem = !item.isSubItem;
 
-        const specDescription = item.specMain || "";
-        const materialDescription = item.specMaterial
-            ? `${specDescription}${specDescription ? " | " : ""}用料明細: ${item.specMaterial}`
-            : specDescription;
+    const specDescription = item.specMain || "";
+    const materialDescription = item.specMaterial
+        ? `${specDescription}${specDescription ? " | " : ""}用料明細: ${item.specMaterial}`
+        : specDescription;
 
-        rows.push(
-            <tr key={item.id}>
-                <td style={{ ...TH_TD_STYLE, textAlign: 'center' }}>
-                    {isMainItem ? index : ""}
-                </td>
-                <td style={TH_TD_STYLE}>{item.name}</td>
-                <td style={TH_TD_STYLE}>{materialDescription}</td>
-                <td style={{ ...TH_TD_STYLE, textAlign: 'center' }}>{item.unit}</td>
-                <td style={{ ...TH_TD_STYLE, textAlign: 'center' }}>{item.qty}</td>
-                <td style={TD_ALIGN_RIGHT_STYLE}>{formatMoney(item.price)}</td>
-                <td style={{ ...TD_ALIGN_RIGHT_STYLE, fontWeight: 'bold' }}>
-                    {formatMoney(calcAmount(item))}
-                </td>
-                <td style={TH_TD_STYLE}>{item.remarks}</td>
-            </tr>
-        );
+    /* === 主品項列 === */
+    rows.push(
+        <tr key={item.id} style={{ pageBreakInside: "avoid" }}>
+            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>
+                {isMainItem ? index : ""}
+            </td>
+            <td style={TH_TD_STYLE}>{item.name}</td>
+            <td style={TH_TD_STYLE}>{materialDescription}</td>
+            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.unit}</td>
+            <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.qty}</td>
+            <td style={TD_ALIGN_RIGHT_STYLE}>{formatMoney(item.price)}</td>
+            <td style={{ ...TD_ALIGN_RIGHT_STYLE, fontWeight: "bold" }}>
+                {formatMoney(calcAmount(item))}
+            </td>
+            <td style={TH_TD_STYLE}>{item.remarks}</td>
+        </tr>
+    );
 
-        return rows;
-    };
+    /* === 子項目（補充文字 / 補充圖片） === */
+    if (Array.isArray(item.subItems)) {
+        item.subItems.forEach((sub) => {
 
+            /* ---- 補充文字 ---- */
+            if (sub.type === "text" && sub.remarks) {
+                rows.push(
+                    <tr
+                        key={sub.id}
+                        style={{ pageBreakInside: "avoid" }}
+                    >
+                        <td colSpan={8}
+                            style={{
+                                ...TH_TD_STYLE,
+                                fontStyle: "italic",
+                                background: "#fafafa"
+                            }}
+                        >
+                            <strong>補充說明：</strong>
+                            <span style={{ whiteSpace: "pre-wrap" }}>
+                                {sub.remarks}
+                            </span>
+                        </td>
+                    </tr>
+                );
+            }
+
+            /* ---- 補充圖片（重點） ---- */
+            if (sub.type === "image" && sub.imageData) {
+                rows.push(
+                    <tr
+                        key={sub.id}
+                        style={{ pageBreakInside: "avoid" }}
+                    >
+                        <td colSpan={8}
+                            style={{
+                                ...TH_TD_STYLE,
+                                textAlign: "center",
+                                padding: "8px"
+                            }}
+                        >
+                            <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+                                補充圖片
+                            </div>
+                            <img
+                                src={sub.imageData}
+                                alt="補充圖片"
+                                style={{
+                                    maxWidth: "100%",
+                                    maxHeight: "250px",
+                                    border: "1px solid #000"
+                                }}
+                            />
+                        </td>
+                    </tr>
+                );
+            }
+        });
+    }
+
+    return rows;
+};
     return (
         <div className="print-page">
 
