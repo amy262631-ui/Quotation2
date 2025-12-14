@@ -891,8 +891,11 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
  ***********************************************************/
 // 報價單編輯主元件
 function QuoteEditor() {
+    // ✅ 所有 Hooks 一定要在最前面
     const { activeQuote, updateQuote } = React.useContext(AppContext);
+    const componentRef = React.useRef(null);
 
+    // ✅ Hook 宣告完，才能 return
     if (!activeQuote) {
         return (
             <div className="p-8 text-center text-gray-500 text-xl">
