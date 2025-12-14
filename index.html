@@ -645,6 +645,9 @@ function QuoteList() {
 function QuoteItem({ item, index, updateItem, deleteItem }) {
     const { specItems } = React.useContext(AppContext); // ✅ 加這行
     const [showSub, setShowSub] = React.useState(true);
+    const [nameInput, setNameInput] = React.useState(item.name || "");
+    const [showSuggest, setShowSuggest] = React.useState(false);
+
 
 
     const handleChange = (field, value) => {
@@ -719,39 +722,45 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
             <div className="grid grid-cols-6 gap-2 text-sm">
                 {/* ===== 品名（Autocomplete：可手打＋可下拉） ===== */}
 <div className="col-span-2">
-  <label className="block text-xs text-gray-600">品名</label>
+    <label className="block text-xs text-gray-600">品名</label>
 
-  <input
-    type="text"
-    list={`spec-list-${item.id}`}
-    className="w-full border rounded px-2 py-1"
-    value={item.name || ""}
-    onChange={(e) => {
-      const value = e.target.value;
-      handleChange("name", value);
+    <input
+        type="text"
+        list={`spec-list-${item.id}`}
+        className="w-full border rounded px-2 py-1"
+        value={item.name || ""}
+        onChange={(e) => {
+            const value = e.target.value;
+            handleChange("name", value);
 
-      // 🔍 嘗試從 specItems 找對應資料
-      const hit = specItems.find(
-        s => s.name === value || s.spec === value
-      );
+            // 🔍 嘗試從 specItems 找完全相同的品名
+            const matched = specItems.find(
+                r => (r["品名"] || "") === value
+            );
 
-      if (hit) {
-        handleChange("specMain", hit.spec || hit.specMain || "");
-        handleChange("specMaterial", hit.material || hit.specMaterial || "");
-        if (hit.unit) handleChange("unit", hit.unit);
-      }
-    }}
-  />
+            if (matched) {
+                updateItem({
+                    name: matched["品名"] || "",
+                    unit: matched["單位"] || "",
+                    price: Number(matched["單價"] || 0),
+                    specMain: matched["規格"] || "",
+                    specMaterial: matched["用料明細"] || ""
+                });
+            }
+        }}
+    />
 
-  {/* 下拉資料來源（Google Sheet） */}
-  <datalist id={`spec-list-${item.id}`}>
-    {specItems.map((s, i) => (
-      <option
-        key={i}
-        value={s.name || s.spec}
-      />
-    ))}
-  </datalist>
+    {/* 🔽 下拉資料來源 */}
+    <datalist id={`spec-list-${item.id}`}>
+        {specItems.map((r, i) => (
+            <option
+                key={i}
+                value={r["品名"] || ""}
+            >
+                {r["規格"] ? `(${r["規格"]})` : ""}
+            </option>
+        ))}
+    </datalist>
 </div>
 
 
