@@ -1413,86 +1413,92 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
       </tr>
     );
 
-    // 用料明細（獨立一行）
-    // ===== 用料明細統一抓取（最穩定）=====
-const materialText =
-  item.specMaterial ||
-  item.materialDetail ||
-  item.material ||
-  [item.material1, item.material2, item.material3]
-    .filter(v => v && v.trim())
-    .join("、") ||
-  "";
+/* ========= 品項列（主列 + 用料明細 + 補充項） ========= */
+const renderPrintItem = (item, index) => {
+  const rows = [];
 
-// ===== 用料明細：獨立一行 =====
-if (materialText) {
+  /* ===== 主列（只顯示規格） ===== */
   rows.push(
-    <tr key={item.id + "-material"}>
-      <td></td>
-      <td
-        colSpan={7}
-        style={{
-          ...TH_TD_STYLE,
-          background: "#fafafa",
-          fontSize: "12px"
-        }}
-      >
-        <strong>用料明細：</strong>
-        <span style={{ whiteSpace: "pre-wrap" }}>
-          {materialText}
-        </span>
+    <tr key={item.id}>
+      <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{index}</td>
+      <td style={TH_TD_STYLE}>{item.name || ""}</td>
+      <td style={TH_TD_STYLE}>{item.specMain || ""}</td>
+      <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.unit}</td>
+      <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.qty}</td>
+      <td style={TD_RIGHT}>{formatMoney(item.price)}</td>
+      <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
+        {formatMoney(calcAmount(item))}
       </td>
+      <td style={TH_TD_STYLE}>{item.remarks || ""}</td>
     </tr>
   );
-}
 
+  /* ===== 用料明細（統一抓取來源，只顯示一次） ===== */
+  const materialText =
+    item.specMaterial ||
+    item.materialDetail ||
+    item.material ||
+    [item.material1, item.material2, item.material3]
+      .filter(v => v && v.trim())
+      .join("、") ||
+    "";
+
+  if (materialText) {
+    rows.push(
+      <tr key={item.id + "-material"}>
+        <td></td>
+        <td
+          colSpan={7}
+          style={{
+            ...TH_TD_STYLE,
+            background: "#fafafa",
+            fontSize: "12px"
+          }}
+        >
+          <strong>用料明細：</strong>
+          <span style={{ whiteSpace: "pre-wrap" }}>{materialText}</span>
+        </td>
+      </tr>
+    );
+  }
+
+  /* ===== 補充項目 ===== */
+  (item.subItems || []).forEach(sub => {
+    if (sub.type === "text" && sub.remarks) {
       rows.push(
-        <tr key={item.id + "-material"}>
-          <td></td>
-          <td colSpan={7} style={{ ...TH_TD_STYLE, background: "#fafafa" }}>
-            <strong>用料明細：</strong>
-            <span style={{ whiteSpace: "pre-wrap" }}>
-              {item.specMaterial}
-            </span>
+        <tr key={sub.id}>
+          <td colSpan={8} style={TH_TD_STYLE}>
+            <strong>補充說明：</strong>
+            <div style={{ whiteSpace: "pre-wrap" }}>{sub.remarks}</div>
           </td>
         </tr>
       );
     }
 
-    // 補充項目
-    (item.subItems || []).forEach(sub => {
-      if (sub.type === "text" && sub.remarks) {
-        rows.push(
-          <tr key={sub.id}>
-            <td colSpan={8} style={TH_TD_STYLE}>
-              <strong>補充說明：</strong>
-              <div style={{ whiteSpace: "pre-wrap" }}>{sub.remarks}</div>
-            </td>
-          </tr>
-        );
-      }
+    if (sub.type === "image" && sub.imageData) {
+      rows.push(
+        <tr key={sub.id}>
+          <td colSpan={8} style={{ ...TH_TD_STYLE, textAlign: "center" }}>
+            <img
+              src={sub.imageData}
+              alt="補充圖片"
+              style={{
+                display: "block",
+                margin: "0 auto",
+                maxWidth: "90%",
+                maxHeight: 250,
+                border: "1px solid #000"
+              }}
+            />
+          </td>
+        </tr>
+      );
+    }
+  });
 
-      if (sub.type === "image" && sub.imageData) {
-        rows.push(
-          <tr key={sub.id}>
-            <td colSpan={8} style={{ ...TH_TD_STYLE, textAlign: "center" }}>
-              <img
-                src={sub.imageData}
-                alt="補充圖片"
-                style={{
-                  maxWidth: "90%",
-                  maxHeight: 250,
-                  border: "1px solid #000"
-                }}
-              />
-            </td>
-          </tr>
-        );
-      }
-    });
+  return rows;
+};
 
-    return rows;
-  };
 
   return (
     <div className="print-page">
