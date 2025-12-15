@@ -1613,33 +1613,6 @@ if (materialText.length > 0) {
     <div className="print-page">
       {/* ===== 頁首 ===== */}
       <div style={{ textAlign: "center", marginBottom: 16 }}>
-{/* ===== 報價單基本資訊 ===== */}
-<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
-  <tbody>
-    <tr>
-      <td style={TH_TD_STYLE}><strong>報價單號</strong></td>
-      <td style={TH_TD_STYLE}>{quote.quoteNo}</td>
-      <td style={TH_TD_STYLE}><strong>報價日期</strong></td>
-      <td style={TH_TD_STYLE}>{quote.date}</td>
-    </tr>
-    <tr>
-      <td style={TH_TD_STYLE}><strong>工程名稱</strong></td>
-      <td colSpan={3} style={TH_TD_STYLE}>{quote.title}</td>
-    </tr>
-    <tr>
-      <td style={TH_TD_STYLE}><strong>客戶名稱</strong></td>
-      <td style={TH_TD_STYLE}>{quote.customerName}</td>
-      <td style={TH_TD_STYLE}><strong>聯絡人</strong></td>
-      <td style={TH_TD_STYLE}>{quote.contact}</td>
-    </tr>
-    <tr>
-      <td style={TH_TD_STYLE}><strong>聯絡電話</strong></td>
-      <td style={TH_TD_STYLE}>{quote.phone}</td>
-      <td style={TH_TD_STYLE}><strong>工程地點</strong></td>
-      <td style={TH_TD_STYLE}>{quote.location}</td>
-    </tr>
-  </tbody>
-</table>
 
   {/* 公司名稱（放大） */}
   <h2 style={{ margin: 0, fontSize: 24, fontWeight: "bold" }}>
@@ -1660,6 +1633,26 @@ if (materialText.length > 0) {
     工程報價單
   </h3>
 </div>
+   {/* ===== 報價單基本資訊（無框線） ===== */}
+<div style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.6 }}>
+  <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <div>報價單號：{quote.quoteNo}</div>
+    <div>報價日期：{quote.date}</div>
+  </div>
+
+  <div>工程名稱：{quote.title}</div>
+
+  <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <div>客戶名稱：{quote.customerName}</div>
+    <div>聯絡人：{quote.contact}</div>
+  </div>
+
+  <div style={{ display: "flex", justifyContent: "space-between" }}>
+    <div>聯絡電話：{quote.phone}</div>
+    <div>工程地點：{quote.location}</div>
+  </div>
+</div>
+     
 
       {/* ===== 品項表 ===== */}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
