@@ -742,54 +742,55 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
       <div className="grid grid-cols-4 gap-6">
 
   {/* 品名 */}
-  <div className="col-span-1">
-    <label className="block text-base font-semibold text-gray-700 mb-1">
-      <input
-  type="text"
-  list={`spec-list-${item.id}`}
-  className="w-full border rounded-lg px-3 py-2"
-  value={item.name || ""}
-  onChange={(e) => {
-    const value = e.target.value;
+ <div className="col-span-1">
+  <label className="block text-base font-semibold text-gray-700 mb-1">
+    品名
+  </label>
 
-    // 只更新品名，確保可打字、可點選
-    handleChange("name", value);
-  }}
-  onBlur={(e) => {
-    const value = e.target.value;
+  <input
+    type="text"
+    list={`spec-list-${item.id}`}
+    className="w-full border rounded-lg px-3 py-2"
+    value={item.name || ""}
+    onChange={(e) => {
+      const value = e.target.value;
+      handleChange("name", value);
+    }}
+    onBlur={(e) => {
+      const value = e.target.value;
 
-    const matched = specItems.find(
-      r => (r["品名"] || "") === value
-    );
+      const matched = specItems.find(
+        r => (r["品名"] || "") === value
+      );
 
-    if (!matched) return;
+      if (!matched) return;
 
-    const materials = [
-      matched["用料1"],
-      matched["用料2"],
-      matched["用料3"]
-    ]
-      .filter(v => typeof v === "string" && v.trim() !== "")
-      .join("、");
+      const materials = [
+        matched["用料1"],
+        matched["用料2"],
+        matched["用料3"]
+      ]
+        .filter(v => typeof v === "string" && v.trim() !== "")
+        .join("、");
 
-    updateItem({
-      name: matched["品名"] || "",
-      unit: matched["單位"] || "",
-      price: Number(matched["單價"] || 0),
-      specMain: matched["規格"] || "",
-      specMaterial: materials
-    });
-  }}
-/>
+      updateItem({
+        name: matched["品名"] || "",
+        unit: matched["單位"] || "",
+        price: Number(matched["單價"] || 0),
+        specMain: matched["規格"] || "",
+        specMaterial: materials
+      });
+    }}
+  />
 
-    <datalist id={`spec-list-${item.id}`}>
-      {specItems.map((r, i) => (
-        <option key={i} value={r["品名"] || ""}>
-          {r["規格"] ? `(${r["規格"]})` : ""}
-        </option>
-      ))}
-    </datalist>
-  </div>
+  <datalist id={`spec-list-${item.id}`}>
+    {specItems.map((r, i) => (
+      <option key={i} value={r["品名"] || ""}>
+        {r["規格"] ? `(${r["規格"]})` : ""}
+      </option>
+    ))}
+  </datalist>
+</div>
 
   {/* 規格說明（放右邊） */}
   <div className="col-span-3">
