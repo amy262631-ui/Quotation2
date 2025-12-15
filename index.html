@@ -1304,42 +1304,36 @@ function ExportWordButton({ componentRef }) {
   <title>工程報價單</title>
 
   <style>
-    /* ===== Word 頁面設定（最重要）===== */
-    @page {
-      size: A4;
-      margin: 20mm;
-    }
+  @page {
+    size: A4;
+    margin: 20mm;
+  }
 
-    body {
-      font-family: "Microsoft JhengHei", sans-serif;
-      font-size: 15px;
-      margin: 0;
-      padding: 0;
-    }
+  body {
+    font-family: "Microsoft JhengHei", sans-serif;
+    font-size: 15px;
+    width: 210mm;
+    margin: 0 auto;
+  }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
 
-    th, td {
-      border: 1px solid #000;
-      padding: 6px;
-      font-size: 15px;
-      vertical-align: top;
-      word-break: break-word;
-    }
+  th, td {
+    border: 1px solid #000;
+    padding: 6px;
+    font-size: 15px;
+  }
 
-    h1, h2, h3 {
-      margin: 6px 0;
-    }
-
-    img {
-      max-width: 100%;
-      height: auto;
-    }
-  </style>
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10px auto;
+  }
+</style>
 </head>
 
 <body>
@@ -1619,6 +1613,33 @@ if (materialText.length > 0) {
     <div className="print-page">
       {/* ===== 頁首 ===== */}
       <div style={{ textAlign: "center", marginBottom: 16 }}>
+{/* ===== 報價單基本資訊 ===== */}
+<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
+  <tbody>
+    <tr>
+      <td style={TH_TD_STYLE}><strong>報價單號</strong></td>
+      <td style={TH_TD_STYLE}>{quote.quoteNo}</td>
+      <td style={TH_TD_STYLE}><strong>報價日期</strong></td>
+      <td style={TH_TD_STYLE}>{quote.date}</td>
+    </tr>
+    <tr>
+      <td style={TH_TD_STYLE}><strong>工程名稱</strong></td>
+      <td colSpan={3} style={TH_TD_STYLE}>{quote.title}</td>
+    </tr>
+    <tr>
+      <td style={TH_TD_STYLE}><strong>客戶名稱</strong></td>
+      <td style={TH_TD_STYLE}>{quote.customerName}</td>
+      <td style={TH_TD_STYLE}><strong>聯絡人</strong></td>
+      <td style={TH_TD_STYLE}>{quote.contact}</td>
+    </tr>
+    <tr>
+      <td style={TH_TD_STYLE}><strong>聯絡電話</strong></td>
+      <td style={TH_TD_STYLE}>{quote.phone}</td>
+      <td style={TH_TD_STYLE}><strong>工程地點</strong></td>
+      <td style={TH_TD_STYLE}>{quote.location}</td>
+    </tr>
+  </tbody>
+</table>
 
   {/* 公司名稱（放大） */}
   <h2 style={{ margin: 0, fontSize: 24, fontWeight: "bold" }}>
