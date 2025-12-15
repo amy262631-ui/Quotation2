@@ -437,190 +437,65 @@ function AppProvider({ children }) {
   const SPEC_CSV_URL =
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHQN_nMBB7l72PSD8omOO55UYRlIClUGEDgtzYzTKK-5fvRWIZowcdnMHvkkwJbdz7krhIiRc00sye/pub?output=csv";
 
+  /* === 載入規格品（一定要存在） === */
+  const loadSpecItems = React.useCallback(() => {
+    loadCSV(SPEC_CSV_URL).then(data => setSpecItems(data));
+  }, []);
+
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem("HERHSIN_QUOTES");
-      if (saved) {
+    loadSpecItems();
+  }, [loadSpecItems]);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("HERHSIN_QUOTES");
+    if (saved) {
+      try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           setQuotes(parsed);
-          if (parsed.length > 0) {
-            setActiveQuoteId(parsed[0].id);
-          }
+          if (parsed.length > 0) setActiveQuoteId(parsed[0].id);
         }
+      } catch (e) {
+        setQuotes([]);
+        setActiveQuoteId(null);
       }
-    } catch (err) {
-      console.error("localStorage 解析失敗", err);
-      setQuotes([]);
-      setActiveQuoteId(null);
     }
   }, []);
 
   React.useEffect(() => {
-    try {
-      localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
-    } catch (err) {
-      console.error("localStorage 寫入失敗", err);
-    }
+    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
   }, [quotes]);
 
-  React.useEffect(() => {
-    loadCSV(SPEC_CSV_URL).then(setSpecItems);
-  }, []);
+  const createQuote = React.useCallback(() => {}, []);
+  const deleteQuote = React.useCallback(() => {}, []);
+  const updateQuote = React.useCallback(() => {}, []);
+  const applyMode = React.useCallback(() => {}, []);
 
-    const createQuote = React.useCallback((modeId = null) => {
-    const mode = QUOTE_MODES.find(m => m.id === modeId);
+  const activeQuote = quotes.find(q => q.id === activeQuoteId);
 
-    // ✅ 一定要先在外面組 items
-    const itemsFromMode = [];
+  const value = {
+    company,
+    setCompany,
+    quotes,
+    setQuotes,
+    activeQuote,
+    activeQuoteId,
+    setActiveQuoteId,
+    specItems,
+    loadSpecItems,
+    createQuote,
+    deleteQuote,
+    updateQuote,
+    applyMode
+  };
 
-    // 主項（算總價）
-    if (mode && Array.isArray(mode.defaultItems)) {
-        mode.defaultItems.forEach(item => {
-            itemsFromMode.push({
-                ...item,
-                id: uuid(),
-                type: "main",
-                subItems: [],
-                specMain: item.specMain || "",
-                specMaterial: "",
-                material1: "",
-                material2: "",
-                material3: "",
-                remarks: ""
-            });
-        });
-    }
+  window.__APP_CONTEXT__ = value;
 
-    // 實支實付（不算總價）
-    if (mode && Array.isArray(mode.referenceItems)) {
-        mode.referenceItems.forEach(item => {
-            itemsFromMode.push({
-                ...item,
-                id: uuid(),
-                type: "reference",
-                subItems: [],
-                specMain: "",
-                specMaterial: "",
-                remarks: item.remarks || ""
-            });
-        });
-    }
-
-    const newQuote = {
-        id: uuid(),
-        company: company,
-        quoteNo: generateQuoteNo(company),
-        title: mode ? mode.name : "未命名工程",
-        customerName: "",
-        contact: "",
-        phone: "",
-        location: "",
-        date: formatDate(),
-        items: itemsFromMode,              // ✅ 只放結果
-        notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
-        payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
-        discountPercent: 0,
-        negotiatedPrice: 0
-    };
-
-    setQuotes(prev => {
-        const newList = [newQuote, ...prev];
-        setActiveQuoteId(newQuote.id);
-        return newList;
-    });
-}, [company]);
-
-
-    const deleteQuote = React.useCallback((id) => {
-        setQuotes(prev => {
-            const newList = prev.filter(q => q.id !== id);
-            if (id === activeQuoteId) {
-                setActiveQuoteId(newList.length > 0 ? newList[0].id : null);
-            }
-            return newList;
-        });
-    }, [activeQuoteId]);
-
-    const updateQuote = React.useCallback((id, data) => {
-        setQuotes(prev =>
-            prev.map(q => (q.id === id ? { ...q, ...data } : q))
-        );
-    }, []);
-
-    const applyMode = React.useCallback((modeId) => {
-        const mode = QUOTE_MODES.find(m => m.id === modeId);
-        if (!mode || !activeQuoteId) return;
-
-       const itemsWithIds = [];
-
-// 主項（算總價）
-if (Array.isArray(mode.defaultItems)) {
-    mode.defaultItems.forEach(item => {
-        itemsWithIds.push({
-            ...item,
-            id: uuid(),
-            type: "main",
-            subItems: [],
-            specMain: item.specMain || "",
-            specMaterial: "",
-            material1: "",
-            material2: "",
-            material3: "",
-            remarks: ""
-        });
-    });
-}
-
-// 實支實付（不算總價）
-if (Array.isArray(mode.referenceItems)) {
-    mode.referenceItems.forEach(item => {
-        itemsWithIds.push({
-            ...item,
-            id: uuid(),
-            type: "reference",
-            subItems: [],
-            specMain: "",
-            specMaterial: "",
-            remarks: item.remarks || ""
-        });
-    });
-}
-
-        updateQuote(activeQuoteId, {
-            title: mode.name,
-            items: itemsWithIds, 
-            notes: mode.defaultNotes,
-            payment: mode.defaultPayment,
-        });
-    }, [activeQuoteId, updateQuote]);
-
-    const activeQuote = quotes.find(q => q.id === activeQuoteId);
-
-    const value = {
-  company,
-  setCompany,
-
-  quotes,
-  createQuote,
-  deleteQuote,
-  updateQuote,
-  activeQuote,
-  activeQuoteId,
-  setActiveQuoteId,
-
-  specItems,
-  loadSpecItems,
-  applyMode
-};
-
-window.__APP_CONTEXT__ = value;
-
-return (
-  <AppContext.Provider value={value}>
-    {children}
-  </AppContext.Provider>
-);
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
 }
 
 
