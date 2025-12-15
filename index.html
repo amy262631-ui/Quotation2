@@ -124,11 +124,12 @@
 
 <script type="text/babel">
 /***********************************************************
- // P1 — 公司資料 / 備註 / 付款條件 / 模式模板
+ * P1 — 公司資料 / 備註 / 付款條件 / 模式模板
  ***********************************************************/
 const COMPANY_DATA = {
   herhsin: {
     name: "何鑫實業股份有限公司",
+    taxId: "76380260",  
     tel: "07-6521927",
     fax: "07-6517994",
     email: "affairs@herhsin.com",
@@ -138,6 +139,7 @@ const COMPANY_DATA = {
   },
   sinchang: {
     name: "薪昌股份有限公司",
+    taxId: "53896738",
     tel: "07-6521927",
     fax: "07-6517994",
     email: "affairs@herhsin.com",
@@ -187,7 +189,7 @@ const QUOTE_MODES = [
 ];
 
 /***********************************************************
-  // P2 — 工具函式
+  * P2 — 工具函式
  ***********************************************************/
 function uuid() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -290,7 +292,7 @@ async function loadCSV(url) {
 }
 
 /***********************************************************
-  // P3 — AppContext（資料中心）
+  * P3 — AppContext（資料中心）
  ***********************************************************/
 const AppContext = React.createContext();
 
@@ -446,7 +448,7 @@ function AppProvider({ children }) {
 }
 
 /***********************************************************
-  // P4-1 — 公司切換 / 模式選擇 / 報價單列表
+  * P4-1 — 公司切換 / 模式選擇 / 報價單列表
  ***********************************************************/
 function CompanySelector() {
     const { company, setCompany, activeQuote, updateQuote } = React.useContext(AppContext);
@@ -621,7 +623,7 @@ function QuoteList() {
 }
 
 /***********************************************************
- // P4-2 — 單一報價項目編輯（用料明細：CSV 帶入 + 可手打）
+ * P4-2 — 單一報價項目編輯（用料明細：CSV 帶入 + 可手打）
  ***********************************************************/
 function QuoteItem({ item, index, updateItem, deleteItem }) {
   const { specItems } = React.useContext(AppContext);
@@ -824,7 +826,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
 }
 
 /***********************************************************
-  // P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
+  * P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
  ***********************************************************/
 // 報價單編輯主元件
 function QuoteEditor() {
@@ -1273,8 +1275,8 @@ function PrintButton({ componentRef }) {
 }
 
 /***********************************************************
-  // 列印排版組件（PrintLayout）— 完整穩定版
-  //✔ 含：用料明細獨立行 / 備註 / 付款條件 / 簽名印章
+  * 列印排版組件（PrintLayout）— 完整穩定版
+  *✔ 含：用料明細獨立行 / 備註 / 付款條件 / 簽名印章
  ***********************************************************/
 function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   if (!quote || !quote.company || !COMPANY_DATA[quote.company]) {
@@ -1369,13 +1371,12 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
       </tr>
     );
 
-/* ===== 用料明細（整合 用料1 / 用料2 / 用料3 / specMaterial） ===== */
-if (matched) {
+/* ===== 用料明細（整合 specMaterial / material1~3） ===== */
 const materialText = [
-  matched["用料明細"],
-  matched["用料1"],
-  matched["用料2"],
-  matched["用料3"]
+  item.specMaterial,
+  item.material1,
+  item.material2,
+  item.material3
 ]
   .filter(v => typeof v === "string" && v.trim() !== "")
   .join("、");
@@ -1547,7 +1548,7 @@ function App() {
 }
 
 /***********************************************************
- // P6 — React 18 啟動
+ * P6 — React 18 啟動
  ***********************************************************/
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
