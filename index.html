@@ -1154,7 +1154,7 @@ function ExportButton() {
     rows[r++] = [];
 
     // ===== 基本資料 =====
-    rows[r++] = ["報價單號", activeQuote.quoteNo, "", "報價日期", activeQuote.date];
+    rows[r++] = ["報價單號", activeQuote.quoteNo, "", "", "報價日期", activeQuote.date];
     rows[r++] = ["工程名稱", activeQuote.title];
     rows[r++] = ["客戶名稱", activeQuote.customerName, "", "聯絡人", activeQuote.contact];
     rows[r++] = ["工程地點", activeQuote.location];
@@ -1244,16 +1244,16 @@ function ExportButton() {
 
     // ===== 欄寬 =====
     ws["!cols"] = [
-      { wch: 6 },   // 項次
-      { wch: 24 },  // 品名
-      { wch: 40 },  // 規格
-      { wch: 6 },   // 單位
-      { wch: 8 },   // 數量
-      { wch: 14 },  // 單價
-      { wch: 16 },  // 小計
-      { wch: 20 },  // 備註
-      { wch: 30 }   // 用料
-    ];
+  { wch: 12 },  // A：項次 / 標題
+  { wch: 26 },  // 品名
+  { wch: 42 },  // 規格 / 補充
+  { wch: 8 },   // 單位
+  { wch: 8 },   // 數量
+  { wch: 16 },  // 單價
+  { wch: 18 },  // 小計
+  { wch: 22 },  // 備註
+  { wch: 32 }   // 用料
+];
 
     // ===== 數字格式 =====
     Object.keys(ws).forEach(key => {
