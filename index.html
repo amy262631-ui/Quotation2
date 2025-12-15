@@ -1599,6 +1599,65 @@ function ExportWordButton({ componentRef }) {
     </button>
   );
 }
+// ===============================
+// 列印按鈕（PrintButton）
+// ===============================
+function PrintButton({ componentRef }) {
+  const handlePrint = () => {
+    if (!componentRef?.current) {
+      alert("找不到列印內容");
+      return;
+    }
+
+    const printContent = componentRef.current.innerHTML;
+    const win = window.open("", "_blank", "width=800,height=900");
+
+    win.document.write(`
+      <html>
+      <head>
+        <meta charset="UTF-8" />
+        <title>報價單列印</title>
+        <style>
+          body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            font-size: 15px;
+            margin: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th, td {
+            border: 1px solid #000;
+            padding: 6px;
+          }
+          img {
+            height: 70px;   /* 跟 Word / 預覽一致 */
+            width: auto;
+          }
+        </style>
+      </head>
+      <body>
+        ${printContent}
+      </body>
+      </html>
+    `);
+
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  };
+
+  return (
+    <button
+      onClick={handlePrint}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      列印報價單
+    </button>
+  );
+}
 
 
 /***********************************************************
