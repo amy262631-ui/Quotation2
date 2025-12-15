@@ -130,21 +130,17 @@
     break-inside: avoid;
   }
 
-  /* 內容往下推，避免被頁首蓋住 */
-  .print-content {
-    margin-top: 90mm;   /* ← 這個數值你之後只需微調 */
-  }
-
+ 
   /* =========================
      ⭐ 最後一頁（備註 / 付款 / 印章）
      ========================= */
   .print-footer-block {
-    page-break-before: always;   /* 一定從新頁開始 */
-    break-before: page;
-    page-break-inside: avoid;
-    break-inside: avoid;
-    margin-top: 10mm;
-  }
+  page-break-before: auto;
+  break-before: auto;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  margin-top: 10mm;
+}
 }
 </style>
 
