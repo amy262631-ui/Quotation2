@@ -1446,8 +1446,15 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
       </tr>
     );
 
-    /* ===== 用料明細（多來源保險，但只顯示一行） ===== */
-    const materialText = (item.specMaterial ?? "").trim();
+/* ===== 用料明細（整合 用料1 / 用料2 / 用料3 / specMaterial） ===== */
+const materialText = [
+  item.specMaterial,
+  item.material1,
+  item.material2,
+  item.material3
+]
+  .filter(v => typeof v === "string" && v.trim() !== "")
+  .join("、");
 
 if (materialText.length > 0) {
   rows.push(
