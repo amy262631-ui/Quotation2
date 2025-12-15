@@ -1286,8 +1286,10 @@ function ExportButton() {
 // Word 匯出（正式報價單）
 // ===============================
 function ExportWordButton({ componentRef }) {
+  const { activeQuote } = React.useContext(AppContext);
+
   const handleExportWord = () => {
-    if (!componentRef?.current) {
+    if (!componentRef?.current || !activeQuote) {
       alert("找不到報價單內容，請確認預覽已載入");
       return;
     }
@@ -1295,47 +1297,71 @@ function ExportWordButton({ componentRef }) {
     const htmlContent = componentRef.current.innerHTML;
 
     const wordHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>工程報價單</title>
-        <style>
-          body {
-            font-family: "Microsoft JhengHei", sans-serif;
-            font-size: 15px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-          th, td {
-            border: 1px solid #000;
-            padding: 6px;
-          }
-        </style>
-      </head>
-      <body>
-        ${htmlContent}
-      </body>
-      </html>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>工程報價單</title>
+
+  <style>
+    /* ===== Word 頁面設定（最重要）===== */
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      font-size: 15px;
+      margin: 0;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th, td {
+      border: 1px solid #000;
+      padding: 6px;
+      font-size: 15px;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    h1, h2, h3 {
+      margin: 6px 0;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+
+<body>
+  ${htmlContent}
+</body>
+</html>
     `;
 
-    const blob = new Blob(
-      ["\ufeff", wordHTML],
-      { type: "application/msword" }
-    );
+    // ✅ 檔名規則：與 Excel 完全一致
+    const filename = `${activeQuote.quoteNo}_${activeQuote.customerName}.doc`
+      .replace(/[\\/:*?"<>|]/g, "");
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const blob = new Blob(["\ufeff", wordHTML], {
+      type: "application/msword;charset=utf-8"
+    });
 
-    a.href = url;
-    a.download = "工程報價單.doc";
-    document.body.appendChild(a);
-    a.click();
-
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -1343,7 +1369,7 @@ function ExportWordButton({ componentRef }) {
       onClick={handleExportWord}
       className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
     >
-      匯出 Word（正式報價單）
+      匯出 Word（報價單版型）
     </button>
   );
 }
