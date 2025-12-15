@@ -43,18 +43,20 @@
       overflow: hidden; /* 防止內容溢出 */
     }
 
-    /* 螢幕模式下的 Header (絕對定位在框框內) */
-    .print-page .print-header {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 75mm; /* 設定高度 */
-      padding: 10px 20px;
-      background: #fff;
-      z-index: 10;
-      border-bottom: 1px dashed #eee; /* 螢幕上顯示一條虛線方便辨識邊界 */
-    }
+    /* ✅ 螢幕預覽專用 Header（禁止進入列印） */
+   @media screen {
+  .print-page .print-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 75mm;
+    padding: 10px 20px;
+    background: #fff;
+    z-index: 10;
+    border-bottom: 1px dashed #eee;
+  }
+}
     
     /* 螢幕上完全隱藏「列印專用隱藏區」 */
     .print-only-layout {
