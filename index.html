@@ -929,7 +929,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
       規格說明
     </label>
     <textarea
-      className="w-full border rounded-lg px-3 py-2"
+     className="w-full border rounded-lg px-3 py-2"
       rows="2"
       value={item.specMain || ""}
       onChange={(e) => handleChange("specMain", e.target.value)}
@@ -956,14 +956,46 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
         </div>
 
         <div>
-          <label className="block text-base font-semibold text-gray-700 mb-1">單價</label>
-          <input
-            type="number"
-            className="w-full border rounded-lg px-3 py-2 text-right"
-            value={item.price}
-            onChange={(e) => handleChange("price", Number(e.target.value))}
-          />
-        </div>
+  {/* ⭐ 德製 / 台製（只有有 variants 才顯示） */}
+  {Array.isArray(item.variants) && (
+    <>
+      <label className="block text-base font-semibold text-gray-700 mb-1">
+        品牌 / 產地
+      </label>
+
+      <select
+        className="w-full border rounded-lg px-3 py-2 mb-2"
+        value={item.selected}
+        onChange={(e) => {
+          const selectedKey = e.target.value;
+          const variant = item.variants.find(v => v.key === selectedKey);
+
+          updateItem({
+            selected: selectedKey,
+            price: variant ? variant.defaultPrice : item.price
+          });
+        }}
+      >
+        {item.variants.map(v => (
+          <option key={v.key} value={v.key}>
+            {v.label}
+          </option>
+        ))}
+      </select>
+    </>
+  )}
+
+  {/* 原本的單價（保留，可手動改） */}
+  <label className="block text-base font-semibold text-gray-700 mb-1">
+    單價
+  </label>
+  <input
+    type="number"
+    className="w-full border rounded-lg px-3 py-2 text-right"
+    value={item.price}
+    onChange={(e) => handleChange("price", Number(e.target.value))}
+  />
+</div>>
 
         <div>
           <label className="block text-base font-semibold text-gray-700 mb-1">小計</label>
