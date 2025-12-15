@@ -47,84 +47,105 @@
     box-sizing: border-box;
   }
 
-  /* =========================
-     列印樣式（圖片不消失版）
-     ========================= */
-  @media print {
+/* =========================
+   列印樣式（圖片不消失版）
+   ========================= */
+@media print {
 
-    body {
-      background: #ffffff;
-    }
-
-    .live-preview-box {
-      padding: 0;
-      background: #ffffff;
-    }
-
-    .print-page {
-      width: auto;
-      min-height: auto;
-      box-shadow: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    /* 不列印編輯介面 */
-    .no-print {
-      display: none !important;
-    }
-
-    /* 表格跨頁重複表頭 */
-    thead {
-      display: table-header-group;
-    }
-
-    /* 圖片列印保證顯示 */
-    img {
-      display: block !important;
-      visibility: visible !important;
-      max-width: 100% !important;
-      height: auto !important;
-      page-break-inside: avoid;
-    }
-
-    /* 頁首不被切 */
-    .print-header {
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-
-    /* 單一列不被切 */
-    tr {
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-
-    /* 印章區 */
-    .print-signature-area {
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-
-    @page {
-      size: A4;
-      margin: 15mm;
-    }
-    /* ===== 多頁列印：固定頁首（每頁都出現） ===== */
-    .print-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: #ffffff;
-      padding-bottom: 6mm;
-    }
-
-    /* 內容往下推，避免被頁首蓋住 */
-    .print-content {
-      margin-top: 70mm;   /* ← 視你標題高度可微調 */
-    }   
+  body {
+    background: #ffffff;
   }
+
+  .live-preview-box {
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .print-page {
+    width: auto;
+    min-height: auto;
+    box-shadow: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* 不列印編輯介面 */
+  .no-print {
+    display: none !important;
+  }
+
+  /* =========================
+     表格設定
+     ========================= */
+
+  /* 表格跨頁重複表頭 */
+  thead {
+    display: table-header-group;
+  }
+
+  /* 單一列不被切 */
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* =========================
+     圖片 / 印章
+     ========================= */
+
+  /* 圖片列印保證顯示 */
+  img {
+    display: block !important;
+    visibility: visible !important;
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
+
+  /* 印章區整塊不被切 */
+  .print-signature-area {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* =========================
+     A4 設定
+     ========================= */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+
+  /* =========================
+     多頁固定頁首（每頁都出現）
+     ========================= */
+  .print-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    padding-bottom: 6mm;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* 內容往下推，避免被頁首蓋住 */
+  .print-content {
+    margin-top: 70mm;   /* ← 這個數值你之後只需微調 */
+  }
+
+  /* =========================
+     ⭐ 最後一頁（備註 / 付款 / 印章）
+     ========================= */
+  .print-footer-block {
+    page-break-before: always;   /* 一定從新頁開始 */
+    break-before: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-top: 10mm;
+  }
+}
 </style>
 
 </head>
@@ -1624,33 +1645,62 @@ function PrintButton({ componentRef }) {
     }
 
     const printContent = componentRef.current.innerHTML;
-    const win = window.open("", "_blank", "width=800,height=900");
+    const win = window.open("", "_blank", "width=900,height=1000");
 
     win.document.write(`
       <html>
       <head>
         <meta charset="UTF-8" />
         <title>報價單列印</title>
+
         <style>
           body {
             font-family: "Microsoft JhengHei", sans-serif;
             font-size: 15px;
-            margin: 20px;
+            margin: 0;
           }
+
           table {
             width: 100%;
             border-collapse: collapse;
           }
+
           th, td {
             border: 1px solid #000;
             padding: 6px;
           }
+
           img {
-            height: 70px;   /* 跟 Word / 預覽一致 */
+            height: 70px;
             width: auto;
+          }
+
+          /* ===== 關鍵：固定頁首 ===== */
+          .print-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding-bottom: 6mm;
+          }
+
+          /* 內容往下推 */
+          .print-content {
+            margin-top: 70mm;
+          }
+
+          thead {
+            display: table-header-group;
+          }
+
+          @page {
+            size: A4;
+            margin: 15mm;
           }
         </style>
       </head>
+
       <body>
         ${printContent}
       </body>
@@ -1672,7 +1722,6 @@ function PrintButton({ componentRef }) {
     </button>
   );
 }
-
 
 /***********************************************************
  * 列印排版組件（PrintLayout）— 多頁固定頁首【最終正確版】
@@ -1795,7 +1844,63 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
             </tr>
           </tbody>
         </table>
+<div className="print-footer-block">
 
+  {/* ===== 備註 / 付款條件 ===== */}
+  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 15 }}>
+    <tbody>
+      <tr>
+        <td style={{ ...TH_TD, width: "50%" }}>
+          <strong>備註（不含稅）</strong>
+          <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>
+            {quote.notes}
+          </div>
+        </td>
+        <td style={{ ...TH_TD, width: "50%" }}>
+          <strong>付款條件</strong>
+          <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>
+            {quote.payment}
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  {/* ===== 簽章區 ===== */}
+  <table
+    className="print-signature-area"
+    style={{ width: "100%", borderCollapse: "collapse", marginTop: 30 }}
+  >
+    <tbody>
+      <tr>
+        <td style={{ ...TH_TD, width: "50%", height: 120 }}>
+          <strong>公司報價章</strong>
+          {companyInfo.stamp && (
+            <img
+              src={companyInfo.stamp}
+              alt="公司印章"
+              style={{ display: "block", margin: "10px auto", maxHeight: 70 }}
+            />
+          )}
+          <div style={{ borderTop: "1px solid #000", marginTop: 10 }}>
+            代表人：
+          </div>
+        </td>
+        <td style={{ ...TH_TD, width: "50%", height: 120 }}>
+          <strong>客戶回簽</strong>
+          <div style={{ borderTop: "1px solid #000", marginTop: 70 }}>
+            代表人：
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td style={TH_TD}>日期：</td>
+        <td style={TH_TD}>日期：</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
       </div>
     </div>
   );
