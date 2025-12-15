@@ -358,6 +358,9 @@ function AppProvider({ children }) {
                     subItems: [],
                     specMain: "",
                     specMaterial: "",
+                    material1: "",
+                    material2: "",
+                    material3: "",
                     remarks: ""
                 }))
                 : [],
@@ -400,6 +403,9 @@ function AppProvider({ children }) {
             subItems: [],
             specMain: "", 
             specMaterial: "", 
+            material1: "",
+            material2: "",
+            material3: "",
             remarks: ""
         }));
 
@@ -701,8 +707,11 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                   unit: matched["單位"] || "",
                   price: Number(matched["單價"] || 0),
                   specMain: matched["規格"] || "",
-                  // ⭐ 關鍵：CSV 用料只負責「初始值」
-                  specMaterial: csvMaterial
+                  specMaterial: matched["用料明細"] || "", // 保留可手動編輯的欄位
+                material1: matched["用料1"] || "", 
+                material2: matched["用料2"] || "",
+                material3: matched["用料3"] || ""
+                    
                 });
               }
             }}
@@ -1361,11 +1370,12 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
     );
 
 /* ===== 用料明細（整合 用料1 / 用料2 / 用料3 / specMaterial） ===== */
+if (matched) {
 const materialText = [
-  item.specMaterial,
-  item.material1,
-  item.material2,
-  item.material3
+  matched["用料明細"],
+  matched["用料1"],
+  matched["用料2"],
+  matched["用料3"]
 ]
   .filter(v => typeof v === "string" && v.trim() !== "")
   .join("、");
