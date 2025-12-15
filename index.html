@@ -30,8 +30,6 @@
     }
 
     .print-page {
-      width: 794px; /* A4 寬度 */
-      min-height: 1123px;
       margin: 0 auto;
       background: #ffffff;
       padding: 20px;
@@ -52,14 +50,9 @@
       overflow: hidden;
     }
 
-  /* =================================================
+ /* =================================================
    ✅ 最終穩定版｜工程報價單列印專用 CSS
-   ‧ 解決 Header 跑位
-   ‧ Chrome / Edge / PDF 一致
-   ‧ Header 每頁重複
-   ‧ 表格不亂跳、簽名不被切
 ================================================= */
-
 @media print {
 
   /* ========= 基本重置 ========= */
@@ -85,48 +78,48 @@
     pointer-events: auto !important;
   }
 
-  /* ========= 頁面設定（最重要） ========= */
- @page {
-  size: A4;
-  margin: 10mm;
-}
-
-  /* ========= 主頁容器 ========= */
-  .print-page {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    box-shadow: none;
-    overflow: visible;
+  /* ========= 頁面設定 ========= */
+  @page {
+    size: A4;
+    margin: 10mm;
   }
 
- 
+  /* ========= 終極修正：清除螢幕樣式 ========= */
+  .print-page {
+    all: unset;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
   /* ========= 列印內容 ========= */
   .print-content {
     margin: 0;
     padding: 0;
   }
 
-  /* ========= 表格行為 ========= */
+  /* ========= 表格行為（關鍵） ========= */
   table {
-  width: 100% !important;
-  table-layout: fixed;   /* ⭐ 關鍵：禁止自動縮成細條 */
-  border-collapse: collapse;
-}
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse;
+  }
 
   thead {
     display: table-header-group !important;
+  }
+
+  th, td {
+    page-break-inside: avoid;
+    word-break: break-word;
   }
 
   tr {
     page-break-inside: avoid;
     break-inside: avoid;
   }
-
-  th, td {
-  page-break-inside: avoid;
-  word-break: break-word;   /* ⭐ 防止直排擠壓 */
-}
 
   /* ========= 圖片 ========= */
   img {
@@ -135,13 +128,14 @@
     page-break-inside: avoid;
   }
 
-  /* ========= 簽名區整塊保護 ========= */
+  /* ========= 簽名區保護 ========= */
   .print-footer-block,
   .print-signature-area {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 }
+
   
   </style>
 </head>
