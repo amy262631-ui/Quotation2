@@ -902,7 +902,7 @@ function QuoteEditor() {
     );
 
    return (
-  <div className="quote-editor-root-container text-base">
+  <div className="quote-editor-root-container text-lg">
     {/* 編輯區 */}
     <div className="p-8 bg-gray-100 rounded-xl shadow-xl no-print">
 
@@ -1284,10 +1284,23 @@ function PrintButton({ componentRef }) {
         <title>報價單列印</title>
         <meta charset="UTF-8" />
         <style>
-          body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; margin: 0; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #000; padding: 4px; }
-        </style>
+- body { font-family: "Microsoft JhengHei", sans-serif; padding: 20px; margin: 0; }
++ body {
++   font-family: "Microsoft JhengHei", sans-serif;
++   padding: 20px;
++   margin: 0;
++   font-size: 15px;   /* ← 放大 1 號（原本約 13~14） */
++ }
+
+  table { width: 100%; border-collapse: collapse; }
+
+- th, td { border: 1px solid #000; padding: 4px; }
++ th, td {
++   border: 1px solid #000;
++   padding: 6px;      /* ← 字變大，間距也一起舒服 */
++   font-size: 15px;
++ }
+</style>
       </head>
       <body>
         ${printContent}
