@@ -244,22 +244,27 @@ function calcNegotiated(total, discountPercent, customPrice) {
     return total;
 }
 
-function generateQuoteNo(companyKey) {
-    const prefix = COMPANY_DATA[companyKey]?.prefix || "Q"; 
-    
-    const d = new Date();
-    const parts = [
-        d.getFullYear(),
-        String(d.getMonth() + 1).padStart(2, "0"),
-        String(d.getDate()).padStart(2, "0"),
-        String(d.getHours()).padStart(2, "0"),
-        String(d.getMinutes()).padStart(2, "0"),
-    ].join('');
-    
-    const random = Math.floor(1000 + Math.random() * 9000);
-    
-    return `${prefix}${parts}-${random}`; 
-}
+function generateQuoteNo() {
+  const d = new Date();
+
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+
+  const dateKey = `${yy}${mm}${dd}`; // 例如 251215
+  const storageKey = `quote_seq_${dateKey}`;
+
+  let seq = Number(localStorage.getItem(storageKey) || "0") + 1;
+
+  if (seq > 99) {
+    alert("今日報價單已超過 99 張，請確認");
+    seq = 99;
+  }
+
+  localStorage.setItem(storageKey, seq);
+
+  const nn = String(seq).padSt
+
 
 async function loadCSV(url) {
     try {
@@ -346,7 +351,7 @@ function AppProvider({ children }) {
         const newQuote = {
             id: uuid(),
             company: company, 
-            quoteNo: generateQuoteNo(company), 
+            quoteNo: generateQuoteNo(), 
             title: mode ? mode.name : "未命名工程",
             customerName: "",
             contact: "",
@@ -1266,7 +1271,9 @@ function ExportButton() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "報價單");
 
-    const filename = `${activeQuote.quoteNo}_${activeQuote.customerName}.xlsx`.replace(
+    const filename = `${activeQuote.quoteNo}_${
+  activeQuote.customerName || "未填客戶"
+}-${activeQuote.title || "未命名工程"} 報價單.xlsx`.replace(
       /[\\/:*?"<>|]/g,
       ""
     );
@@ -1343,7 +1350,9 @@ function ExportWordButton({ componentRef }) {
     `;
 
     // ✅ 檔名規則：與 Excel 完全一致
-    const filename = `${activeQuote.quoteNo}_${activeQuote.customerName}.doc`
+    const filename = `${activeQuote.quoteNo}_${
+  activeQuote.customerName || "未填客戶"
+}-${activeQuote.title || "未命名工程"} 報價單.doc`
       .replace(/[\\/:*?"<>|]/g, "");
 
     const blob = new Blob(["\ufeff", wordHTML], {
