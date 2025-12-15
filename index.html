@@ -1447,33 +1447,28 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
     );
 
     /* ===== 用料明細（多來源保險，但只顯示一行） ===== */
-    const materialText =
-      item.specMaterial ||
-      item.materialDetail ||
-      item.material ||
-      [item.material1, item.material2, item.material3]
-        .filter(v => v && v.trim())
-        .join("、") ||
-      "";
+    const materialText = (item.specMaterial ?? "").trim();
 
-    if (materialText) {
-      rows.push(
-        <tr key={item.id + "-material"}>
-          <td></td>
-          <td
-            colSpan={7}
-            style={{
-              ...TH_TD_STYLE,
-              background: "#fafafa",
-              fontSize: "12px"
-            }}
-          >
-            <strong>用料明細：</strong>
-            <span style={{ whiteSpace: "pre-wrap" }}>{materialText}</span>
-          </td>
-        </tr>
-      );
-    }
+if (materialText.length > 0) {
+  rows.push(
+    <tr key={item.id + "-material"}>
+      <td></td>
+      <td
+        colSpan={7}
+        style={{
+          ...TH_TD_STYLE,
+          background: "#fafafa",
+          fontSize: "12px"
+        }}
+      >
+        <strong>用料明細：</strong>
+        <span style={{ whiteSpace: "pre-wrap" }}>
+          {materialText}
+        </span>
+      </td>
+    </tr>
+  );
+}
 
     /* ===== 補充項目 ===== */
     (item.subItems || []).forEach(sub => {
