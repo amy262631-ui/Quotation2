@@ -161,32 +161,150 @@ const DEFAULT_PAYMENT = `訂金：40%
 安裝完成：20%
 完工驗收：10%`;
 
+/***********************************************************
+ * 報價模式模板（QUOTE_MODES）
+ ***********************************************************/
 const QUOTE_MODES = [
-    {
-        id: "modeA",
-        name: "拌合機漏漿更換",
-        description: "適用拌合機維修、漏漿處理等。",
-        defaultItems: [],
-        defaultNotes: DEFAULT_NOTES,
-        defaultPayment: DEFAULT_PAYMENT
-    },
-    {
-        id: "modeB",
-        name: "設備銷售",
-        description: "適用備品、單機銷售與安裝。",
-        defaultItems: [],
-        defaultNotes: DEFAULT_NOTES,
-        defaultPayment: DEFAULT_PAYMENT
-    },
-    {
-        id: "modeC",
-        name: "設備更換工程",
-        description: "適用整機更新、料件更換工程。",
-        defaultItems: [],
-        defaultNotes: DEFAULT_NOTES,
-        defaultPayment: DEFAULT_PAYMENT
-    }
+  {
+    id: "mode_leak_repair",
+    name: "拌合機漏漿更換工程",
+    description: "拌合機漏漿修復，包工包料項目另計，零件實支實付",
+
+    /* ===============================
+     * 一、主要報價項目（算總價）
+     * =============================== */
+    defaultItems: [
+      {
+        name: "更換 3m³ 拌合機【減速機側】漏漿（含工資及材料）",
+        unit: "式",
+        qty: 1,
+        price: 0,
+        specMain: "含拆裝、調整、測試",
+        specMaterial: "",
+        remarks: "",
+        type: "main",
+        subItems: []
+      },
+      {
+        name: "更換 3m³ 拌合機【非減速機側】漏漿（含工資及材料）",
+        unit: "式",
+        qty: 1,
+        price: 0,
+        specMain: "含拆裝、調整、測試",
+        specMaterial: "",
+        remarks: "",
+        type: "main",
+        subItems: []
+      }
+    ],
+
+    /* ===============================
+     * 二、實支實付零件（不算總價）
+     * =============================== */
+    referenceItems: [
+      {
+        name: "雙馬達聯軸器含橡膠圈",
+        unit: "組",
+        qty: 1,
+        type: "reference",
+        variants: [
+          { key: "de", label: "德製", defaultPrice: 58000 },
+          { key: "tw", label: "台製", defaultPrice: 30000 }
+        ],
+        selected: "de",
+        price: 58000,
+        editablePrice: true,
+        remarks: "依客戶指定品牌更換，實支實付"
+      },
+      {
+        name: "聯軸器用橡膠製品",
+        unit: "只",
+        qty: 1,
+        type: "reference",
+        variants: [
+          { key: "de", label: "德製", defaultPrice: 9480 },
+          { key: "tw", label: "台製", defaultPrice: 2000 }
+        ],
+        selected: "de",
+        price: 9480,
+        editablePrice: true,
+        remarks: "依實際更換數量計價"
+      },
+
+      // ===== 以下零件無德 / 台差異 =====
+      {
+        name: "減速機鬆緊器(絞接螺栓及插銷)",
+        unit: "式",
+        qty: 1,
+        type: "reference",
+        price: 4100,
+        editablePrice: true
+      },
+      {
+        name: "減速機支撐調整器(吊演螺絲)",
+        unit: "式",
+        qty: 1,
+        type: "reference",
+        price: 2500,
+        editablePrice: true
+      },
+      {
+        name: "油封TC140x180x14",
+        unit: "式",
+        qty: 1,
+        type: "reference",
+        price: 350,
+        editablePrice: true
+      },
+      {
+        name: "軸承23124",
+        unit: "只",
+        qty: 1,
+        type: "reference",
+        price: 6000,
+        editablePrice: true
+      },
+      {
+        name: "主軸套筒120x140x120",
+        unit: "只",
+        qty: 1,
+        type: "reference",
+        price: 2600,
+        editablePrice: true
+      }
+    ],
+
+    /* ===============================
+     * 三、固定備註 / 付款條件
+     * =============================== */
+    defaultNotes: `1. 本工程包工包料項目列入報價總金額。
+2. 下方列示之零件屬實支實付項目，不列入本次報價總價。
+3. 實際更換零件與數量依現場施工狀況為準。
+4. 若客戶指定品牌或規格，將依實際供貨單價調整。
+5. 報價有效期限：報價日起 30 天`,
+
+    defaultPayment: DEFAULT_PAYMENT
+  },
+
+  {
+    id: "modeB",
+    name: "設備銷售",
+    description: "適用備品、單機銷售與安裝。",
+    defaultItems: [],
+    defaultNotes: DEFAULT_NOTES,
+    defaultPayment: DEFAULT_PAYMENT
+  },
+
+  {
+    id: "modeC",
+    name: "設備更換工程",
+    description: "適用整機更新、料件更換工程。",
+    defaultItems: [],
+    defaultNotes: DEFAULT_NOTES,
+    defaultPayment: DEFAULT_PAYMENT
+  }
 ];
+
 
 /***********************************************************
   * P2 — 工具函式
@@ -220,11 +338,16 @@ function calcAmount(item) {
 
 function calcTotal(items) {
     return items.reduce((sum, it) => {
+        if (it.type === "reference") return sum; // ⭐ 排除實支實付
+
         let mainAmt = calcAmount(it);
         let subs = 0;
 
         if (it.subItems && it.subItems.length > 0) {
-            subs = it.subItems.reduce((s, sub) => (sub.type === 'item' ? s + calcAmount(sub) : s), 0);
+            subs = it.subItems.reduce(
+                (s, sub) => (sub.type === "item" ? s + calcAmount(sub) : s),
+                0
+            );
         }
 
         return sum + mainAmt + subs;
@@ -351,43 +474,68 @@ function AppProvider({ children }) {
     }, [loadSpecItems]);
 
     const createQuote = React.useCallback((modeId = null) => {
-        const mode = QUOTE_MODES.find(m => m.id === modeId);
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
 
-        const newQuote = {
-            id: uuid(),
-            company: company, 
-            quoteNo: generateQuoteNo(), 
-            title: mode ? mode.name : "未命名工程",
-            customerName: "",
-            contact: "",
-            phone: "",
-            location: "",
-            date: formatDate(), 
-            items: mode && Array.isArray(mode.defaultItems)
-                ? mode.defaultItems.map(item => ({
-                    ...item, 
-                    id: uuid(), 
-                    subItems: [],
-                    specMain: "",
-                    specMaterial: "",
-                    material1: "",
-                    material2: "",
-                    material3: "",
-                    remarks: ""
-                }))
-                : [],
-            notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
-            payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
-            discountPercent: 0,
-            negotiatedPrice: 0
-        };
+    // ✅ 一定要先在外面組 items
+    const itemsFromMode = [];
 
-        setQuotes(prev => {
-            const newList = [newQuote, ...prev];
-            setActiveQuoteId(newQuote.id);
-            return newList;
+    // 主項（算總價）
+    if (mode && Array.isArray(mode.defaultItems)) {
+        mode.defaultItems.forEach(item => {
+            itemsFromMode.push({
+                ...item,
+                id: uuid(),
+                type: "main",
+                subItems: [],
+                specMain: item.specMain || "",
+                specMaterial: "",
+                material1: "",
+                material2: "",
+                material3: "",
+                remarks: ""
+            });
         });
-    }, [company]);
+    }
+
+    // 實支實付（不算總價）
+    if (mode && Array.isArray(mode.referenceItems)) {
+        mode.referenceItems.forEach(item => {
+            itemsFromMode.push({
+                ...item,
+                id: uuid(),
+                type: "reference",
+                subItems: [],
+                specMain: "",
+                specMaterial: "",
+                remarks: item.remarks || ""
+            });
+        });
+    }
+
+    const newQuote = {
+        id: uuid(),
+        company: company,
+        quoteNo: generateQuoteNo(company),
+        title: mode ? mode.name : "未命名工程",
+        customerName: "",
+        contact: "",
+        phone: "",
+        location: "",
+        date: formatDate(),
+        items: itemsFromMode,              // ✅ 只放結果
+        notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
+        payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
+        discountPercent: 0,
+        negotiatedPrice: 0
+    };
+
+    setQuotes(prev => {
+        const newList = [newQuote, ...prev];
+        setActiveQuoteId(newQuote.id);
+        return newList;
+    });
+}, [company]);
+
 
     const deleteQuote = React.useCallback((id) => {
         setQuotes(prev => {
@@ -409,17 +557,40 @@ function AppProvider({ children }) {
         const mode = QUOTE_MODES.find(m => m.id === modeId);
         if (!mode || !activeQuoteId) return;
 
-        const itemsWithIds = mode.defaultItems.map(item => ({
-            ...item, 
-            id: uuid(), 
+       const itemsWithIds = [];
+
+// 主項（算總價）
+if (Array.isArray(mode.defaultItems)) {
+    mode.defaultItems.forEach(item => {
+        itemsWithIds.push({
+            ...item,
+            id: uuid(),
+            type: "main",
             subItems: [],
-            specMain: "", 
-            specMaterial: "", 
+            specMain: item.specMain || "",
+            specMaterial: "",
             material1: "",
             material2: "",
             material3: "",
             remarks: ""
-        }));
+        });
+    });
+}
+
+// 實支實付（不算總價）
+if (Array.isArray(mode.referenceItems)) {
+    mode.referenceItems.forEach(item => {
+        itemsWithIds.push({
+            ...item,
+            id: uuid(),
+            type: "reference",
+            subItems: [],
+            specMain: "",
+            specMaterial: "",
+            remarks: item.remarks || ""
+        });
+    });
+}
 
         updateQuote(activeQuoteId, {
             title: mode.name,
