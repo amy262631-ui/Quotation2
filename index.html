@@ -124,7 +124,7 @@
 
 <script type="text/babel">
 /***********************************************************
- * P1 — 公司資料 / 備註 / 付款條件 / 模式模板
+ // P1 — 公司資料 / 備註 / 付款條件 / 模式模板
  ***********************************************************/
 const COMPANY_DATA = {
   herhsin: {
@@ -187,7 +187,7 @@ const QUOTE_MODES = [
 ];
 
 /***********************************************************
- * P2 — 工具函式
+  // P2 — 工具函式
  ***********************************************************/
 function uuid() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -290,7 +290,7 @@ async function loadCSV(url) {
 }
 
 /***********************************************************
- * P3 — AppContext（資料中心）
+  // P3 — AppContext（資料中心）
  ***********************************************************/
 const AppContext = React.createContext();
 
@@ -446,7 +446,7 @@ function AppProvider({ children }) {
 }
 
 /***********************************************************
- * P4-1 — 公司切換 / 模式選擇 / 報價單列表
+  // P4-1 — 公司切換 / 模式選擇 / 報價單列表
  ***********************************************************/
 function CompanySelector() {
     const { company, setCompany, activeQuote, updateQuote } = React.useContext(AppContext);
@@ -621,7 +621,7 @@ function QuoteList() {
 }
 
 /***********************************************************
- * P4-2 — 單一報價項目編輯（用料明細：CSV 帶入 + 可手打）
+ // P4-2 — 單一報價項目編輯（用料明細：CSV 帶入 + 可手打）
  ***********************************************************/
 function QuoteItem({ item, index, updateItem, deleteItem }) {
   const { specItems } = React.useContext(AppContext);
@@ -824,7 +824,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
 }
 
 /***********************************************************
- * P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
+  // P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
  ***********************************************************/
 // 報價單編輯主元件
 function QuoteEditor() {
@@ -1273,8 +1273,8 @@ function PrintButton({ componentRef }) {
 }
 
 /***********************************************************
- * 列印排版組件（PrintLayout）— 完整穩定版
- * ✔ 含：用料明細獨立行 / 備註 / 付款條件 / 簽名印章
+  // 列印排版組件（PrintLayout）— 完整穩定版
+  //✔ 含：用料明細獨立行 / 備註 / 付款條件 / 簽名印章
  ***********************************************************/
 function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   if (!quote || !quote.company || !COMPANY_DATA[quote.company]) {
@@ -1527,7 +1527,7 @@ if (materialText.length > 0) {
 
 
 /***********************************************************
- * P5 — App 根元件
+  // P5 — App 根元件
  ***********************************************************/
 function App() {
     return (
@@ -1547,7 +1547,7 @@ function App() {
 }
 
 /***********************************************************
- * P6 — React 18 啟動
+ // P6 — React 18 啟動
  ***********************************************************/
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
