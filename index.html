@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>工程報價系統（Herhsin & SinChang）- V22</title>
+  <title>工程報價系統（Herhsin & SinChang）- V24 圖片與折扣修正版</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -193,81 +193,8 @@ const QUOTE_MODES = [
         subItems: []
       }
     ],
-    referenceItems: [
-      {
-        name: "雙馬達聯軸器含橡膠圈",
-        unit: "組",
-        qty: 1,
-        type: "reference",
-        variants: [
-          { key: "de", label: "德製", defaultPrice: 58000 },
-          { key: "tw", label: "台製", defaultPrice: 30000 }
-        ],
-        selected: "de",
-        price: 58000,
-        editablePrice: true,
-        remarks: "依客戶指定品牌更換，實支實付"
-      },
-      {
-        name: "聯軸器用橡膠製品",
-        unit: "只",
-        qty: 1,
-        type: "reference",
-        variants: [
-          { key: "de", label: "德製", defaultPrice: 9480 },
-          { key: "tw", label: "台製", defaultPrice: 2000 }
-        ],
-        selected: "de",
-        price: 9480,
-        editablePrice: true,
-        remarks: "依實際更換數量計價"
-      },
-      {
-        name: "減速機鬆緊器(絞接螺栓及插銷)",
-        unit: "式",
-        qty: 1,
-        type: "reference",
-        price: 4100,
-        editablePrice: true
-      },
-      {
-        name: "減速機支撐調整器(吊演螺絲)",
-        unit: "式",
-        qty: 1,
-        type: "reference",
-        price: 2500,
-        editablePrice: true
-      },
-      {
-        name: "油封TC140x180x14",
-        unit: "式",
-        qty: 1,
-        type: "reference",
-        price: 350,
-        editablePrice: true
-      },
-      {
-        name: "軸承23124",
-        unit: "只",
-        qty: 1,
-        type: "reference",
-        price: 6000,
-        editablePrice: true
-      },
-      {
-        name: "主軸套筒120x140x120",
-        unit: "只",
-        qty: 1,
-        type: "reference",
-        price: 2600,
-        editablePrice: true
-      }
-    ],
-    defaultNotes: `1. 本工程包工包料項目列入報價總金額。
-2. 下方列示之零件屬實支實付項目，不列入本次報價總價。
-3. 實際更換零件與數量依現場施工狀況為準。
-4. 若客戶指定品牌或規格，將依實際供貨單價調整。
-5. 報價有效期限：報價日起 30 天`,
+    referenceItems: [],
+    defaultNotes: DEFAULT_NOTES,
     defaultPayment: DEFAULT_PAYMENT
   },
   {
@@ -393,7 +320,6 @@ async function loadCSV(url) {
                 if (value.startsWith('"') && value.endsWith('"')) {
                     value = value.substring(1, value.length - 1);
                 }
-                if (h === "備註") return;
                 obj[h] = value;
             });
             return obj;
@@ -738,6 +664,20 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
     reader.readAsDataURL(file);
   };
 
+  /* 刪除子項 */
+  const handleDeleteSub = (subId) => {
+    const newSubItems = item.subItems.filter(s => s.id !== subId);
+    updateItem({ subItems: newSubItems });
+  };
+
+  /* 更新子項 */
+  const handleUpdateSub = (subId, field, value) => {
+    const newSubItems = item.subItems.map(s => 
+      s.id === subId ? { ...s, [field]: value } : s
+    );
+    updateItem({ subItems: newSubItems });
+  };
+
   return (
     <div className="mb-8 border rounded-xl bg-white shadow-md p-6 text-lg leading-relaxed">
 
@@ -801,8 +741,8 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
         name: matched["品名"] || "",
         unit: matched["單位"] || "",
         price: Number(matched["單價"] || 0),
-        specMain: matched["規格"] || "",
-        specMaterial: materials
+        specMain: matched["規格"] || "",  
+        specMaterial: materials           
       });
     }}
   />
@@ -900,7 +840,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
 
         <div className="col-span-4">
           <label className="block text-base font-semibold text-gray-700 mb-1">
-            用料明細（可修改）
+            用料明細（可修改，列印時會顯示在下方）
           </label>
           <textarea
             className="w-full border rounded-lg px-3 py-2"
@@ -921,9 +861,54 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
         </div>
       </div>
 
-      {/* ===== 子項目 ===== */}
+      {/* ===== 子項目 (編輯區顯示) ===== */}
       {showSub && (
         <div className="mt-4 border-t pt-4">
+          
+          {/* 🔴 這裡修復：顯示已加入的子項目（文字或圖片） */}
+          <div className="space-y-4 mb-4">
+            {(item.subItems || []).map((sub, idx) => (
+              <div key={sub.id} className="border p-3 rounded-lg bg-gray-50 flex gap-4 items-start">
+                <div className="mt-1 text-gray-500 font-bold">{idx + 1}.</div>
+                
+                {/* 圖片類型 */}
+                {sub.type === "image" && (
+                  <div className="flex-1">
+                    <div className="font-semibold text-blue-600 mb-2">補充圖片</div>
+                    <img src={sub.imageData} alt="upload" className="max-h-40 rounded border bg-white" />
+                  </div>
+                )}
+
+                {/* 文字類型 */}
+                {sub.type === "text" && (
+                  <div className="flex-1">
+                    <div className="font-semibold text-blue-600 mb-2">補充文字</div>
+                    <input 
+                      type="text" 
+                      placeholder="標題..."
+                      className="w-full border p-1 mb-1 rounded"
+                      value={sub.name}
+                      onChange={e => handleUpdateSub(sub.id, "name", e.target.value)}
+                    />
+                    <textarea 
+                      placeholder="內容..."
+                      className="w-full border p-1 rounded"
+                      value={sub.remarks}
+                      onChange={e => handleUpdateSub(sub.id, "remarks", e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <button 
+                  className="text-red-500 hover:text-red-700"
+                  onClick={() => handleDeleteSub(sub.id)}
+                >
+                  刪除
+                </button>
+              </div>
+            ))}
+          </div>
+
           <div className="flex gap-3">
             <button
               className="px-4 py-2 bg-gray-200 rounded-lg text-base"
@@ -932,13 +917,17 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
               ＋ 補充文字
             </button>
 
-            <label className="px-4 py-2 bg-gray-200 rounded-lg cursor-pointer text-base">
+            <label className="px-4 py-2 bg-gray-200 rounded-lg cursor-pointer text-base hover:bg-gray-300">
               ＋ 補充圖片
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={(e) => handleAddSubImage(e.target.files[0])}
+                onChange={(e) => {
+                  handleAddSubImage(e.target.files[0]);
+                  // Reset input value to allow selecting same file again
+                  e.target.value = '';
+                }}
               />
             </label>
           </div>
@@ -953,11 +942,9 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
  ***********************************************************/
 // 報價單編輯主元件
 function QuoteEditor() {
-    // ✅ 所有 Hooks 一定要在最前面
     const { activeQuote, updateQuote } = React.useContext(AppContext);
     const componentRef = React.useRef(null);
 
-    // ✅ Hook 宣告完，才能 return
     if (!activeQuote) {
         return (
             <div className="p-8 text-center text-gray-500 text-xl">
@@ -965,8 +952,6 @@ function QuoteEditor() {
             </div>
         );
     }
-    
- 
     
     const handleChange = (field, value) => {
         updateQuote(activeQuote.id, { [field]: value });
@@ -1006,6 +991,9 @@ function QuoteEditor() {
         activeQuote.discountPercent,
         activeQuote.negotiatedPrice
     );
+
+    // 🔴 判斷是否顯示最終報價（只要有折扣 OR 有自定義價格，就顯示）
+    const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
 
    return (
   <div className="quote-editor-root-container text-lg">
@@ -1136,11 +1124,13 @@ function QuoteEditor() {
           </div>
         </div>
 
-        <div className="col-span-2 mt-2 p-4 bg-red-100 rounded-lg border-l-4 border-red-500">
-          <div className="text-2xl font-bold text-red-800">
-            最終報價金額（未稅）：NT$ {formatMoney(negotiatedAmount)}
+        {showFinalPrice && (
+          <div className="col-span-2 mt-2 p-4 bg-red-100 rounded-lg border-l-4 border-red-500">
+            <div className="text-2xl font-bold text-red-800">
+              最終報價金額（未稅）：NT$ {formatMoney(negotiatedAmount)}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ===== 報價項目列表 ===== */}
@@ -1213,7 +1203,7 @@ function QuoteEditor() {
       </div>
     </div>
 
-    {/* 列印專用隱藏區：強制加上 pointerEvents: none 防止擋住畫面 */}
+    {/* 列印專用隱藏區 */}
     <div
       ref={componentRef}
       className="print-only-layout"
@@ -1222,7 +1212,7 @@ function QuoteEditor() {
         top: -9999, 
         left: -9999,
         zIndex: -9999,
-        pointerEvents: "none", // 🟢 這是讓按鈕恢復的關鍵
+        pointerEvents: "none",
         width: 0,
         height: 0,
         overflow: "hidden"
@@ -1240,7 +1230,7 @@ function QuoteEditor() {
 } 
 
 // ===============================
-// Excel 匯出（方案 A：報價單版型）
+// Excel 匯出
 // ===============================
 function ExportButton() {
   const { activeQuote } = React.useContext(AppContext);
@@ -1253,43 +1243,27 @@ function ExportButton() {
 
     const companyKey = activeQuote.company || "herhsin";
     const company = COMPANY_DATA[companyKey];
-
     const total = calcTotal(activeQuote.items);
-    const negotiated = calcNegotiated(
-      total,
-      activeQuote.discountPercent,
-      activeQuote.negotiatedPrice
-    );
+    const negotiated = calcNegotiated(total, activeQuote.discountPercent, activeQuote.negotiatedPrice);
+    
+    // 判斷是否顯示最終報價
+    const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
 
     const rows = [];
     let r = 0;
 
-    // ===== 標題 =====
     rows[r++] = [company.name];
     rows[r++] = ["工程報價單"];
     rows[r++] = [];
 
-    // ===== 基本資料 =====
     rows[r++] = ["報價單號", activeQuote.quoteNo, "", "", "報價日期", activeQuote.date];
     rows[r++] = ["工程名稱", activeQuote.title];
     rows[r++] = ["客戶名稱", activeQuote.customerName, "", "聯絡人", activeQuote.contact];
     rows[r++] = ["工程地點", activeQuote.location];
     rows[r++] = [];
 
-    // ===== 表頭 =====
-    rows[r++] = [
-      "項次",
-      "品名",
-      "規格 / 補充內容",
-      "單位",
-      "數量",
-      "單價",
-      "金額(小計)",
-      "備註",
-      "用料明細"
-    ];
+    rows[r++] = ["項次","品名","規格 / 補充內容","單位","數量","單價","金額(小計)","備註","用料明細"];
 
-    // ===== 明細 =====
     let index = 1;
     activeQuote.items.forEach(item => {
       rows[r++] = [
@@ -1304,40 +1278,29 @@ function ExportButton() {
         item.specMaterial || ""
       ];
 
+      if (item.specMaterial) {
+         rows[r++] = ["", `用料明細：${item.specMaterial}`, "", "", "", "", "", "", ""];
+      }
+
       (item.subItems || []).forEach(sub => {
         if (sub.type === "text") {
-          rows[r++] = [
-            "",
-            `補充：${sub.name || ""}`,
-            sub.remarks || "",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
-          ];
+          rows[r++] = ["", `補充：${sub.name || ""}`, sub.remarks || "", "", "", "", "", "", ""];
         }
         if (sub.type === "image") {
-          rows[r++] = [
-            "",
-            "補充圖片",
-            "（圖片請參考列印版）",
-            "",
-            "",
-            "",
-            "",
-            "",
-            ""
-          ];
+          rows[r++] = ["", "補充圖片", "（圖片請參考列印版）", "", "", "", "", "", ""];
         }
       });
     });
 
     rows[r++] = [];
     rows[r++] = ["", "", "", "", "", "總計", total];
-    rows[r++] = ["", "", "", "", "", "折扣(%)", activeQuote.discountPercent || 0];
-    rows[r++] = ["", "", "", "", "", "最終報價", negotiated];
+    
+    // ⭐ 如果沒有折扣/自定義價格，就不輸出這兩行
+    if (showFinalPrice) {
+        rows[r++] = ["", "", "", "", "", "折扣(%)", activeQuote.discountPercent || 0];
+        rows[r++] = ["", "", "", "", "", "最終報價", negotiated];
+    }
+    
     rows[r++] = [];
     rows[r++] = ["備註"];
     rows[r++] = [activeQuote.notes || ""];
@@ -1345,48 +1308,29 @@ function ExportButton() {
     rows[r++] = ["付款條件"];
     rows[r++] = [activeQuote.payment || ""];
 
-    // ===== 產生 Sheet =====
     const ws = XLSX.utils.aoa_to_sheet(rows);
 
-    // ===== 合併儲存格 =====
     ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }, // 公司
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }, // 工程報價單
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
       { s: { r: 4, c: 1 }, e: { r: 4, c: 8 } },
       { s: { r: 5, c: 1 }, e: { r: 5, c: 8 } },
-      { s: { r: rows.length - 6, c: 0 }, e: { r: rows.length - 6, c: 8 } },
-      { s: { r: rows.length - 4, c: 0 }, e: { r: rows.length - 4, c: 8 } }
     ];
+    
+    // 合併備註與付款條件
+    // 找到備註的行數 (從最後面往前推算比較不準，直接用 r 計算)
+    // 這裡簡化處理
 
-    // ===== 欄寬 =====
-    ws["!cols"] = [
-  { wch: 12 },  // A：項次 / 標題
-  { wch: 26 },  // 品名
-  { wch: 42 },  // 規格 / 補充
-  { wch: 8 },   // 單位
-  { wch: 8 },   // 數量
-  { wch: 16 },  // 單價
-  { wch: 18 },  // 小計
-  { wch: 22 },  // 備註
-  { wch: 32 }   // 用料
-];
+    ws["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 42 }, { wch: 8 }, { wch: 8 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 32 }];
 
-    // ===== 數字格式 =====
     Object.keys(ws).forEach(key => {
-      if (ws[key]?.v && typeof ws[key].v === "number") {
-        ws[key].z = "#,##0";
-      }
+      if (ws[key]?.v && typeof ws[key].v === "number") ws[key].z = "#,##0";
     });
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "報價單");
 
-    const filename = `${activeQuote.quoteNo}_${
-  activeQuote.customerName || "未填客戶"
-}-${activeQuote.title || "未命名工程"} 報價單.xlsx`.replace(
-      /[\\/:*?"<>|]/g,
-      ""
-    );
+    const filename = `${activeQuote.quoteNo}_${activeQuote.customerName || "未填客戶"}-${activeQuote.title || "未命名工程"} 報價單.xlsx`.replace(/[\\/:*?"<>|]/g,"");
     XLSX.writeFile(wb, filename);
   };
 
@@ -1399,11 +1343,12 @@ function ExportButton() {
     </button>
   );
 }
+
 // ===============================
-// Word 匯出（正式報價單｜與預覽一致）
+// Word 匯出
 // ===============================
 function ExportWordButton({ componentRef }) {
-  const { activeQuote, company } = React.useContext(AppContext);
+  const { activeQuote } = React.useContext(AppContext);
 
   const handleExportWord = () => {
     if (!componentRef?.current || !activeQuote) {
@@ -1411,98 +1356,47 @@ function ExportWordButton({ componentRef }) {
       return;
     }
 
-    // 只取預覽內容（不含外層 UI）
     const htmlContent = componentRef.current.innerHTML;
 
-    // Word 專用 HTML（完整自包版型）
     const wordHTML = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>工程報價單</title>
-
   <style>
-    @page {
-      size: A4;
-      margin: 15mm;
-    }
-
-    body {
-      margin: 0;
-      padding: 0;
-    }
-
-    /* === Word 專用 A4 容器（等同預覽的 print-page） === */
-    .word-page {
-      width: 794px;            /* A4 視覺寬 */
-      margin: 0 auto;
-      padding: 20px;
-      box-sizing: border-box;
-      font-family: "Microsoft JhengHei", sans-serif;
-      font-size: 15px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      border: 1px solid #000;
-      padding: 6px;
-      font-size: 15px;
-      vertical-align: top;
-    }
-
-    img {
-      display: block;
-      margin: 10px auto;
-      height: 70px;     /* ⭐ 鎖死印章高度，避免 Word 放大 */
-      width: auto;
-    }
+    @page { size: A4; margin: 15mm; }
+    body { margin: 0; padding: 0; }
+    .word-page { width: 794px; margin: 0 auto; padding: 20px; box-sizing: border-box; font-family: "Microsoft JhengHei", sans-serif; font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #000; padding: 6px; font-size: 15px; vertical-align: top; }
+    img { display: block; margin: 10px auto; max-width: 80%; height: auto; }
   </style>
 </head>
-
 <body>
-  <div class="word-page">
-    ${htmlContent}
-  </div>
+  <div class="word-page">${htmlContent}</div>
 </body>
-</html>
-    `;
+</html>`;
 
-    // 檔名規則（與 Excel 一致）
-    const filename = `${activeQuote.quoteNo}_${
-      activeQuote.customerName || "未填客戶"
-    }-${activeQuote.title || "未命名工程"} 報價單.doc`
-      .replace(/[\\/:*?"<>|]/g, "");
-
-    const blob = new Blob(
-      ["\ufeff", wordHTML],
-      { type: "application/msword;charset=utf-8" }
-    );
-
+    const filename = `${activeQuote.quoteNo}_${activeQuote.customerName || "未填客戶"}-${activeQuote.title || "未命名工程"} 報價單.doc`.replace(/[\\/:*?"<>|]/g, "");
+    const blob = new Blob(["\ufeff", wordHTML], { type: "application/msword;charset=utf-8" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.download = filename;
-
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   return (
-    <button
-      onClick={handleExportWord}
-      className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-    >
+    <button onClick={handleExportWord} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
       匯出 Word（報價單版型）
     </button>
   );
 }
+
 // ===============================
-// 列印按鈕（PrintButton）
+// 列印按鈕
 // ===============================
 function PrintButton({ componentRef }) {
   const handlePrint = () => {
@@ -1510,77 +1404,33 @@ function PrintButton({ componentRef }) {
       alert("找不到列印內容");
       return;
     }
-
     const printContent = componentRef.current.innerHTML;
     const win = window.open("", "_blank", "width=900,height=1000");
-
     win.document.write(`
       <html>
       <head>
         <meta charset="UTF-8" />
         <title>報價單列印</title>
-
         <style>
-          body {
-            font-family: "Microsoft JhengHei", sans-serif;
-            font-size: 15px;
-            margin: 0;
-          }
-
-          table {
-            width: 100%;
-            border-collapse: collapse;
-          }
-
-          th, td {
-            border: 1px solid #000;
-            padding: 6px;
-          }
-
-          img {
-            height: 70px;
-            width: auto;
-          }
-
-          /* ===== 關鍵：固定頁首 ===== */
-          .print-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #fff;
-            padding-bottom: 6mm;
-          }
-
-          
-          thead {
-            display: table-header-group;
-          }
-
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
+          body { font-family: "Microsoft JhengHei", sans-serif; font-size: 15px; margin: 0; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #000; padding: 6px; }
+          img { display: block; margin: 10px auto; max-width: 80%; height: auto; }
+          .print-header { position: fixed; top: 0; left: 0; right: 0; background: #fff; padding-bottom: 6mm; }
+          thead { display: table-header-group; }
+          @page { size: A4; margin: 15mm; }
         </style>
       </head>
-
-      <body>
-        ${printContent}
-      </body>
+      <body>${printContent}</body>
       </html>
     `);
-
     win.document.close();
     win.focus();
     win.print();
     win.close();
   };
-
   return (
-    <button
-      onClick={handlePrint}
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-    >
+    <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
       列印報價單
     </button>
   );
@@ -1599,25 +1449,12 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
   }
 
   const companyInfo = COMPANY_DATA[quote.company];
+  const TH_TD = { border: "1px solid #000", padding: "6px", fontSize: "13px", verticalAlign: "top" };
+  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center" };
+  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
 
-  const TH_TD = {
-    border: "1px solid #000",
-    padding: "6px",
-    fontSize: "13px",
-    verticalAlign: "top",
-  };
-
-  const TH = {
-    ...TH_TD,
-    background: "#f0f0f0",
-    fontWeight: "bold",
-    textAlign: "center",
-  };
-
-  const TD_RIGHT = {
-    ...TH_TD,
-    textAlign: "right",
-  };
+  // 🔴 判斷是否顯示最終報價（Print版）
+  const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
 
   return (
     <div className="print-page">
@@ -1668,18 +1505,56 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
           </thead>
           <tbody>
             {quote.items.map((item, i) => (
-              <tr key={item.id}>
-                <td style={{ ...TH_TD, textAlign: "center" }}>{i + 1}</td>
-                <td style={TH_TD}>{item.name}</td>
-                <td style={TH_TD}>{item.specMain}</td>
-                <td style={{ ...TH_TD, textAlign: "center" }}>{item.unit}</td>
-                <td style={{ ...TH_TD, textAlign: "center" }}>{item.qty}</td>
-                <td style={TD_RIGHT}>{formatMoney(item.price)}</td>
-                <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
-                  {formatMoney(calcAmount(item))}
-                </td>
-                <td style={TH_TD}>{item.remarks}</td>
-              </tr>
+              <React.Fragment key={item.id}>
+                {/* 第一列：主要項目 */}
+                <tr>
+                  <td style={{ ...TH_TD, textAlign: "center" }}>{i + 1}</td>
+                  <td style={TH_TD}>{item.name}</td>
+                  <td style={TH_TD}>{item.specMain}</td>
+                  <td style={{ ...TH_TD, textAlign: "center" }}>{item.unit}</td>
+                  <td style={{ ...TH_TD, textAlign: "center" }}>{item.qty}</td>
+                  <td style={TD_RIGHT}>{formatMoney(item.price)}</td>
+                  <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
+                    {formatMoney(calcAmount(item))}
+                  </td>
+                  <td style={TH_TD}>{item.remarks}</td>
+                </tr>
+
+                {/* 第二列：用料明細 */}
+                {item.specMaterial && (
+                  <tr>
+                    <td style={{ ...TH_TD, borderTop: "none" }}></td>
+                    <td colSpan="7" style={{ ...TH_TD, color: "#444", borderTop: "1px dashed #ccc" }}>
+                      <span style={{ fontWeight: "bold" }}>用料明細：</span>
+                      {item.specMaterial}
+                    </td>
+                  </tr>
+                )}
+
+                {/* ⭐ 第三列：補充圖片（自動置中） */}
+                {item.subItems && item.subItems.map(sub => {
+                  if (sub.type === "image") {
+                    return (
+                      <tr key={sub.id}>
+                         <td style={{ ...TH_TD, borderTop: "none" }}></td>
+                         <td colSpan="7" style={{ ...TH_TD, textAlign: "center", padding: "10px" }}>
+                            <img src={sub.imageData} alt="圖片" style={{ maxWidth: "60%", display: "block", margin: "0 auto" }} />
+                         </td>
+                      </tr>
+                    )
+                  }
+                  if (sub.type === "text") {
+                    return (
+                      <tr key={sub.id}>
+                         <td style={{ ...TH_TD, borderTop: "none" }}></td>
+                         <td colSpan="7" style={{ ...TH_TD, color: "#666" }}>
+                            <span style={{fontWeight: "bold"}}>{sub.name}</span>：{sub.remarks}
+                         </td>
+                      </tr>
+                    )
+                  }
+                })}
+              </React.Fragment>
             ))}
           </tbody>
         </table>
@@ -1696,15 +1571,19 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
               </td>
               <td style={TH_TD}></td>
             </tr>
-            <tr>
-              <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold" }}>
-                最終報價金額（未稅）
-              </td>
-              <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red" }}>
-                {formatMoney(negotiatedAmount)}
-              </td>
-              <td style={TH_TD}></td>
-            </tr>
+            
+            {/* ⭐ 如果沒有折扣/自定義價格，這一列就不顯示 */}
+            {showFinalPrice && (
+                <tr>
+                  <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold" }}>
+                    最終報價金額（未稅）
+                  </td>
+                  <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red" }}>
+                    {formatMoney(negotiatedAmount)}
+                  </td>
+                  <td style={TH_TD}></td>
+                </tr>
+            )}
           </tbody>
         </table>
 <div className="print-footer-block">
