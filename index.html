@@ -66,97 +66,106 @@
       overflow: hidden;
     }
 
-    /* =========================================
-       2. 真實列印樣式 (@media print)
-       這裡的設定才是真正印出來的樣子
-       ========================================= */
-    @media print {
+  /* =================================================
+   ✅ 最終穩定版｜工程報價單列印專用 CSS
+   ‧ 解決 Header 跑位
+   ‧ Chrome / Edge / PDF 一致
+   ‧ Header 每頁重複
+   ‧ 表格不亂跳、簽名不被切
+================================================= */
 
-      body {
-        background: #ffffff;
-      }
+@media print {
 
-      .live-preview-box,
-      .no-print {
-        display: none !important;
-      }
+  /* ========= 基本重置 ========= */
+  body {
+    background: #ffffff;
+    margin: 0;
+    padding: 0;
+  }
 
-      /* 強制顯示列印區塊，覆蓋 React 的隱藏設定 */
-      .print-only-layout {
-        position: static !important;
-        width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
-        opacity: 1 !important;
-        display: block !important;
-        pointer-events: auto !important;
-      }
+  .no-print,
+  .live-preview-box {
+    display: none !important;
+  }
 
-      /* 重置容器 */
-      .print-page {
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        box-shadow: none;
-        padding-top: 0; /* 列印時不需要 padding，靠 margin */
-        overflow: visible;
-      }
+  /* ========= 強制顯示列印內容 ========= */
+  .print-only-layout {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    pointer-events: auto !important;
+  }
 
-      /* ⭐ 關鍵設定：頁面邊距 (Page Margins) */
-      @page {
-        size: A4;
-        margin: 10mm; /* 左右底邊距 */
-        margin-top: 80mm; /* ⭐ 上方預留 80mm 給公司抬頭，避免重疊 */
-        margin-bottom: 15mm;
-      }
+  /* ========= 頁面設定（最重要） ========= */
+  @page {
+    size: A4;
+    margin: 10mm;
+    margin-top: 80mm;   /* Header 專用高度 */
+    margin-bottom: 15mm;
+  }
 
-      /* ⭐ Header 定位：往上拉進邊距區 */
-      .print-header {
-        position: fixed;
-        top: -75mm; /* ⭐ 負值！往上拉 7.5cm (稍微小於 margin-top) */
-        left: 0;
-        right: 0;
-        height: 75mm;
-        background: #ffffff;
-        z-index: 100;
-        padding: 0;
-        border: none; /* 移除邊框 */
-      }
+  /* ========= 主頁容器 ========= */
+  .print-page {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
 
-      .print-content {
-        margin-top: 0;
-      }
+  /* ========= 固定頁首（不要用負值） ========= */
+  .print-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 75mm;
+    background: #ffffff;
+    z-index: 100;
+  }
 
-      /* 表格標題每頁重複 */
-      thead {
-        display: table-header-group !important;
-      }
+  /* ========= 列印內容 ========= */
+  .print-content {
+    margin: 0;
+    padding: 0;
+  }
 
-      /* 防止表格行內斷行 */
-      tr {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
+  /* ========= 表格行為 ========= */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
 
-      /* ⭐ 簽名欄保護：禁止內部斷頁，如果空間不夠直接整塊換頁 */
-      .print-footer-block {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        margin-top: 15mm;
-        display: block;
-      }
-      
-      /* 強制簽名表格也不要斷開 */
-      .print-signature-area {
-        page-break-inside: avoid !important;
-      }
+  thead {
+    display: table-header-group !important;
+  }
 
-      img {
-        max-width: 100%;
-        height: auto;
-        page-break-inside: avoid;
-      }
-    }
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  th, td {
+    page-break-inside: avoid;
+  }
+
+  /* ========= 圖片 ========= */
+  img {
+    max-width: 100%;
+    height: auto;
+    page-break-inside: avoid;
+  }
+
+  /* ========= 簽名區整塊保護 ========= */
+  .print-footer-block,
+  .print-signature-area {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
   </style>
 </head>
 
