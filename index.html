@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>工程報價系統（Herhsin & SinChang）- V24 圖片與折扣修正版</title>
+  <title>工程報價系統（Herhsin & SinChang）- V25 表頭分頁完美修正版</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -26,31 +26,39 @@
       background: #f3f4f6;
     }
 
-    /* ===== A4 預覽紙 ===== */
+    /* ===== A4 預覽紙 (螢幕上看的樣子) ===== */
     .print-page {
       width: 794px;
       min-height: 1123px;
       margin: 0 auto;
       background: #ffffff;
       padding: 20px;
+      /* 螢幕預覽時，我們要模擬 margin-top */
+      padding-top: 70mm; 
       box-shadow: 0 0 12px rgba(0,0,0,0.15);
       box-sizing: border-box;
+      position: relative; /* 讓 header 可以絕對定位 */
     }
 
-    /* 畫面模式 */
+    /* 螢幕模式下的 Header 定位 */
     .print-header {
-      position: static;
-      z-index: auto;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 65mm;
+      padding: 10px 20px;
+      background: #fff;
+      z-index: 10;
     }
     
-    /* ⭐ 關鍵修復：確保這個隱藏的區塊永遠不會擋住滑鼠 */
     .print-only-layout {
       pointer-events: none !important;
       z-index: -9999 !important;
     }
 
     /* =========================
-       列印樣式（唯一版本）
+       列印樣式（真實列印時的設定）
        ========================= */
     @media print {
 
@@ -64,48 +72,56 @@
       }
 
       .print-page {
-        width: auto;
+        width: 100%;
         margin: 0;
         padding: 0;
         box-shadow: none;
+        /* 列印時移除 padding-top，改用 @page margin 控制 */
+        padding-top: 0; 
       }
 
+      /* * ⭐ 關鍵修正：設定列印頁面的邊距 
+       * margin-top: 70mm -> 預留給 Header 的空間
+       * 這樣每一頁的表格都會自動從 70mm 處開始，不會被 Header 擋住
+       */
       @page {
         size: A4;
-        margin: 15mm;
+        margin: 10mm;
+        margin-top: 70mm; /* 這是保留給公司抬頭的高度 */
+        margin-bottom: 15mm;
       }
 
-      /* 固定頁首（只在列印） */
+      /* 固定頁首：設定為 fixed，瀏覽器會把它放在每一頁的 margin-top 區域內 */
       .print-header {
         position: fixed;
-        top: 0;
+        top: -60mm; /* 往上推到 margin 區域 */
         left: 0;
         right: 0;
+        height: 60mm;
         background: #ffffff;
-        padding-bottom: 6mm;
         z-index: 10;
+        padding: 0;
       }
 
       .print-content {
-        margin-top: 65mm;
+        /* 內容不需要 margin-top 了，因為 @page 已經處理了 */
+        margin-top: 0;
       }
 
+      /* ⭐ 強制表格標題在每一頁重複 */
       thead {
-        display: table-header-group;
+        display: table-header-group !important;
       }
 
-      table {
-        page-break-inside: auto;
-      }
-
+      /* 防止表格行被切斷 */
       tr {
         page-break-inside: avoid;
         break-inside: avoid;
       }
 
+      /* 頁尾區塊換頁設定 */
       .print-footer-block {
-        page-break-before: always;
-        break-before: page;
+        page-break-inside: avoid;
         margin-top: 10mm;
       }
 
@@ -865,7 +881,6 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
       {showSub && (
         <div className="mt-4 border-t pt-4">
           
-          {/* 🔴 這裡修復：顯示已加入的子項目（文字或圖片） */}
           <div className="space-y-4 mb-4">
             {(item.subItems || []).map((sub, idx) => (
               <div key={sub.id} className="border p-3 rounded-lg bg-gray-50 flex gap-4 items-start">
@@ -1365,7 +1380,7 @@ function ExportWordButton({ componentRef }) {
   <meta charset="UTF-8">
   <title>工程報價單</title>
   <style>
-    @page { size: A4; margin: 15mm; }
+    @page { size: A4; margin: 15mm; margin-top: 70mm; }
     body { margin: 0; padding: 0; }
     .word-page { width: 794px; margin: 0 auto; padding: 20px; box-sizing: border-box; font-family: "Microsoft JhengHei", sans-serif; font-size: 15px; }
     table { width: 100%; border-collapse: collapse; }
@@ -1416,9 +1431,15 @@ function PrintButton({ componentRef }) {
           table { width: 100%; border-collapse: collapse; }
           th, td { border: 1px solid #000; padding: 6px; }
           img { display: block; margin: 10px auto; max-width: 80%; height: auto; }
-          .print-header { position: fixed; top: 0; left: 0; right: 0; background: #fff; padding-bottom: 6mm; }
+          
+          /* 固定頁首 */
+          .print-header { position: fixed; top: -60mm; left: 0; right: 0; height: 60mm; background: #fff; }
+          
+          /* 表頭重複 */
           thead { display: table-header-group; }
-          @page { size: A4; margin: 15mm; }
+          
+          /* 頁面邊距設定 */
+          @page { size: A4; margin: 10mm; margin-top: 70mm; margin-bottom: 15mm; }
         </style>
       </head>
       <body>${printContent}</body>
