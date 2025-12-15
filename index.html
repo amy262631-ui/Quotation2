@@ -1,159 +1,127 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>工程報價系統（Herhsin & SinChang）- V22 (最終穩定版)</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>工程報價系統（Herhsin & SinChang）- V22</title>
 
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- React 18 -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- React 18 -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-    <!-- ReactDOMServer（目前沒用到，但保留，不影響） -->
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom-server.browser.development.js"></script>
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- react-to-print（目前沒用到，但保留，不呼叫它） -->
-    <script src="https://unpkg.com/react-to-print/dist/index.umd.js"></script>    
+  <!-- XLSX -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-    <!-- Babel -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      background: #f3f4f6;
+      font-family: "Microsoft JhengHei", sans-serif;
+    }
 
-    <!-- XLSX：匯出用 -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    /* ===== 即時預覽外框 ===== */
+    .live-preview-box {
+      padding: 40px 0;
+      background: #f3f4f6;
+    }
 
-<style>
-  body {
-    background: #f3f4f6;
-    font-family: "Microsoft JhengHei", sans-serif;
-  }
+    /* ===== A4 預覽紙 ===== */
+    .print-page {
+      width: 794px;
+      min-height: 1123px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 20px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.15);
+      box-sizing: border-box;
+    }
 
-  /* ===== 實時預覽區（灰底） ===== */
-  .live-preview-box {
-    padding: 40px 0;
-    background: #f3f4f6;
-  }
+    /* =========================
+       列印樣式（唯一版本）
+       ========================= */
+    @media print {
 
-  /* ===== A4 紙張預覽（重點） ===== */
-  .print-page {
-    width: 794px;              /* A4 寬 */
-    min-height: 1123px;        /* A4 高 */
-    margin: 0 auto;            /* 置中 */
-    background: #ffffff;
-    padding: 20px;
-    box-shadow: 0 0 12px rgba(0,0,0,0.15);
-    box-sizing: border-box;
-  }
+      body {
+        background: #ffffff;
+      }
 
-/* =========================
-   列印樣式（圖片不消失版）
-   ========================= */
-@media print {
+      /* 只在列印時隱藏 */
+      .live-preview-box,
+      .no-print {
+        display: none !important;
+      }
 
-  body {
-    background: #ffffff;
-  }
+      .print-page {
+        width: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
 
-  .live-preview-box {
-    padding: 0;
-    background: #ffffff;
-  }
+      @page {
+        size: A4;
+        margin: 15mm;
+      }
 
-  .print-page {
-    width: auto;
-    min-height: auto;
-    box-shadow: none;
-    padding: 0;
-    margin: 0;
-  }
+      /* 固定頁首 */
+      .print-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        padding-bottom: 6mm;
+        z-index: 10;
+      }
 
-  /* 不列印編輯介面 */
-  .no-print {
-    display: none !important;
-  }
+      /* ⭐ 內容下推（只此一處） */
+      .print-content {
+        margin-top: 95mm;
+      }
 
-  /* =========================
-     表格設定
-     ========================= */
+      /* 表頭跨頁 */
+      thead {
+        display: table-header-group;
+      }
 
-  /* 表格跨頁重複表頭 */
-  thead {
-    display: table-header-group;
-  }
+      tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
 
-  /* 單一列不被切 */
-  tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
+      /* 最後一頁 */
+      .print-footer-block {
+        page-break-before: always;
+        break-before: page;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        margin-top: 10mm;
+      }
 
-  /* =========================
-     圖片 / 印章
-     ========================= */
+      .print-signature-area {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
 
-  /* 圖片列印保證顯示 */
-  img {
-    display: block !important;
-    visibility: visible !important;
-    max-width: 100% !important;
-    height: auto !important;
-    page-break-inside: avoid;
-  }
-
-  /* 印章區整塊不被切 */
-  .print-signature-area {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* =========================
-     A4 設定
-     ========================= */
-  @page {
-    size: A4;
-    margin: 15mm;
-  }
-
-  /* =========================
-     多頁固定頁首（每頁都出現）
-     ========================= */
-  .print-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #ffffff;
-    padding-bottom: 6mm;
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
- 
-  /* =========================
-     ⭐ 最後一頁（備註 / 付款 / 印章）
-     ========================= */
-  .print-footer-block {
-  page-break-before: auto;
-  break-before: auto;
-  page-break-inside: avoid;
-  break-inside: avoid;
-  margin-top: 10mm;
-}
-}
-</style>
-
+      img {
+        max-width: 100% !important;
+        height: auto !important;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
 </head>
 
 <body class="text-gray-900">
-    <div id="root"></div>
-    
-    <div id="quotePreviewArea">
-        <!-- 目前不使用這個區塊列印，只保留，不影響功能 -->
-    </div>
+  <div id="root"></div>
 
-<script type="text/babel">
+  <script type="text/babel">
+
 /***********************************************************
  * P1 — 公司資料 / 備註 / 付款條件 / 模式模板
  ***********************************************************/
@@ -456,53 +424,49 @@ async function loadCSV(url) {
 }
 
 /***********************************************************
-  * P3 — AppContext（資料中心）
+ * P3 — AppContext（資料中心）
  ***********************************************************/
 const AppContext = React.createContext();
 
 function AppProvider({ children }) {
-    const [company, setCompany] = React.useState("herhsin");
-    const [quotes, setQuotes] = React.useState([]);
-    const [activeQuoteId, setActiveQuoteId] = React.useState(null);
-    const [specItems, setSpecItems] = React.useState([]);
+  const [company, setCompany] = React.useState("herhsin");
+  const [quotes, setQuotes] = React.useState([]);
+  const [activeQuoteId, setActiveQuoteId] = React.useState(null);
+  const [specItems, setSpecItems] = React.useState([]);
 
-    const SPEC_CSV_URL =
-        "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHQN_nMBB7l72PSD8omOO55UYRlIClUGEDgtzYzTKK-5fvRWIZowcdnMHvkkwJbdz7krhIiRc00sye/pub?output=csv"; 
-        
+  const SPEC_CSV_URL =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHQN_nMBB7l72PSD8omOO55UYRlIClUGEDgtzYzTKK-5fvRWIZowcdnMHvkkwJbdz7krhIiRc00sye/pub?output=csv";
 
-    React.useEffect(() => {
-        const saved = localStorage.getItem("HERHSIN_QUOTES");
-
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed)) {
-                    setQuotes(parsed);
-                    if (parsed.length > 0) setActiveQuoteId(parsed[0].id);
-                }
-            } catch (e) {
-                console.error("解析 localStorage 數據失敗:", e);
-                setQuotes([]);
-                setActiveQuoteId(null);
-            }
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem("HERHSIN_QUOTES");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setQuotes(parsed);
+          if (parsed.length > 0) {
+            setActiveQuoteId(parsed[0].id);
+          }
         }
-    }, []);
+      }
+    } catch (err) {
+      console.error("localStorage 解析失敗", err);
+      setQuotes([]);
+      setActiveQuoteId(null);
+    }
+  }, []);
 
-    React.useEffect(() => {
-        try {
-            localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
-        } catch (e) {
-            console.error("寫入 localStorage 失敗:", e);
-        }
-    }, [quotes]);
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
+    } catch (err) {
+      console.error("localStorage 寫入失敗", err);
+    }
+  }, [quotes]);
 
-    const loadSpecItems = React.useCallback(() => {
-        loadCSV(SPEC_CSV_URL).then(data => setSpecItems(data));
-    }, [SPEC_CSV_URL]);
-
-    React.useEffect(() => {
-        loadSpecItems();
-    }, [loadSpecItems]);
+  React.useEffect(() => {
+    loadCSV(SPEC_CSV_URL).then(setSpecItems);
+  }, []);
 
     const createQuote = React.useCallback((modeId = null) => {
     const mode = QUOTE_MODES.find(m => m.id === modeId);
@@ -634,30 +598,31 @@ if (Array.isArray(mode.referenceItems)) {
     const activeQuote = quotes.find(q => q.id === activeQuoteId);
 
     const value = {
-        company,
-        setCompany,
+  company,
+  setCompany,
 
-        quotes,
-        createQuote,
-        deleteQuote,
-        updateQuote,
-        activeQuote, 
-        activeQuoteId,
-        setActiveQuoteId,
+  quotes,
+  createQuote,
+  deleteQuote,
+  updateQuote,
+  activeQuote,
+  activeQuoteId,
+  setActiveQuoteId,
 
-        specItems,
-        loadSpecItems, 
-        applyMode
-    };
+  specItems,
+  loadSpecItems,
+  applyMode
+};
 
-    window.__APP_CONTEXT__ = value;
+window.__APP_CONTEXT__ = value;
 
-    return (
-        <AppContext.Provider value={value}>
-            {children}
-        </AppContext.Provider>
-    );
+return (
+  <AppContext.Provider value={value}>
+    {children}
+  </AppContext.Provider>
+);
 }
+
 
 /***********************************************************
  * P4-1 — 公司切換 / 模式選擇 / 報價單列表（UI 最終版）
@@ -1681,11 +1646,7 @@ function PrintButton({ componentRef }) {
             padding-bottom: 6mm;
           }
 
-          /* 內容往下推 */
-          .print-content {
-            margin-top: 70mm;
-          }
-
+         
           thead {
             display: table-header-group;
           }
