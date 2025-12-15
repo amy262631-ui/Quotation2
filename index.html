@@ -5,17 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>工程報價系統（Herhsin & SinChang）- V22</title>
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- React 18 -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-  <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- XLSX -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
@@ -40,82 +36,85 @@
       box-shadow: 0 0 12px rgba(0,0,0,0.15);
       box-sizing: border-box;
     }
-/* 畫面模式 */
-.print-header {
-  position: static;
-  z-index: auto;
-}
 
-.print-header {
-  position: static;
-  z-index: auto;
-}
-/* =========================
-   列印樣式（唯一版本）
-   ========================= */
-@media print {
+    /* 畫面模式 */
+    .print-header {
+      position: static;
+      z-index: auto;
+    }
+    
+    /* ⭐ 關鍵修復：確保這個隱藏的區塊永遠不會擋住滑鼠 */
+    .print-only-layout {
+      pointer-events: none !important;
+      z-index: -9999 !important;
+    }
 
-  body {
-    background: #ffffff;
-  }
+    /* =========================
+       列印樣式（唯一版本）
+       ========================= */
+    @media print {
 
-  .live-preview-box,
-  .no-print {
-    display: none !important;
-  }
+      body {
+        background: #ffffff;
+      }
 
-  .print-page {
-    width: auto;
-    margin: 0;
-    padding: 0;
-    box-shadow: none;
-  }
+      .live-preview-box,
+      .no-print {
+        display: none !important;
+      }
 
-  @page {
-    size: A4;
-    margin: 15mm;
-  }
+      .print-page {
+        width: auto;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+      }
 
-  /* 固定頁首（只在列印） */
-  .print-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #ffffff;
-    padding-bottom: 6mm;
-    z-index: 10;
-  }
+      @page {
+        size: A4;
+        margin: 15mm;
+      }
 
-  .print-content {
-    margin-top: 65mm;
-  }
+      /* 固定頁首（只在列印） */
+      .print-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        padding-bottom: 6mm;
+        z-index: 10;
+      }
 
-  thead {
-    display: table-header-group;
-  }
+      .print-content {
+        margin-top: 65mm;
+      }
 
-  table {
-    page-break-inside: auto;
-  }
+      thead {
+        display: table-header-group;
+      }
 
-  tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
+      table {
+        page-break-inside: auto;
+      }
 
-  .print-footer-block {
-    page-break-before: always;
-    break-before: page;
-    margin-top: 10mm;
-  }
+      tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
 
-  img {
-    max-width: 100%;
-    height: auto;
-    page-break-inside: avoid;
-  }
-}
+      .print-footer-block {
+        page-break-before: always;
+        break-before: page;
+        margin-top: 10mm;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+        page-break-inside: avoid;
+      }
+    }
   </style>
 </head>
 
@@ -170,10 +169,6 @@ const QUOTE_MODES = [
     id: "mode_leak_repair",
     name: "拌合機漏漿更換工程",
     description: "拌合機漏漿修復，包工包料項目另計，零件實支實付",
-
-    /* ===============================
-     * 一、主要報價項目（算總價）
-     * =============================== */
     defaultItems: [
       {
         name: "更換 3m³ 拌合機【減速機側】漏漿（含工資及材料）",
@@ -198,10 +193,6 @@ const QUOTE_MODES = [
         subItems: []
       }
     ],
-
-    /* ===============================
-     * 二、實支實付零件（不算總價）
-     * =============================== */
     referenceItems: [
       {
         name: "雙馬達聯軸器含橡膠圈",
@@ -231,8 +222,6 @@ const QUOTE_MODES = [
         editablePrice: true,
         remarks: "依實際更換數量計價"
       },
-
-      // ===== 以下零件無德 / 台差異 =====
       {
         name: "減速機鬆緊器(絞接螺栓及插銷)",
         unit: "式",
@@ -274,19 +263,13 @@ const QUOTE_MODES = [
         editablePrice: true
       }
     ],
-
-    /* ===============================
-     * 三、固定備註 / 付款條件
-     * =============================== */
     defaultNotes: `1. 本工程包工包料項目列入報價總金額。
 2. 下方列示之零件屬實支實付項目，不列入本次報價總價。
 3. 實際更換零件與數量依現場施工狀況為準。
 4. 若客戶指定品牌或規格，將依實際供貨單價調整。
 5. 報價有效期限：報價日起 30 天`,
-
     defaultPayment: DEFAULT_PAYMENT
   },
-
   {
     id: "modeB",
     name: "設備銷售",
@@ -295,7 +278,6 @@ const QUOTE_MODES = [
     defaultNotes: DEFAULT_NOTES,
     defaultPayment: DEFAULT_PAYMENT
   },
-
   {
     id: "modeC",
     name: "設備更換工程",
@@ -305,7 +287,6 @@ const QUOTE_MODES = [
     defaultPayment: DEFAULT_PAYMENT
   }
 ];
-
 
 /***********************************************************
   * P2 — 工具函式
@@ -339,7 +320,7 @@ function calcAmount(item) {
 
 function calcTotal(items) {
     return items.reduce((sum, it) => {
-        if (it.type === "reference") return sum; // ⭐ 排除實支實付
+        if (it.type === "reference") return sum;
 
         let mainAmt = calcAmount(it);
         let subs = 0;
@@ -376,7 +357,7 @@ function generateQuoteNo(companyKey = "sinchang") {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
 
-  const dateKey = `${yy}${mm}${dd}`; // 例如 251215
+  const dateKey = `${yy}${mm}${dd}`;
   const storageKey = `quote_seq_${companyKey}_${dateKey}`;
 
   let seq = Number(localStorage.getItem(storageKey) || "0") + 1;
@@ -389,8 +370,6 @@ function generateQuoteNo(companyKey = "sinchang") {
   localStorage.setItem(storageKey, seq);
 
   const nn = String(seq).padStart(2, "0");
-
-  // 範例：QS25121501
   return `${prefix}${dateKey}${nn}`;
 }
 
@@ -439,7 +418,6 @@ function AppProvider({ children }) {
   const SPEC_CSV_URL =
     "https://docs.google.com/spreadsheets/d/1wjoNesgvgmkVoG4bI9ppl_1EktH88WZ6bxT9IeyX4YM/export?format=csv";
 
-  /* === 載入規格品（一定要存在） === */
   const loadSpecItems = React.useCallback(() => {
     loadCSV(SPEC_CSV_URL).then(data => setSpecItems(data));
   }, []);
@@ -468,10 +446,52 @@ function AppProvider({ children }) {
     localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
   }, [quotes]);
 
-  const createQuote = React.useCallback(() => {}, []);
-  const deleteQuote = React.useCallback(() => {}, []);
-  const updateQuote = React.useCallback(() => {}, []);
-  const applyMode = React.useCallback(() => {}, []);
+  const createQuote = React.useCallback((modeId) => {
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    
+    const newQuote = {
+        id: uuid(),
+        company: company,
+        quoteNo: generateQuoteNo(company),
+        title: "",
+        customerName: "",
+        contact: "",
+        phone: "",
+        location: "",
+        date: formatDate(),
+        items: mode ? JSON.parse(JSON.stringify(mode.defaultItems)) : [],
+        notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
+        payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
+        discountPercent: 0,
+        negotiatedPrice: 0
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [company]);
+
+  const deleteQuote = React.useCallback((id) => {
+    setQuotes(prev => prev.filter(q => q.id !== id));
+    if (activeQuoteId === id) setActiveQuoteId(null);
+  }, [activeQuoteId]);
+
+  const updateQuote = React.useCallback((id, data) => {
+    setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
+  }, []);
+
+  const applyMode = React.useCallback((modeId) => {
+    if (!activeQuoteId) return;
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    if (!mode) return;
+
+    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
+
+    updateQuote(activeQuoteId, {
+        items: JSON.parse(JSON.stringify(mode.defaultItems)),
+        notes: mode.defaultNotes,
+        payment: mode.defaultPayment
+    });
+  }, [activeQuoteId, updateQuote]);
 
   const activeQuote = quotes.find(q => q.id === activeQuoteId);
 
@@ -502,7 +522,7 @@ function AppProvider({ children }) {
 
 
 /***********************************************************
- * P4-1 — 公司切換 / 模式選擇 / 報價單列表（UI 最終版）
+ * P4-1 — 公司切換 / 模式選擇 / 報價單列表
  ***********************************************************/
 function CompanySelector() {
   const { company, setCompany, activeQuote, updateQuote } = React.useContext(AppContext);
@@ -616,7 +636,6 @@ function ModeSelector() {
   );
 }
 
-/* 報價單列表（左側主戰區） */
 function QuoteList() {
   const { quotes, activeQuoteId, setActiveQuoteId, createQuote, deleteQuote } = React.useContext(AppContext);
 
@@ -694,7 +713,6 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
     updateItem({ [field]: value });
   };
 
-  /* ===== 新增子項：文字 ===== */
   const handleAddSubText = () => {
     const newSub = {
       id: uuid(),
@@ -705,7 +723,6 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
     updateItem({ subItems: [...(item.subItems || []), newSub] });
   };
 
-  /* ===== 新增子項：圖片 ===== */
   const handleAddSubImage = (file) => {
     if (!file) return;
     const reader = new FileReader();
@@ -722,7 +739,6 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
   };
 
   return (
-    /* 🔑 關鍵：在最外層設定基準字級 text-lg */
     <div className="mb-8 border rounded-xl bg-white shadow-md p-6 text-lg leading-relaxed">
 
       {/* ===== 項次標題列 ===== */}
@@ -1179,7 +1195,7 @@ function QuoteEditor() {
   <ExportButton />
   <ExportWordButton componentRef={componentRef} />
   <PrintButton componentRef={componentRef} />
-     </div>
+      </div>
 
       {/* ===== 即時預覽 ===== */}
       <div className="live-preview-box mt-12">
@@ -1197,11 +1213,20 @@ function QuoteEditor() {
       </div>
     </div>
 
-    {/* 列印專用隱藏區 */}
+    {/* 列印專用隱藏區：強制加上 pointerEvents: none 防止擋住畫面 */}
     <div
       ref={componentRef}
       className="print-only-layout"
-      style={{ position: "absolute", top: -9999, left: -9999 }}
+      style={{ 
+        position: "absolute", 
+        top: -9999, 
+        left: -9999,
+        zIndex: -9999,
+        pointerEvents: "none", // 🟢 這是讓按鈕恢復的關鍵
+        width: 0,
+        height: 0,
+        overflow: "hidden"
+      }}
     >
       <PrintLayout
         quote={activeQuote}
@@ -1527,7 +1552,7 @@ function PrintButton({ componentRef }) {
             padding-bottom: 6mm;
           }
 
-         
+          
           thead {
             display: table-header-group;
           }
