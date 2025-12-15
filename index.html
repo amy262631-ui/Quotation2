@@ -109,9 +109,10 @@
 
   /* ========= 表格行為 ========= */
   table {
-    width: 100%;
-    border-collapse: collapse;
-  }
+  width: 100% !important;
+  table-layout: fixed;   /* ⭐ 關鍵：禁止自動縮成細條 */
+  border-collapse: collapse;
+}
 
   thead {
     display: table-header-group !important;
@@ -123,8 +124,9 @@
   }
 
   th, td {
-    page-break-inside: avoid;
-  }
+  page-break-inside: avoid;
+  word-break: break-word;   /* ⭐ 防止直排擠壓 */
+}
 
   /* ========= 圖片 ========= */
   img {
