@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>工程報價系統（Herhsin & SinChang）- V26 表頭分頁終極修復版</title>
+  <title>工程報價系統（Herhsin & SinChang）- V27 抬頭定位修正版</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -56,7 +56,7 @@
     .print-only-layout {
       pointer-events: none !important;
       z-index: -9999 !important;
-      opacity: 0; /* 螢幕上看不到就好 */
+      opacity: 0;
     }
 
     /* =========================
@@ -73,12 +73,12 @@
         display: none !important;
       }
 
-      /* ⭐ 關鍵修復 1：強制覆蓋 React inline-style 的隱藏設定 */
+      /* 強制解鎖 React 的 inline-style */
       .print-only-layout {
-        position: static !important; /* 改回靜態流 */
+        position: static !important;
         width: 100% !important;
         height: auto !important;
-        overflow: visible !important; /* 讓內容可以跨頁 */
+        overflow: visible !important;
         opacity: 1 !important;
         display: block !important;
         top: auto !important;
@@ -94,32 +94,31 @@
         padding-top: 0; 
       }
 
-      /* ⭐ 關鍵修復 2：設定頁面邊距，Header 放在 margin 區域內 */
+      /* ⭐ 設定頁面邊距：上方預留 70mm 給抬頭 */
       @page {
         size: A4;
         margin: 10mm; 
-        margin-top: 70mm; /* 上方預留 70mm 給公司抬頭 */
+        margin-top: 70mm; 
         margin-bottom: 15mm;
       }
 
-      /* 固定頁首：讓它重複出現在每一頁 */
+      /* ⭐ 關鍵修正：top 設為負值，把它拉進 @page 的 margin 區域 */
       .print-header {
         position: fixed;
-        top: 0; /* 在每一頁的最頂端 */
+        top: -65mm;   /* 👈 這裡改成負的，往上拉 6.5公分 */
         left: 0;
         right: 0;
         height: 60mm;
         background: #ffffff;
         z-index: 100;
         padding: 0;
-        /* 有些瀏覽器需要設為負值才能進 margin 區，若跑版請改 top: -60mm */
       }
 
       .print-content {
         margin-top: 0;
       }
 
-      /* ⭐ 關鍵修復 3：強制表格標題重複 */
+      /* 表格標題重複 */
       thead {
         display: table-header-group !important;
       }
@@ -1017,7 +1016,7 @@ function QuoteEditor() {
         activeQuote.negotiatedPrice
     );
 
-    // 🔴 判斷是否顯示最終報價（只要有折扣 OR 有自定義價格，就顯示）
+    // 判斷是否顯示最終報價（只要有折扣 OR 有自定義價格，就顯示）
     const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
 
    return (
@@ -1342,10 +1341,6 @@ function ExportButton() {
       { s: { r: 5, c: 1 }, e: { r: 5, c: 8 } },
     ];
     
-    // 合併備註與付款條件
-    // 找到備註的行數 (從最後面往前推算比較不準，直接用 r 計算)
-    // 這裡簡化處理
-
     ws["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 42 }, { wch: 8 }, { wch: 8 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 32 }];
 
     Object.keys(ws).forEach(key => {
@@ -1443,7 +1438,7 @@ function PrintButton({ componentRef }) {
           img { display: block; margin: 10px auto; max-width: 80%; height: auto; }
           
           /* 固定頁首 */
-          .print-header { position: fixed; top: 0; left: 0; right: 0; height: 60mm; background: #fff; }
+          .print-header { position: fixed; top: -65mm; left: 0; right: 0; height: 60mm; background: #fff; }
           
           /* 表頭重複 */
           thead { display: table-header-group; }
@@ -1484,7 +1479,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
   const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center" };
   const TD_RIGHT = { ...TH_TD, textAlign: "right" };
 
-  // 🔴 判斷是否顯示最終報價（Print版）
+  // 判斷是否顯示最終報價（Print版）
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
 
   return (
@@ -1562,7 +1557,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
                   </tr>
                 )}
 
-                {/* ⭐ 第三列：補充圖片（自動置中） */}
+                {/* 第三列：補充圖片（自動置中） */}
                 {item.subItems && item.subItems.map(sub => {
                   if (sub.type === "image") {
                     return (
@@ -1603,7 +1598,6 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
               <td style={TH_TD}></td>
             </tr>
             
-            {/* ⭐ 如果沒有折扣/自定義價格，這一列就不顯示 */}
             {showFinalPrice && (
                 <tr>
                   <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold" }}>
