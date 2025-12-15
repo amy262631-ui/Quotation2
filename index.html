@@ -1438,52 +1438,12 @@ function ExportWordButton({ componentRef }) {
     </button>
   );
 }
-
-// ===============================
-// 列印按鈕
-// ===============================
-function PrintButton({ componentRef }) {
-  const handlePrint = () => {
-    if (!componentRef?.current) {
-      alert("找不到列印內容");
-      return;
-    }
-    const printContent = componentRef.current.innerHTML;
-    const win = window.open("", "_blank", "width=900,height=1000");
-    win.document.write(`
-      <html>
-      <head>
-        <meta charset="UTF-8" />
-        <title>報價單列印</title>
-        <style>
-          body { font-family: "Microsoft JhengHei", sans-serif; font-size: 15px; margin: 0; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #000; padding: 6px; }
-          img { display: block; margin: 10px auto; max-width: 80%; height: auto; }
-          
-          /* 固定頁首 */
-          .print-header { position: fixed; top: -75mm; left: 0; right: 0; height: 75mm; background: #fff; }
-          
-          /* 表頭重複 */
-          thead { display: table-header-group; }
-          
-          /* 頁面邊距設定 */
-          @page { size: A4; margin: 10mm; margin-top: 80mm; margin-bottom: 15mm; }
-          
-          /* 簽名欄禁止斷開 */
-          .print-footer-block, .print-signature-area { page-break-inside: avoid; }
-        </style>
-      </head>
-      <body>${printContent}</body>
-      </html>
-    `);
-    win.document.close();
-    win.focus();
-    win.print();
-    win.close();
-  };
+function PrintButton() {
   return (
-    <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+    <button
+      onClick={() => window.print()}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
       列印報價單
     </button>
   );
