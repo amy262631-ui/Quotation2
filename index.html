@@ -1801,48 +1801,6 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
   );
 }
 
-  /* ========= 品項列 ========= */
-  const renderPrintItem = (item, index) => {
-    const rows = [];
-
-    rows.push(
-      <tr key={item.id}>
-        <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{index}</td>
-        <td style={TH_TD_STYLE}>{item.name || ""}</td>
-        <td style={TH_TD_STYLE}>{item.specMain || ""}</td>
-        <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.unit}</td>
-        <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{item.qty}</td>
-        <td style={TD_RIGHT}>{formatMoney(item.price)}</td>
-        <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
-          {formatMoney(calcAmount(item))}
-        </td>
-        <td style={TH_TD_STYLE}>{item.remarks || ""}</td>
-      </tr>
-    );
-
-    const materialText = [
-      item.specMaterial,
-      item.material1,
-      item.material2,
-      item.material3,
-    ]
-      .filter(v => typeof v === "string" && v.trim() !== "")
-      .join("、");
-
-    if (materialText) {
-      rows.push(
-        <tr key={item.id + "-material"}>
-          <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>{index}-1</td>
-          <td style={TH_TD_STYLE}>用料明細</td>
-          <td colSpan={6} style={{ ...TH_TD_STYLE, background: "#fafafa" }}>
-            {materialText}
-          </td>
-        </tr>
-      );
-    }
-
-    return rows;
-  };
 
   /* ========= 正式輸出 ========= */
   return (
