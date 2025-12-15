@@ -1085,10 +1085,11 @@ function QuoteEditor() {
       </div>
 
       {/* ===== 匯出 / 列印 ===== */}
-      <div className="mt-10 pt-6 border-t flex justify-between">
-        <ExportButton />
-        <PrintButton componentRef={componentRef} />
-      </div>
+      <div className="mt-10 pt-6 border-t flex gap-4 justify-end">
+  <ExportButton />
+  <ExportWordButton componentRef={componentRef} />
+  <PrintButton componentRef={componentRef} />
+     </div>
 
       {/* ===== 即時預覽 ===== */}
       <div className="live-preview-box mt-12">
@@ -1278,6 +1279,71 @@ function ExportButton() {
       className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
     >
       匯出 Excel（報價單版型）
+    </button>
+  );
+}
+// ===============================
+// Word 匯出（正式報價單）
+// ===============================
+function ExportWordButton({ componentRef }) {
+  const handleExportWord = () => {
+    if (!componentRef?.current) {
+      alert("找不到報價單內容，請確認預覽已載入");
+      return;
+    }
+
+    const htmlContent = componentRef.current.innerHTML;
+
+    const wordHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>工程報價單</title>
+        <style>
+          body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            font-size: 15px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          th, td {
+            border: 1px solid #000;
+            padding: 6px;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(
+      ["\ufeff", wordHTML],
+      { type: "application/msword" }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "工程報價單.doc";
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <button
+      onClick={handleExportWord}
+      className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+    >
+      匯出 Word（正式報價單）
     </button>
   );
 }
