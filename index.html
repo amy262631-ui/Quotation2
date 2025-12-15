@@ -35,27 +35,18 @@
       margin: 0 auto;
       background: #ffffff;
       padding: 20px;
-      /* 螢幕上預留頭部空間 (模擬 margin-top) */
-      padding-top: 80mm; 
       box-shadow: 0 0 12px rgba(0,0,0,0.15);
       box-sizing: border-box;
       position: relative;
       overflow: hidden; /* 防止內容溢出 */
     }
 
-    /* ✅ 螢幕預覽專用 Header（禁止進入列印） */
-   @media screen {
-  .print-page .print-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 75mm;
-    padding: 10px 20px;
-    background: #fff;
-    z-index: 10;
-    border-bottom: 1px dashed #eee;
-  }
+    /* ✅ 螢幕預覽：Header 正常排版 */
+.print-page .print-header {
+  position: static;          /* ⭐ 關鍵 */
+  padding: 10px 20px;
+  background: #fff;
+  border-bottom: 1px dashed #eee;
 }
     
     /* 螢幕上完全隱藏「列印專用隱藏區」 */
