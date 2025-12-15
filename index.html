@@ -1328,7 +1328,6 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "blue" }}>
               {formatMoney(totalAmount)}
             </td>
-            <td style={TH_TD_STYLE}></td>
           </tr>
 
           {hasDiscount && (
@@ -1387,16 +1386,25 @@ const materialText = [
 if (materialText.length > 0) {
   rows.push(
     <tr key={item.id + "-material"}>
-      <td></td>
+      {/* 項次：1-1 */}
+      <td style={{ ...TH_TD_STYLE, textAlign: "center" }}>
+        {index}-1
+      </td>
+
+      {/* 品名 */}
+      <td style={TH_TD_STYLE}>
+        用料明細
+      </td>
+
+      {/* 內容（合併規格~備註欄） */}
       <td
-        colSpan={7}
+        colSpan={6}
         style={{
           ...TH_TD_STYLE,
           background: "#fafafa",
           fontSize: "12px"
         }}
       >
-        <strong>用料明細：</strong>
         <span style={{ whiteSpace: "pre-wrap" }}>
           {materialText}
         </span>
@@ -1445,14 +1453,27 @@ if (materialText.length > 0) {
   return (
     <div className="print-page">
       {/* ===== 頁首 ===== */}
-      <div style={{ textAlign: "center", marginBottom: 10 }}>
-        <h2 style={{ margin: 0 }}>{companyInfo.name}</h2>
-        <div style={{ fontSize: 12 }}>
-          統編 {companyInfo.taxId} ｜ 電話 {companyInfo.tel} ｜ 傳真 {companyInfo.fax}
-        </div>
-        <div style={{ fontSize: 12 }}>{companyInfo.address}</div>
-        <h3 style={{ marginTop: 6 }}>工程報價單</h3>
-      </div>
+      <div style={{ textAlign: "center", marginBottom: 16 }}>
+
+  {/* 公司名稱（放大） */}
+  <h2 style={{ margin: 0, fontSize: 24, fontWeight: "bold" }}>
+    {companyInfo.name}
+  </h2>
+
+  {/* 公司資料（稍微放大） */}
+  <div style={{ fontSize: 14, marginTop: 4 }}>
+    統編 {companyInfo.taxId} ｜ 電話 {companyInfo.tel} ｜ 傳真 {companyInfo.fax}
+  </div>
+
+  <div style={{ fontSize: 14 }}>
+    {companyInfo.address}
+  </div>
+
+  {/* 報價單標題（再放大一點） */}
+  <h3 style={{ marginTop: 10, fontSize: 22, letterSpacing: 2 }}>
+    工程報價單
+  </h3>
+</div>
 
       {/* ===== 品項表 ===== */}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
