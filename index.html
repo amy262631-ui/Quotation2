@@ -41,13 +41,6 @@
       overflow: hidden; /* 防止內容溢出 */
     }
 
-    /* ✅ 螢幕預覽：Header 正常排版 */
-.print-page .print-header {
-  position: static;          /* ⭐ 關鍵 */
-  padding: 10px 20px;
-  background: #fff;
-  border-bottom: 1px dashed #eee;
-}
     
     /* 螢幕上完全隱藏「列印專用隱藏區」 */
     .print-only-layout {
@@ -93,12 +86,10 @@
   }
 
   /* ========= 頁面設定（最重要） ========= */
-  @page {
-    size: A4;
-    margin: 10mm;
-    margin-top: 80mm;   /* Header 專用高度 */
-    margin-bottom: 15mm;
-  }
+ @page {
+  size: A4;
+  margin: 10mm;
+}
 
   /* ========= 主頁容器 ========= */
   .print-page {
@@ -109,17 +100,7 @@
     overflow: visible;
   }
 
-  /* ========= 固定頁首（不要用負值） ========= */
-  .print-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 75mm;
-    background: #ffffff;
-    z-index: 100;
-  }
-
+ 
   /* ========= 列印內容 ========= */
   .print-content {
     margin: 0;
@@ -159,11 +140,7 @@
     break-inside: avoid !important;
   }
 }
- @media print {
-  .print-header {
-    display: none !important;
-  }
-}   
+  
   </style>
 </head>
 
@@ -1472,50 +1449,56 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
   return (
     <div className="print-page">
 
-      {/* ===== 每一頁都會出現的頁首 ===== */}
-      <div className="print-header">
-        <div style={{ textAlign: "center" }}>
-          <h2 style={{ margin: 0, fontSize: 22 }}>{companyInfo.name}</h2>
-          <div style={{ fontSize: 13 }}>
-            統編 {companyInfo.taxId} ｜ 電話 {companyInfo.tel} ｜ 傳真 {companyInfo.fax}
-          </div>
-          <div style={{ fontSize: 13 }}>{companyInfo.address}</div>
-          <h3 style={{ marginTop: 6, fontSize: 18 }}>工程報價單</h3>
-        </div>
+     
 
-        <div style={{ fontSize: 13, marginTop: 6 }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>報價單號：{quote.quoteNo}</div>
-            <div>報價日期：{quote.date}</div>
-          </div>
-          <div>工程名稱：{quote.title}</div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>客戶名稱：{quote.customerName}</div>
-            <div>聯絡人：{quote.contact}</div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <div>聯絡電話：{quote.phone}</div>
-            <div>工程地點：{quote.location}</div>
-          </div>
-        </div>
-      </div>
 
       {/* ===== 所有會換頁的內容一定要包在這 ===== */}
       <div className="print-content">
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr>
-              <th style={TH}>項次</th>
-              <th style={TH}>品名</th>
-              <th style={TH}>規格</th>
-              <th style={TH}>單位</th>
-              <th style={TH}>數量</th>
-              <th style={TH}>單價</th>
-              <th style={TH}>小計</th>
-              <th style={TH}>備註</th>
-            </tr>
-          </thead>
+  {/* ===== 公司抬頭（會在每一頁最上方重複） ===== */}
+  <tr>
+    <th colSpan="8" style={{ border: "none", paddingBottom: 10 }}>
+      <div style={{ textAlign: "center" }}>
+        <h2 style={{ margin: 0 }}>{companyInfo.name}</h2>
+        <div style={{ fontSize: 13 }}>
+          統編 {companyInfo.taxId} ｜ 電話 {companyInfo.tel} ｜ 傳真 {companyInfo.fax}
+        </div>
+        <div style={{ fontSize: 13 }}>{companyInfo.address}</div>
+        <h3 style={{ marginTop: 6 }}>工程報價單</h3>
+      </div>
+
+      <div style={{ fontSize: 13, marginTop: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div>報價單號：{quote.quoteNo}</div>
+          <div>報價日期：{quote.date}</div>
+        </div>
+        <div>工程名稱：{quote.title}</div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div>客戶名稱：{quote.customerName}</div>
+          <div>聯絡人：{quote.contact}</div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div>聯絡電話：{quote.phone}</div>
+          <div>工程地點：{quote.location}</div>
+        </div>
+      </div>
+    </th>
+  </tr>
+
+  {/* ===== 欄位標題（Chrome 會自動重複） ===== */}
+  <tr>
+    <th style={TH}>項次</th>
+    <th style={TH}>品名</th>
+    <th style={TH}>規格</th>
+    <th style={TH}>單位</th>
+    <th style={TH}>數量</th>
+    <th style={TH}>單價</th>
+    <th style={TH}>小計</th>
+    <th style={TH}>備註</th>
+  </tr>
+</thead>
           <tbody>
             {quote.items.map((item, i) => (
               <React.Fragment key={item.id}>
