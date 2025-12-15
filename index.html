@@ -244,15 +244,16 @@ function calcNegotiated(total, discountPercent, customPrice) {
     return total;
 }
 
-function generateQuoteNo() {
-  const d = new Date();
+function generateQuoteNo(companyKey = "sinchang") {
+  const prefix = COMPANY_DATA[companyKey]?.prefix || "QS";
 
+  const d = new Date();
   const yy = String(d.getFullYear()).slice(-2);
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
 
   const dateKey = `${yy}${mm}${dd}`; // 例如 251215
-  const storageKey = `quote_seq_${dateKey}`;
+  const storageKey = `quote_seq_${companyKey}_${dateKey}`;
 
   let seq = Number(localStorage.getItem(storageKey) || "0") + 1;
 
@@ -263,7 +264,11 @@ function generateQuoteNo() {
 
   localStorage.setItem(storageKey, seq);
 
-  const nn = String(seq).padSt
+  const nn = String(seq).padStart(2, "0");
+
+  // 範例：QS25121501
+  return `${prefix}${dateKey}${nn}`;
+}
 
 
 async function loadCSV(url) {
