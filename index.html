@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>工程報價系統（Herhsin & SinChang）- V25 表頭分頁完美修正版</title>
+  <title>工程報價系統（Herhsin & SinChang）- V26 表頭分頁終極修復版</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -33,11 +33,11 @@
       margin: 0 auto;
       background: #ffffff;
       padding: 20px;
-      /* 螢幕預覽時，我們要模擬 margin-top */
+      /* 螢幕預覽時，模擬留白給 Header */
       padding-top: 70mm; 
       box-shadow: 0 0 12px rgba(0,0,0,0.15);
       box-sizing: border-box;
-      position: relative; /* 讓 header 可以絕對定位 */
+      position: relative;
     }
 
     /* 螢幕模式下的 Header 定位 */
@@ -52,9 +52,11 @@
       z-index: 10;
     }
     
+    /* 螢幕上隱藏列印專用區 */
     .print-only-layout {
       pointer-events: none !important;
       z-index: -9999 !important;
+      opacity: 0; /* 螢幕上看不到就好 */
     }
 
     /* =========================
@@ -71,44 +73,53 @@
         display: none !important;
       }
 
+      /* ⭐ 關鍵修復 1：強制覆蓋 React inline-style 的隱藏設定 */
+      .print-only-layout {
+        position: static !important; /* 改回靜態流 */
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important; /* 讓內容可以跨頁 */
+        opacity: 1 !important;
+        display: block !important;
+        top: auto !important;
+        left: auto !important;
+        pointer-events: auto !important;
+      }
+
       .print-page {
         width: 100%;
         margin: 0;
         padding: 0;
         box-shadow: none;
-        /* 列印時移除 padding-top，改用 @page margin 控制 */
         padding-top: 0; 
       }
 
-      /* * ⭐ 關鍵修正：設定列印頁面的邊距 
-       * margin-top: 70mm -> 預留給 Header 的空間
-       * 這樣每一頁的表格都會自動從 70mm 處開始，不會被 Header 擋住
-       */
+      /* ⭐ 關鍵修復 2：設定頁面邊距，Header 放在 margin 區域內 */
       @page {
         size: A4;
-        margin: 10mm;
-        margin-top: 70mm; /* 這是保留給公司抬頭的高度 */
+        margin: 10mm; 
+        margin-top: 70mm; /* 上方預留 70mm 給公司抬頭 */
         margin-bottom: 15mm;
       }
 
-      /* 固定頁首：設定為 fixed，瀏覽器會把它放在每一頁的 margin-top 區域內 */
+      /* 固定頁首：讓它重複出現在每一頁 */
       .print-header {
         position: fixed;
-        top: -60mm; /* 往上推到 margin 區域 */
+        top: 0; /* 在每一頁的最頂端 */
         left: 0;
         right: 0;
         height: 60mm;
         background: #ffffff;
-        z-index: 10;
+        z-index: 100;
         padding: 0;
+        /* 有些瀏覽器需要設為負值才能進 margin 區，若跑版請改 top: -60mm */
       }
 
       .print-content {
-        /* 內容不需要 margin-top 了，因為 @page 已經處理了 */
         margin-top: 0;
       }
 
-      /* ⭐ 強制表格標題在每一頁重複 */
+      /* ⭐ 關鍵修復 3：強制表格標題重複 */
       thead {
         display: table-header-group !important;
       }
@@ -119,7 +130,6 @@
         break-inside: avoid;
       }
 
-      /* 頁尾區塊換頁設定 */
       .print-footer-block {
         page-break-inside: avoid;
         margin-top: 10mm;
@@ -1218,7 +1228,7 @@ function QuoteEditor() {
       </div>
     </div>
 
-    {/* 列印專用隱藏區 */}
+    {/* 列印專用隱藏區：我們在 CSS 中已經強制覆蓋了這裡的 style */}
     <div
       ref={componentRef}
       className="print-only-layout"
@@ -1433,7 +1443,7 @@ function PrintButton({ componentRef }) {
           img { display: block; margin: 10px auto; max-width: 80%; height: auto; }
           
           /* 固定頁首 */
-          .print-header { position: fixed; top: -60mm; left: 0; right: 0; height: 60mm; background: #fff; }
+          .print-header { position: fixed; top: 0; left: 0; right: 0; height: 60mm; background: #fff; }
           
           /* 表頭重複 */
           thead { display: table-header-group; }
