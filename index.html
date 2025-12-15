@@ -24,7 +24,7 @@
     <!-- XLSX：匯出用 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
- <style>
+<style>
   body {
     background: #f3f4f6;
     font-family: "Microsoft JhengHei", sans-serif;
@@ -47,8 +47,11 @@
     box-sizing: border-box;
   }
 
-  /* ===== 列印時用真正 A4（不影響預覽） ===== */
+  /* =========================
+     列印樣式（圖片不消失版）
+     ========================= */
   @media print {
+
     body {
       background: #ffffff;
     }
@@ -65,58 +68,51 @@
       padding: 0;
       margin: 0;
     }
+
+    /* 不列印編輯介面 */
+    .no-print {
+      display: none !important;
+    }
+
+    /* 表格跨頁重複表頭 */
+    thead {
+      display: table-header-group;
+    }
+
+    /* 圖片列印保證顯示 */
+    img {
+      display: block !important;
+      visibility: visible !important;
+      max-width: 100% !important;
+      height: auto !important;
+      page-break-inside: avoid;
+    }
+
+    /* 頁首不被切 */
+    .print-header {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* 單一列不被切 */
+    tr {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    /* 印章區 */
+    .print-signature-area {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
   }
 </style>
-  /* =========================
-   列印樣式（圖片不消失版）
-   ========================= */
-@media print {
 
-  /* 不列印編輯介面 */
-  .no-print {
-    display: none !important;
-  }
-
-  /* ❌ 千萬不要隱藏 #root */
-
-  /* 表格跨頁重複表頭 */
-  thead {
-    display: table-header-group;
-  }
-
-  /* 圖片列印保證顯示 */
-  img {
-    display: block !important;
-    visibility: visible !important;
-    max-width: 100% !important;
-    height: auto !important;
-    page-break-inside: avoid;
-  }
-
-  /* 頁首不被切 */
-  .print-header {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* 單一列不被切 */
-  tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* 印章區 */
-  .print-signature-area {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  @page {
-    size: A4;
-    margin: 15mm;
-  }
-}
-</style>
 </head>
 
 <body class="text-gray-900">
