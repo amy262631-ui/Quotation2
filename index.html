@@ -44,76 +44,70 @@
     /* =========================
        列印樣式（唯一版本）
        ========================= */
-    @media print {
+   @media print {
 
-      body {
-        background: #ffffff;
-      }
+  body {
+    background: #ffffff;
+  }
 
-      /* 只在列印時隱藏 */
-      .live-preview-box,
-      .no-print {
-        display: none !important;
-      }
+  .live-preview-box,
+  .no-print {
+    display: none !important;
+  }
 
-      .print-page {
-        width: auto;
-        margin: 0;
-        padding: 0;
-        box-shadow: none;
-      }
+  .print-page {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
 
-      @page {
-        size: A4;
-        margin: 15mm;
-      }
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
 
-      /* 固定頁首 */
-      .print-header {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: #ffffff;
-        padding-bottom: 6mm;
-        z-index: 10;
-      }
+  /* 固定頁首 */
+  .print-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    padding-bottom: 6mm;
+    z-index: 10;
+  }
 
-      /* ⭐ 內容下推（只此一處） */
-      .print-content {
-        margin-top: 95mm;
-      }
+  /* ⭐ 關鍵修正：不要再 95mm */
+  .print-content {
+    margin-top: 65mm;
+  }
 
-      /* 表頭跨頁 */
-      thead {
-        display: table-header-group;
-      }
+  thead {
+    display: table-header-group;
+  }
 
-      tr {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
+  table {
+    page-break-inside: auto;
+  }
 
-      /* 最後一頁 */
-      .print-footer-block {
-        page-break-before: always;
-        break-before: page;
-        page-break-inside: avoid;
-        break-inside: avoid;
-        margin-top: 10mm;
-      }
+  tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
 
-      .print-signature-area {
-        page-break-inside: avoid;
-        break-inside: avoid;
-      }
+  .print-footer-block {
+    page-break-before: always;
+    break-before: page;
+    margin-top: 10mm;
+  }
 
-      img {
-        max-width: 100% !important;
-        height: auto !important;
-        page-break-inside: avoid;
-      }
-    }
+  img {
+    max-width: 100%;
+    height: auto;
+    page-break-inside: avoid;
+  }
+}
   </style>
 </head>
 
@@ -750,40 +744,43 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
   {/* 品名 */}
   <div className="col-span-1">
     <label className="block text-base font-semibold text-gray-700 mb-1">
-      品名
-    </label>
-    <input
-      type="text"
-      list={`spec-list-${item.id}`}
-      className="w-full border rounded-lg px-3 py-2"
-      value={item.name || ""}
-      onChange={(e) => {
-        const value = e.target.value;
-        handleChange("name", value);
+      <input
+  type="text"
+  list={`spec-list-${item.id}`}
+  className="w-full border rounded-lg px-3 py-2"
+  value={item.name || ""}
+  onChange={(e) => {
+    const value = e.target.value;
 
-        const matched = specItems.find(
-          r => (r["品名"] || "") === value
-        );
+    // 只更新品名，確保可打字、可點選
+    handleChange("name", value);
+  }}
+  onBlur={(e) => {
+    const value = e.target.value;
 
-        if (matched) {
-          const materials = [
-            matched["用料1"],
-            matched["用料2"],
-            matched["用料3"]
-          ]
-            .filter(v => typeof v === "string" && v.trim() !== "")
-            .join("、");
+    const matched = specItems.find(
+      r => (r["品名"] || "") === value
+    );
 
-          updateItem({
-            name: matched["品名"] || "",
-            unit: matched["單位"] || "",
-            price: Number(matched["單價"] || 0),
-            specMain: matched["規格"] || "",
-            specMaterial: materials
-          });
-        }
-      }}
-    />
+    if (!matched) return;
+
+    const materials = [
+      matched["用料1"],
+      matched["用料2"],
+      matched["用料3"]
+    ]
+      .filter(v => typeof v === "string" && v.trim() !== "")
+      .join("、");
+
+    updateItem({
+      name: matched["品名"] || "",
+      unit: matched["單位"] || "",
+      price: Number(matched["單價"] || 0),
+      specMain: matched["規格"] || "",
+      specMaterial: materials
+    });
+  }}
+/>
 
     <datalist id={`spec-list-${item.id}`}>
       {specItems.map((r, i) => (
