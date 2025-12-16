@@ -1647,26 +1647,35 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         </table>
 
 
-        {/* ==========================================
-            Part 3: 金額總結
+       {/* ==========================================
+            Part 3: 金額總結 (修正版：強制單行顯示)
             ========================================== */}
         <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
+          <colgroup>
+            {/* 這裡稍微重新分配比例，確保右邊金額有足夠空間 */}
+            <col style={{ width: "75%" }} />
+            <col style={{ width: "20%" }} />
+            <col style={{ width: "5%" }} />
+          </colgroup>
           <tbody>
             <tr>
-              <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
+              <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
                 總計金額（未稅）
               </td>
-              <td style={{ ...TD_RIGHT, fontWeight: "bold", width: "10%" }}>
+              {/* ✅ 加入 whiteSpace: "nowrap" 強制不換行，並加大寬度 */}
+              <td style={{ ...TD_RIGHT, fontWeight: "bold", whiteSpace: "nowrap", borderBottom: "1px solid #000" }}>
                 {formatMoney(totalAmount)}
               </td>
-              <td style={{ ...TH_TD, width: "8%", border: "none" }}></td>
+              <td style={{ ...TH_TD, border: "none" }}></td>
             </tr>
+            
             {showFinalPrice && (
                 <tr>
-                  <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
+                  <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
                     最終報價金額（未稅）
                   </td>
-                  <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red" }}>
+                  {/* ✅ 加入 whiteSpace: "nowrap" 強制不換行 */}
+                  <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", whiteSpace: "nowrap", borderBottom: "1px solid #000" }}>
                     {formatMoney(negotiatedAmount)}
                   </td>
                   <td style={{ ...TH_TD, border: "none" }}></td>
