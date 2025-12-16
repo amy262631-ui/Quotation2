@@ -171,12 +171,32 @@ const QUOTE_MODES = [
       }
     ],
 
-    // ▼▼▼ 2. 新增：實支實付零件預設清單 (可自由修改) ▼▼▼
+  // ... 在 QUOTE_MODES 裡面 ...
+
+    // ▼▼▼ 2. 修改後的：實支實付零件預設清單 (已合併台製/德製) ▼▼▼
     defaultLeakageParts: [
-      { name: "聯軸器 (台製)", spec: "台灣製造", unit: "組", price: 30000 },
-      { name: "聯軸器 (德製)", spec: "德國原裝", unit: "組", price: 58000 },
-      { name: "聯軸器橡膠墊圈 (台製)", spec: "台灣製造", unit: "只", price: 2000 },
-      { name: "聯軸器橡膠墊圈 (德製)", spec: "德國原裝", unit: "只", price: 9500 },
+      { 
+        name: "聯軸器", 
+        spec: "台灣製造", 
+        unit: "組", 
+        price: 30000,
+        // ⭐ 新增：選項設定
+        variants: [
+          { label: "台製 (台灣製造)", spec: "台灣製造", price: 30000 },
+          { label: "德製 (德國原裝)", spec: "德國原裝", price: 58000 }
+        ]
+      },
+      { 
+        name: "聯軸器橡膠墊圈", 
+        spec: "台灣製造", 
+        unit: "只", 
+        price: 2000,
+        // ⭐ 新增：選項設定
+        variants: [
+          { label: "台製 (台灣製造)", spec: "台灣製造", price: 2000 },
+          { label: "德製 (德國原裝)", spec: "德國原裝", price: 9500 }
+        ]
+      },
       { name: "減速機鬆緊器", spec: "絞接螺栓及插銷", unit: "式", price: 5000 },
       { name: "減速機支撐調整器", spec: "吊眼螺絲", unit: "式", price: 3150 },
       { name: "油封", spec: "TC 140x180x14", unit: "只", price: 350 },
@@ -186,7 +206,7 @@ const QUOTE_MODES = [
       { name: "O型環", spec: "3x120x126", unit: "只", price: 200 },
       { name: "假日施工加價", spec: "非工作日出勤費用", unit: "式", price: 15000 },
     ],
-    // ▲▲▲ 新增結束 ▲▲▲
+    // ▲▲▲ 修改結束 ▲▲▲
 
     referenceItems: [],
     defaultNotes: DEFAULT_NOTES,
@@ -1769,6 +1789,25 @@ function LeakagePartsEditor({ parts, updateQuote }) {
     updateQuote({ leakageParts: newParts });
   };
 
+  // ⭐ 新增：處理規格切換的函式
+  const handleVariantChange = (id, variantLabel) => {
+    const targetPart = parts.find(p => p.id === id);
+    if (!targetPart || !targetPart.variants) return;
+
+    // 找到對應的選項資料
+    const selectedVariant = targetPart.variants.find(v => v.label === variantLabel);
+    if (selectedVariant) {
+      // 同時更新：規格、單價 (也可以選擇是否更新品名，這裡保留原品名)
+      const newParts = parts.map(p => p.id === id ? { 
+        ...p, 
+        spec: selectedVariant.spec, 
+        price: selectedVariant.price,
+        selectedVariantLabel: variantLabel // 紀錄當前選到的，方便 UI 顯示
+      } : p);
+      updateQuote({ leakageParts: newParts });
+    }
+  };
+
   const handleDelete = (id) => {
     if(!window.confirm("確定刪除此零件嗎？")) return;
     const newParts = parts.filter(p => p.id !== id);
@@ -1798,7 +1837,7 @@ function LeakagePartsEditor({ parts, updateQuote }) {
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
         <div className="grid grid-cols-12 gap-2 text-sm text-gray-500 mb-2 px-2">
            <div className="col-span-4">品名</div>
-           <div className="col-span-4">規格說明</div>
+           <div className="col-span-4">規格說明 (可切換版本)</div>
            <div className="col-span-1 text-center">單位</div>
            <div className="col-span-2 text-right">單價</div>
            <div className="col-span-1"></div>
@@ -1806,6 +1845,8 @@ function LeakagePartsEditor({ parts, updateQuote }) {
 
         {(parts || []).map((part, index) => (
           <div key={part.id} className="grid grid-cols-12 gap-2 mb-2 items-center">
+             
+             {/* 1. 品名 */}
              <div className="col-span-4">
                 <input 
                   className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-200 outline-none" 
@@ -1814,14 +1855,35 @@ function LeakagePartsEditor({ parts, updateQuote }) {
                   onChange={(e) => handleChange(part.id, "name", e.target.value)}
                 />
              </div>
+
+             {/* 2. 規格說明 (如果有選項，顯示下拉選單；否則顯示輸入框) */}
              <div className="col-span-4">
-                <input 
-                  className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-200 outline-none" 
-                  placeholder="輸入規格..."
-                  value={part.spec} 
-                  onChange={(e) => handleChange(part.id, "spec", e.target.value)}
-                />
+                {part.variants && part.variants.length > 0 ? (
+                  <div className="flex gap-1">
+                    {/* 下拉選單區域 */}
+                    <select
+                      className="w-full border p-2 rounded text-sm bg-yellow-50 focus:ring-2 focus:ring-yellow-200 outline-none cursor-pointer text-blue-700 font-bold"
+                      value={part.selectedVariantLabel || (part.variants.find(v => v.price === part.price)?.label) || ""}
+                      onChange={(e) => handleVariantChange(part.id, e.target.value)}
+                    >
+                      {part.variants.map((v, i) => (
+                        <option key={i} value={v.label}>
+                          {v.label} - ${v.price.toLocaleString()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <input 
+                    className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-200 outline-none" 
+                    placeholder="輸入規格..."
+                    value={part.spec} 
+                    onChange={(e) => handleChange(part.id, "spec", e.target.value)}
+                  />
+                )}
              </div>
+
+             {/* 3. 單位 */}
              <div className="col-span-1">
                 <input 
                   className="w-full border p-2 rounded text-sm text-center focus:ring-2 focus:ring-blue-200 outline-none" 
@@ -1829,16 +1891,19 @@ function LeakagePartsEditor({ parts, updateQuote }) {
                   onChange={(e) => handleChange(part.id, "unit", e.target.value)}
                 />
              </div>
+
+             {/* 4. 單價 (如果是下拉選單模式，建議鎖定單價或變色提示) */}
              <div className="col-span-2">
                 <input 
                   type="number"
-                  className="w-full border p-2 rounded text-sm text-right focus:ring-2 focus:ring-blue-200 outline-none font-bold text-gray-700" 
+                  className={`w-full border p-2 rounded text-sm text-right focus:ring-2 focus:ring-blue-200 outline-none font-bold ${part.variants ? 'text-blue-600 bg-gray-50' : 'text-gray-700'}`}
                   value={part.price} 
                   onFocus={(e) => e.target.select()}
-                  // ⬇️ 修正點：移除 Number() 轉型，讓輸入順暢
                   onChange={(e) => handleChange(part.id, "price", e.target.value)}
                 />
              </div>
+
+             {/* 5. 刪除按鈕 */}
              <div className="col-span-1 text-center">
                 <button 
                   onClick={() => handleDelete(part.id)} 
