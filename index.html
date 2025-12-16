@@ -40,16 +40,7 @@
     }
 
     
-    /* 螢幕上完全隱藏「列印專用隱藏區」 */
-    .print-only-layout {
-      pointer-events: none !important;
-      z-index: -9999 !important;
-      opacity: 0;
-      position: absolute;
-      height: 0;
-      overflow: hidden;
-    }
-
+ 
  /* =================================================
    ✅ 最終穩定版｜工程報價單列印專用 CSS
 ================================================= */
@@ -76,10 +67,12 @@
   }
 
   .print-only-layout {
-    position: static !important;
-    display: block !important;
-    width: 100% !important;
-  }
+  position: static !important;
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  opacity: 1 !important;
+}
 
   table {
     width: 100%;
@@ -1415,32 +1408,21 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
 
       {/* ===== 所有會換頁的內容一定要包在這 ===== */}
       <div className="print-content">
-
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <colgroup>
-    <col style={{ width: "6%" }} />
-    <col style={{ width: "18%" }} />
-    <col style={{ width: "22%" }} />
-    <col style={{ width: "6%" }} />
-    <col style={{ width: "6%" }} />
-    <col style={{ width: "14%" }} />
-    <col style={{ width: "14%" }} />
-    <col style={{ width: "14%" }} />
-  </colgroup>
-          <thead>
-  {/* ===== 公司抬頭（會在每一頁最上方重複） ===== */}
-  <tr>
-    <th colSpan="8" style={{ border: "none", paddingBottom: 10 }}>
-      <div style={{ textAlign: "center" }}>
+        {/* ===== 每一頁都要出現的公司 / 客戶資料 ===== */}
+<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 10 }}>
+  <tbody>
+    <tr>
+      <td style={{ textAlign: "center", paddingBottom: 6 }}>
         <h2 style={{ margin: 0 }}>{companyInfo.name}</h2>
         <div style={{ fontSize: 13 }}>
           統編 {companyInfo.taxId} ｜ 電話 {companyInfo.tel} ｜ 傳真 {companyInfo.fax}
         </div>
         <div style={{ fontSize: 13 }}>{companyInfo.address}</div>
         <h3 style={{ marginTop: 6 }}>工程報價單</h3>
-      </div>
-
-      <div style={{ fontSize: 13, marginTop: 6 }}>
+      </td>
+    </tr>
+    <tr>
+      <td style={{ fontSize: 13 }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div>報價單號：{quote.quoteNo}</div>
           <div>報價日期：{quote.date}</div>
@@ -1454,9 +1436,24 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
           <div>聯絡電話：{quote.phone}</div>
           <div>工程地點：{quote.location}</div>
         </div>
-      </div>
-    </th>
-  </tr>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <colgroup>
+    <col style={{ width: "6%" }} />
+    <col style={{ width: "18%" }} />
+    <col style={{ width: "22%" }} />
+    <col style={{ width: "6%" }} />
+    <col style={{ width: "6%" }} />
+    <col style={{ width: "14%" }} />
+    <col style={{ width: "14%" }} />
+    <col style={{ width: "14%" }} />
+  </colgroup>
+          <thead>
 
   {/* ===== 欄位標題（Chrome 會自動重複） ===== */}
   <tr>
