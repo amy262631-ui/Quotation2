@@ -1448,7 +1448,7 @@ function PrintButton() {
 }
 
 /***********************************************************
- * 列印排版組件（PrintLayout）— 多頁固定頁首【最終正確版】
+ * 列印排版組件（PrintLayout）— 極致置頂與壓縮版
  ***********************************************************/
 function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   // 1. 防呆檢查
@@ -1460,63 +1460,58 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
     );
   }
 
-  // 2. 變數定義與邏輯
+  // 2. 變數定義
   const companyInfo = COMPANY_DATA[quote.company];
-  
-  // 判斷是否為漏漿模式
   const isLeakageMode = quote.items.some(i => i.name?.includes("漏漿")) || quote.title?.includes("漏漿");
-  
-  // 過濾邏輯：如果是漏漿模式，只顯示 qty > 0 的項目
   const itemsToPrint = isLeakageMode ? quote.items.filter(item => item.qty > 0) : quote.items;
-
-  // 樣式定義
-  const TH_TD = { border: "1px solid #000", padding: "6px", fontSize: "13px", verticalAlign: "middle" };
-  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center" };
-  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
-
-  // 判斷是否顯示最終報價
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
-
-  // 計算小計的輔助函式
-  const calcSubtotal = (item) => item.price * item.qty;
-
-  // 計算單項小計 (含子項目) - 這裡簡單處理，通常只算主項目
   const calcAmount = (item) => item.price * item.qty;
+
+  // 3. 樣式定義 (極致壓縮)
+  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: "12px", verticalAlign: "middle", lineHeight: "1.2" };
+  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
+  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
+  const TD_CENTER = { ...TH_TD, textAlign: "center" };
 
   return (
     <div className="print-page">
-      {/* ===== 所有會換頁的內容包在這裡 ===== */}
+      {/* ★★★ 新增：強制設定列印邊界為 5mm，讓內容盡量往上靠 ★★★ */}
+      <style>{`
+        @media print {
+          @page { margin: 5mm 10mm 5mm 10mm; size: auto; }
+          body { margin: 0; }
+        }
+      `}</style>
+
       <div className="print-content">
         
         {/* ==========================================
-            Part 1: 表頭資料區 (公司 + 客戶資料)
+            Part 1: 表頭資料區 (置頂修正版)
             ========================================== */}
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 15 }}>
+        {/* marginTop: -15px 強制將表格往上拉，抵消容器可能的 padding */}
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 5, marginTop: "-15px" }}>
           <tbody>
-            {/* 公司名稱與 LOGO 區 */}
             <tr>
-              <td colSpan="2" style={{ textAlign: "center", paddingBottom: 15 }}>
-                <h2 style={{ margin: 0, fontSize: "22px" }}>{companyInfo.name}</h2>
-                <div style={{ fontSize: 13, marginTop: 4 }}>
+              <td colSpan="2" style={{ textAlign: "center", paddingBottom: 5 }}>
+                <h2 style={{ margin: 0, fontSize: "22px", lineHeight: "1.2" }}>{companyInfo.name}</h2>
+                <div style={{ fontSize: 11, marginTop: 2 }}>
                   統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}
                 </div>
-                <div style={{ fontSize: 13 }}>{companyInfo.address}</div>
-                <h3 style={{ marginTop: 10, fontSize: "20px", borderBottom: "2px solid #333", display: "inline-block", paddingBottom: 2 }}>工程報價單</h3>
+                <div style={{ fontSize: 11 }}>{companyInfo.address}</div>
+                {/* 縮小這裡的 marginTop */}
+                <h3 style={{ marginTop: 5, fontSize: "18px", borderBottom: "2px solid #333", display: "inline-block", paddingBottom: 2 }}>工程報價單</h3>
               </td>
             </tr>
-            
-            {/* 客戶資料區 (左右分欄) */}
             <tr>
-              {/* 左欄：客戶、工程、電話、地點 */}
-              <td style={{ verticalAlign: "bottom", width: "60%", fontSize: 14, lineHeight: "1.8em" }}>
+              {/* 左欄 */}
+              <td style={{ verticalAlign: "bottom", width: "60%", fontSize: 12, lineHeight: "1.4em" }}>
                  <div><strong>客戶名稱：</strong>{quote.customerName}</div>
                  <div><strong>工程名稱：</strong>{quote.title}</div>
                  <div><strong>工程地點：</strong>{quote.location}</div>
                  <div><strong>聯絡電話：</strong>{quote.phone}</div>
               </td>
-
-              {/* 右欄：單號、日期、聯絡人 */}
-              <td style={{ verticalAlign: "bottom", width: "40%", textAlign: "right", fontSize: 14, lineHeight: "1.8em" }}>
+              {/* 右欄 */}
+              <td style={{ verticalAlign: "bottom", width: "40%", textAlign: "right", fontSize: 12, lineHeight: "1.4em" }}>
                  <div><strong>報價單號：</strong>{quote.quoteNo}</div>
                  <div><strong>報價日期：</strong>{quote.date}</div>
                  <div><strong>聯絡人：</strong>{quote.contact}</div>
@@ -1527,16 +1522,16 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
 
         {/* ==========================================
-            Part 2: 主項目列表 (Main Items Table)
+            Part 2: 主項目列表
             ========================================== */}
         <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid black" }}>
           <colgroup>
-            <col style={{ width: "4%" }} />
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "4%" }} />
             <col style={{ width: "5%" }} />
-            <col style={{ width: "9%" }} />
+            <col style={{ width: "28%" }} />
+            <col style={{ width: "28%" }} />
+            <col style={{ width: "5%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "10%" }} />
             <col style={{ width: "10%" }} />
             <col style={{ width: "8%" }} />
           </colgroup>
@@ -1555,13 +1550,12 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
           <tbody>
             {itemsToPrint.map((item, index) => (
               <React.Fragment key={item.id || index}>
-                {/* 主項目列 */}
                 <tr>
-                    <td style={{ ...TH_TD, textAlign: "center" }}>{index + 1}</td>
+                    <td style={TD_CENTER}>{index + 1}</td>
                     <td style={TH_TD}>{item.name}</td>
                     <td style={{ ...TH_TD, color: "#444" }}>{item.specMain}</td>
-                    <td style={{ ...TH_TD, textAlign: "center" }}>{item.unit}</td>
-                    <td style={{ ...TH_TD, textAlign: "center" }}>{item.qty}</td>
+                    <td style={TD_CENTER}>{item.unit}</td>
+                    <td style={TD_CENTER}>{item.qty}</td>
                     <td style={TD_RIGHT}>
                         {item.price > 0 ? formatMoney(item.price) : "-"}
                     </td>
@@ -1570,25 +1564,22 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     </td>
                     <td style={TH_TD}>{item.remarks}</td>
                 </tr>
-
-                {/* 用料明細 (如果有) */}
+                {/* 用料明細 */}
                 {item.specMaterial && (
                   <tr>
                     <td style={{ ...TH_TD, borderTop: "none" }}></td>
-                    <td colSpan="7" style={{ ...TH_TD, color: "#444", borderTop: "1px dashed #ccc" }}>
-                      <span style={{ fontWeight: "bold" }}>用料明細：</span>
-                      {item.specMaterial}
+                    <td colSpan="7" style={{ ...TH_TD, color: "#444", fontSize: "11px", borderTop: "1px dashed #ccc" }}>
+                      <span style={{ fontWeight: "bold" }}>用料：</span>{item.specMaterial}
                     </td>
                   </tr>
                 )}
-
-                {/* 子項目/圖片 (如果有) */}
+                {/* 子項目 */}
                 {item.subItems && item.subItems.map(sub => (
                     <tr key={sub.id}>
                          <td style={{ ...TH_TD, borderTop: "none" }}></td>
-                         <td colSpan="7" style={{ ...TH_TD, color: "#666", textAlign: sub.type === "image" ? "center" : "left" }}>
+                         <td colSpan="7" style={{ ...TH_TD, color: "#666", fontSize: "11px", textAlign: sub.type === "image" ? "center" : "left" }}>
                            {sub.type === "image" ? (
-                             <img src={sub.imageData} alt="圖片" style={{ maxWidth: "60%", display: "block", margin: "0 auto" }} />
+                             <img src={sub.imageData} alt="圖片" style={{ maxWidth: "50%", maxHeight: "150px", display: "block", margin: "0 auto" }} />
                            ) : (
                              <span><span style={{fontWeight: "bold"}}>{sub.name}</span>：{sub.remarks}</span>
                            )}
@@ -1598,42 +1589,36 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
               </React.Fragment>
             ))}
 
-            {/* 若無項目顯示空行 */}
             {itemsToPrint.length === 0 && (
-                <tr>
-                    <td colSpan={8} style={{...TH_TD, textAlign: "center", padding: 20, color: "#999"}}>
-                        此報價單目前沒有項目
-                    </td>
-                </tr>
+                <tr><td colSpan={8} style={{...TD_CENTER, padding: 10, color: "#999"}}>無項目</td></tr>
             )}
           </tbody>
         </table>
 
 
         {/* ==========================================
-            Part 3: 金額總結表格
+            Part 3: 金額總結
             ========================================== */}
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
           <tbody>
             <tr>
-              <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold" }}>
+              <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
                 總計金額（未稅）
               </td>
-              <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
+              <td style={{ ...TD_RIGHT, fontWeight: "bold", width: "10%" }}>
                 {formatMoney(totalAmount)}
               </td>
-              <td style={TH_TD}></td>
+              <td style={{ ...TH_TD, width: "8%", border: "none" }}></td>
             </tr>
-            
             {showFinalPrice && (
                 <tr>
-                  <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold" }}>
+                  <td colSpan={6} style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
                     最終報價金額（未稅）
                   </td>
                   <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red" }}>
                     {formatMoney(negotiatedAmount)}
                   </td>
-                  <td style={TH_TD}></td>
+                  <td style={{ ...TH_TD, border: "none" }}></td>
                 </tr>
             )}
           </tbody>
@@ -1641,35 +1626,35 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
 
         {/* ==========================================
-            Part 4: 實支實付零件表 (✅ 這裡修正為新版)
+            Part 4: 實支實付零件表
             ========================================== */}
         {quote.leakageParts && quote.leakageParts.length > 0 && (
-        <div className="mt-4 mb-4 page-break-inside-avoid">
-            <div className="font-bold text-gray-800 mb-1 pl-2 border-l-4 border-blue-600 text-sm">
+        <div className="mt-2 mb-2 page-break-inside-avoid">
+            <div className="font-bold text-gray-800 mb-1 pl-2 border-l-2 border-blue-600 text-xs">
             ※ 實支實付維修零件價目表
-            <span className="text-xs font-normal text-gray-500 ml-2">
-                (依現場拆解後實際損壞數量計價，不計入上方報價總額)
+            <span className="text-[10px] font-normal text-gray-500 ml-2">
+                (不計入總額，依實作數量計價)
             </span>
             </div>
             
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem", border: "1px solid #ddd" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", border: "1px solid #ccc" }}>
             <thead>
-                <tr style={{ backgroundColor: "#f8f9fa", borderBottom: "1px solid #ccc" }}>
-                <th style={{ padding: "4px 8px", textAlign: "left", width: "35%" }}>零件品名</th>
-                <th style={{ padding: "4px 8px", textAlign: "left", width: "35%" }}>規格說明</th>
-                <th style={{ padding: "4px 8px", textAlign: "center", width: "10%" }}>單位</th>
-                <th style={{ padding: "4px 8px", textAlign: "right", width: "20%" }}>參考單價</th>
+                <tr style={{ backgroundColor: "#f4f4f4", borderBottom: "1px solid #ccc" }}>
+                    <th style={{ padding: "2px 4px", textAlign: "left", width: "35%" }}>品名</th>
+                    <th style={{ padding: "2px 4px", textAlign: "left", width: "35%" }}>規格</th>
+                    <th style={{ padding: "2px 4px", textAlign: "center", width: "10%" }}>單位</th>
+                    <th style={{ padding: "2px 4px", textAlign: "right", width: "20%" }}>單價</th>
                 </tr>
             </thead>
             <tbody>
                 {quote.leakageParts.map((part, idx) => (
                     <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
-                    <td style={{ padding: "3px 8px" }}>{part.name}</td>
-                    <td style={{ padding: "3px 8px", color: "#666" }}>{part.spec}</td>
-                    <td style={{ padding: "3px 8px", textAlign: "center" }}>{part.unit}</td>
-                    <td style={{ padding: "3px 8px", textAlign: "right", fontWeight: "bold" }}>
-                        ${Number(part.price).toLocaleString()}
-                    </td>
+                        <td style={{ padding: "1px 4px" }}>{part.name}</td>
+                        <td style={{ padding: "1px 4px", color: "#555" }}>{part.spec}</td>
+                        <td style={{ padding: "1px 4px", textAlign: "center" }}>{part.unit}</td>
+                        <td style={{ padding: "1px 4px", textAlign: "right", fontWeight: "bold" }}>
+                            ${Number(part.price).toLocaleString()}
+                        </td>
                     </tr>
                 ))}
             </tbody>
@@ -1679,45 +1664,40 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
 
         {/* ==========================================
-            Part 5: 頁尾備註與付款條件
+            Part 5: 頁尾 & 簽名
             ========================================== */}
         <div className="print-footer-block">
-            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 15 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
                 <tbody>
                 <tr>
-                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
-                    <strong>備註（不含稅）</strong>
-                    <div style={{ whiteSpace: "pre-wrap", marginTop: 6, lineHeight: "1.5em" }}>
-                        {quote.notes}
-                    </div>
+                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "11px" }}>
+                        <strong>備註：</strong>
+                        <div style={{ whiteSpace: "pre-wrap", marginTop: 2 }}>{quote.notes}</div>
                     </td>
-                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
-                    <strong>付款條件</strong>
-                    <div style={{ whiteSpace: "pre-wrap", marginTop: 6, lineHeight: "1.5em" }}>
-                        {quote.payment}
-                    </div>
+                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "11px" }}>
+                        <strong>付款條件：</strong>
+                        <div style={{ whiteSpace: "pre-wrap", marginTop: 2 }}>{quote.payment}</div>
                     </td>
                 </tr>
                 </tbody>
             </table>
             
-            {/* 簽名欄 */}
-            <table className="print-signature-area" style={{ width: "100%", borderCollapse: "collapse", marginTop: 30 }}>
+            <table className="print-signature-area" style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
                 <tbody>
                 <tr>
-                    <td style={{ ...TH_TD, width: "50%", height: 120, verticalAlign: "top", padding: "10px" }}>
+                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px" }}>
                         <strong>公司報價章</strong>
                         {companyInfo.stamp && (
-                            <img src={companyInfo.stamp} alt="公司印章" style={{ display: "block", margin: "10px auto", maxHeight: 70 }} />
+                            <img src={companyInfo.stamp} alt="公司印章" style={{ display: "block", margin: "2px auto", maxHeight: 60 }} />
                         )}
                     </td>
-                    <td style={{ ...TH_TD, width: "50%", height: 120, verticalAlign: "top", padding: "10px" }}>
+                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px" }}>
                         <strong>客戶回簽</strong>
                     </td>
                 </tr>
                 <tr>
-                    <td style={TH_TD}>日期：</td>
-                    <td style={TH_TD}>日期：</td>
+                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px"}}>日期：</td>
+                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px"}}>日期：</td>
                 </tr>
                 </tbody>
             </table>
