@@ -1723,8 +1723,8 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         )}
 
 
-        {/* ==========================================
-            Part 5: 頁尾 & 簽名
+       {/* ==========================================
+            Part 5: 頁尾 & 簽名 (修正版：修復右邊框消失)
             ========================================== */}
         <div className="print-footer-block">
             <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
@@ -1742,7 +1742,8 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                 </tbody>
             </table>
             
-            <table className="print-signature-area" style={{ width: "100%", borderCollapse: "collapse", marginTop: 10 }}>
+            {/* ▼▼▼ 修正這裡：寬度改為 99.5%，並強制加上右邊框 ▼▼▼ */}
+            <table className="print-signature-area" style={{ width: "99.5%", borderCollapse: "collapse", marginTop: 10, borderRight: "1px solid #000" }}>
                 <tbody>
                 <tr>
                     <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px" }}>
@@ -1751,22 +1752,18 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                             <img src={companyInfo.stamp} alt="公司印章" style={{ display: "block", margin: "2px auto", maxHeight: 60 }} />
                         )}
                     </td>
-                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px" }}>
+                    {/* 確保這一格也有右邊框 */}
+                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
                         <strong>客戶回簽</strong>
                     </td>
                 </tr>
                 <tr>
                     <td style={{...TH_TD, borderTop: "none", fontSize: "11px"}}>日期：</td>
-                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px"}}>日期：</td>
+                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px", borderRight: "1px solid #000"}}>日期：</td>
                 </tr>
                 </tbody>
             </table>
         </div>
-
-      </div>
-    </div>
-  );
-}
 /* ========================================================
    ★ 新增組件：實支實付零件編輯器 (LeakagePartsEditor)
    功能：提供介面讓使用者可以新增、修改、刪除零件
