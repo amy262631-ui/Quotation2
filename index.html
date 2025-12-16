@@ -1391,7 +1391,45 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
       </div>
     );
   }
+// ==========================================
+  // 1. 新增：定義可選擇的零件資料 (台製/德製)
+  // ==========================================
+  const [partSelections, setPartSelections] = React.useState({});
 
+  const leakageParts = [
+    { 
+      id: "coupling", 
+      name: "聯軸器", 
+      unit: "組", 
+      options: [
+        { label: "台製", spec: "台灣製造 (一般型)", price: 30000 },
+        { label: "德製", spec: "德國原裝 (高強度)", price: 58000 }
+      ]
+    },
+    { 
+      id: "washer",
+      name: "聯軸器橡膠墊圈", 
+      unit: "只", 
+      options: [
+        { label: "台製", spec: "台灣製造", price: 2000 },
+        { label: "德製", spec: "德國原裝", price: 9500 }
+      ]
+    },
+    { name: "減速機鬆緊器", spec: "絞接螺栓及插銷", unit: "式", price: 5000 },
+    { name: "減速機支撐調整器", spec: "吊眼螺絲", unit: "式", price: 3150 },
+    { name: "油封", spec: "TC 140x180x14", unit: "只", price: 350 },
+    { name: "軸承", spec: "型號：23124", unit: "只", price: 8000 },
+    { name: "主軸套筒", spec: "120x140x120", unit: "式", price: 2600 },
+    { name: "鍵槽組", spec: "平鍵 32x18x315L 及斜鍵 10x7x50", unit: "式", price: 1800 },
+    { name: "O型環", spec: "3x120x126", unit: "只", price: 200 },
+    { name: "假日施工加價", spec: "非工作日出勤費用", unit: "式", price: 15000 },
+  ];
+
+  // 判斷是否為漏漿模式
+  const isLeakageMode = quote.items.some(i => i.name?.includes("漏漿")) || quote.title?.includes("漏漿");
+  
+  // 過濾掉數量為 0 的項目 (只在漏漿模式生效)
+  const itemsToPrint = isLeakageMode ? quote.items.filter(item => item.quantity > 0) : quote.items;
   const companyInfo = COMPANY_DATA[quote.company];
   const TH_TD = { border: "1px solid #000", padding: "6px", fontSize: "13px", verticalAlign: "middle" }; // 修正 verticalAlign
   const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center" };
@@ -1465,7 +1503,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
             </tr>
             </thead>
           <tbody>
-            {quote.items.map((item, i) => (
+            {itemsToPrint.map((item, i) => (
               <React.Fragment key={item.id}>
                 {/* 第一列：主要項目 */}
                 <tr>
@@ -1546,7 +1584,67 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
             )}
           </tbody>
         </table>
-
+         {/* ==========================================
+            3. 新增：條件式顯示的零件表 (含下拉選單)
+            ========================================== */}
+        {isLeakageMode && (
+        <div className="mt-8 mb-6 page-break-inside-avoid">
+            <div className="font-bold text-gray-800 mb-2 pl-2 border-l-4 border-blue-600">
+            ※ 實支實付維修零件價目表
+            <span className="text-sm font-normal text-gray-500 ml-2">
+                (依現場拆解後實際損壞數量計價，不計入上方報價總額)
+            </span>
+            </div>
+            
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem", border: "1px solid #ddd" }}>
+            <thead>
+                <tr style={{ backgroundColor: "#f8f9fa", borderBottom: "2px solid #ccc" }}>
+                <th style={{ padding: "8px", textAlign: "left", width: "35%" }}>零件品名</th>
+                <th style={{ padding: "8px", textAlign: "left", width: "35%" }}>規格說明</th>
+                <th style={{ padding: "8px", textAlign: "center", width: "10%" }}>單位</th>
+                <th style={{ padding: "8px", textAlign: "right", width: "20%" }}>參考單價</th>
+                </tr>
+            </thead>
+            <tbody>
+                {leakageParts.map((part, idx) => {
+                const hasOptions = part.options && part.options.length > 0;
+                const selectedIdx = partSelections[part.id] || 0;
+                const currentData = hasOptions ? part.options[selectedIdx] : part;
+                
+                return (
+                    <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
+                    <td style={{ padding: "8px" }}>
+                        {hasOptions ? (
+                        <div className="flex items-center gap-2">
+                            <span>{part.name}</span>
+                            <select
+                            className="border border-gray-300 rounded px-1 py-0.5 text-sm bg-blue-50 cursor-pointer print:hidden"
+                            value={selectedIdx}
+                            onChange={(e) => setPartSelections({...partSelections, [part.id]: Number(e.target.value)})}
+                            >
+                            {part.options.map((opt, i) => (
+                                <option key={i} value={i}>【{opt.label}】</option>
+                            ))}
+                            </select>
+                            {/* 列印時只顯示純文字 */}
+                            <span className="hidden print:inline ml-1 font-bold">
+                                【{part.options[selectedIdx].label}】
+                            </span>
+                        </div>
+                        ) : part.name}
+                    </td>
+                    <td style={{ padding: "8px", color: "#666" }}>{currentData.spec}</td>
+                    <td style={{ padding: "8px", textAlign: "center" }}>{part.unit}</td>
+                    <td style={{ padding: "8px", textAlign: "right", fontWeight: "bold" }}>
+                        ${currentData.price.toLocaleString()}
+                    </td>
+                    </tr>
+                );
+                })}
+            </tbody>
+            </table>
+        </div>
+        )}
         <div className="print-footer-block">
         {/* ===== 備註 / 付款條件 ===== */}
         <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 15 }}>
