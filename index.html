@@ -1155,19 +1155,39 @@ function QuoteEditor() {
       </div>
 
         {/* ===== 匯出 / 列印 ===== */}
-        <div className="mt-10 pt-6 border-t flex gap-4 justify-end no-print">
-          <ExportButton />
-          <ExportWordButton componentRef={componentRef} />
-          <PrintButton componentRef={componentRef} />
-        </div>
+      <div className="mt-10 pt-6 border-t flex gap-4 justify-end no-print">
+        <ExportButton />
+        <ExportWordButton componentRef={componentRef} />
+        <PrintButton componentRef={componentRef} />
+      </div>
 
-        {/* ===== 即時預覽（畫面用） ===== */}
-        <div className="live-preview-box mt-12 no-print">
-          <h3 className="text-center font-bold text-2xl text-blue-700 mb-6">
-            實時預覽區（非列印尺寸）
-          </h3>
+      {/* ===== 即時預覽（畫面用） ===== */}
+      <div className="live-preview-box mt-12 no-print">
+        <h3 className="text-center font-bold text-2xl text-blue-700 mb-6">
+          實時預覽區（非列印尺寸）
+        </h3>
 
-          <div className="print-page">
+        {/* ▼▼▼ 修改開始：這裡增加了灰色背景與白紙樣式 ▼▼▼ */}
+        <div 
+          style={{ 
+            backgroundColor: "#525659", // 深灰色背景，模仿 PDF 預覽軟體
+            padding: "40px 0",          // 上下留出空間
+            overflowX: "auto",          // 螢幕太小時可左右滑動
+            border: "1px solid #ccc"
+          }}
+        >
+          <div 
+            className="print-page"
+            style={{
+              backgroundColor: "white",        // 白紙底色
+              width: "210mm",                  // A4 寬度
+              minHeight: "297mm",              // A4 高度
+              margin: "0 auto",                // 左右置中
+              padding: "20mm",                 // 模擬列印邊界 (如果 PrintLayout 內已有邊距，這裡可改 0)
+              boxShadow: "0 0 20px rgba(0,0,0,0.5)", // 增加陰影，讓紙張浮起來
+              boxSizing: "border-box"
+            }}
+          >
             <PrintLayout
               quote={activeQuote}
               totalAmount={totalAmount}
@@ -1176,6 +1196,9 @@ function QuoteEditor() {
             />
           </div>
         </div>
+        {/* ▲▲▲ 修改結束 ▲▲▲ */}
+
+      </div>
     </div> 
     {/* ⬆️ 這裡結束 .no-print 容器 */}
 
@@ -1198,7 +1221,6 @@ function QuoteEditor() {
   </div>
   );
 }
-
 
 // ===============================
 // Excel 匯出
