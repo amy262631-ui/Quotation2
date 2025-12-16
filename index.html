@@ -1500,7 +1500,7 @@ function PrintButton() {
 }
 
 /***********************************************************
- * 列印排版組件（PrintLayout）— 極致置頂與壓縮版
+ * 列印排版組件（PrintLayout）— 安全版 (標題不裁切)
  ***********************************************************/
 function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   // 1. 防呆檢查
@@ -1519,7 +1519,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
   const calcAmount = (item) => item.price * item.qty;
 
-  // 3. 樣式定義 (極致壓縮)
+  // 3. 樣式定義
   const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: "12px", verticalAlign: "middle", lineHeight: "1.2" };
   const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
   const TD_RIGHT = { ...TH_TD, textAlign: "right" };
@@ -1527,10 +1527,10 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
   return (
     <div className="print-page">
-      {/* ★★★ 新增：強制設定列印邊界為 5mm，讓內容盡量往上靠 ★★★ */}
+      {/* ★★★ 修正 1：將上方邊界改回 10mm (原本 5mm 太貼了) ★★★ */}
       <style>{`
         @media print {
-          @page { margin: 5mm 10mm 5mm 10mm; size: auto; }
+          @page { margin: 10mm 10mm 10mm 10mm; size: auto; }
           body { margin: 0; }
         }
       `}</style>
@@ -1538,20 +1538,19 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
       <div className="print-content">
         
         {/* ==========================================
-            Part 1: 表頭資料區 (置頂修正版)
+            Part 1: 表頭資料區
             ========================================== */}
-        {/* marginTop: -15px 強制將表格往上拉，抵消容器可能的 padding */}
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 5, marginTop: "-15px" }}>
+        {/* ★★★ 修正 2：移除了 marginTop: "-15px"，讓標題不被切到 ★★★ */}
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 5 }}>
           <tbody>
             <tr>
               <td colSpan="2" style={{ textAlign: "center", paddingBottom: 5 }}>
-                <h2 style={{ margin: 0, fontSize: "22px", lineHeight: "1.2" }}>{companyInfo.name}</h2>
-                <div style={{ fontSize: 11, marginTop: 2 }}>
+                <h2 style={{ margin: 0, fontSize: "24px", lineHeight: "1.2" }}>{companyInfo.name}</h2>
+                <div style={{ fontSize: 11, marginTop: 4 }}>
                   統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}
                 </div>
                 <div style={{ fontSize: 11 }}>{companyInfo.address}</div>
-                {/* 縮小這裡的 marginTop */}
-                <h3 style={{ marginTop: 5, fontSize: "18px", borderBottom: "2px solid #333", display: "inline-block", paddingBottom: 2 }}>工程報價單</h3>
+                <h3 style={{ marginTop: 8, fontSize: "20px", borderBottom: "2px solid #333", display: "inline-block", paddingBottom: 2 }}>工程報價單</h3>
               </td>
             </tr>
             <tr>
