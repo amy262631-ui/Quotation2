@@ -86,14 +86,13 @@
 
   /* ========= 終極修正：清除螢幕樣式 ========= */
   .print-page {
-    all: unset;
-    display: block;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-  }
+  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
 
   /* ========= 列印內容 ========= */
   .print-content {
@@ -1454,15 +1453,15 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
 
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <colgroup>
-    <col style={{ width: "5%" }} />
+    <col style={{ width: "6%" }} />
     <col style={{ width: "18%" }} />
-    <col style={{ width: "20%" }} />
-    <col style={{ width: "7%" }} />
-    <col style={{ width: "7%" }} />
-    <col style={{ width: "15%" }} />
-    <col style={{ width: "15%" }} />
-    <col style={{ width: "13%" }} />
-    </colgroup>
+    <col style={{ width: "22%" }} />
+    <col style={{ width: "6%" }} />
+    <col style={{ width: "6%" }} />
+    <col style={{ width: "14%" }} />
+    <col style={{ width: "14%" }} />
+    <col style={{ width: "14%" }} />
+  </colgroup>
           <thead>
   {/* ===== 公司抬頭（會在每一頁最上方重複） ===== */}
   <tr>
