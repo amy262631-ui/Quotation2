@@ -45,7 +45,16 @@
    ✅ 最終穩定版｜工程報價單列印專用 CSS
 ================================================= */
 @media print {
+  /* 先隱藏所有 print-page */
+  .print-page {
+    display: none !important;
+  }
 
+  /* 只顯示 print-only-layout 裡面的 print-page */
+  .print-only-layout .print-page {
+    display: block !important;
+  }
+}
   body,
   #root {
     margin: 0;
