@@ -1168,54 +1168,58 @@ function QuoteEditor() {
         </div>
       </div>
 
-      {/* ===== 匯出 / 列印 ===== */}
-      <div className="mt-10 pt-6 border-t flex gap-4 justify-end">
+   {/* ===== 匯出 / 列印 ===== */}
+<div className="mt-10 pt-6 border-t flex gap-4 justify-end">
   <ExportButton />
   <ExportWordButton componentRef={componentRef} />
   <PrintButton componentRef={componentRef} />
-      </div>
+</div>
 
-      {/* ===== 即時預覽 ===== */}
-      <div className="live-preview-box mt-12 no-print">
-        <h3 className="text-center font-bold text-2xl text-blue-700 mb-6">
-          實時預覽區（非列印尺寸）
-        </h3>
-        <div className="print-page">
-          <PrintLayout
-            quote={activeQuote}
-            totalAmount={totalAmount}
-            negotiatedAmount={negotiatedAmount}
-            isPreview={true}
-          />
-        </div>
-      </div>
-    </div>
-
-    {/* 列印專用隱藏區：我們在 CSS 中已經強制覆蓋了這裡的 style */}
-    <div
-      ref={componentRef}
-      className="print-only-layout"
-      style={{ 
-        position: "absolute", 
-        top: -9999, 
-        left: -9999,
-        zIndex: -9999,
-        pointerEvents: "none",
-        width: 0,
-        height: 0,
-        overflow: "hidden"
-      }}
-    >
-      <PrintLayout
-        quote={activeQuote}
-        totalAmount={totalAmount}
-        negotiatedAmount={negotiatedAmount}
-        isPreview={false}
-      />
-    </div>
+{/* ===== 即時預覽 ===== */}
+<div className="live-preview-box mt-12 no-print">
+  <h3 className="text-center font-bold text-2xl text-blue-700 mb-6">
+    實時預覽區（非列印尺寸）
+  </h3>
+  <div className="print-page">
+    <PrintLayout
+      quote={activeQuote}
+      totalAmount={totalAmount}
+      negotiatedAmount={negotiatedAmount}
+      isPreview={true}
+    />
   </div>
+</div>
+</div>
+
+{/* ===== 列印專用隱藏區（⚠️ 這裡一定要留，而且一定要包 print-page） ===== */}
+<div
+  ref={componentRef}
+  className="print-only-layout"
+  style={{ 
+    position: "absolute", 
+    top: -9999, 
+    left: -9999,
+    zIndex: -9999,
+    pointerEvents: "none",
+    width: 0,
+    height: 0,
+    overflow: "hidden"
+  }}
+>
+  {/* ⭐ 關鍵修正：補上 print-page ⭐ */}
+  <div className="print-page">
+    <PrintLayout
+      quote={activeQuote}
+      totalAmount={totalAmount}
+      negotiatedAmount={negotiatedAmount}
+      isPreview={false}
+    />
+  </div>
+</div>
+</div>
 );
-} 
+}
+
 
 // ===============================
 // Excel 匯出
