@@ -1457,15 +1457,15 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           {/* 調整寬度分配 */}
           <colgroup>
-            <col style={{ width: "5%" }} />  {/* 項次 */}
-            <col style={{ width: "22%" }} /> {/* 品名 */}
-            <col style={{ width: "23%" }} /> {/* 規格 */}
-            <col style={{ width: "5%" }} />  {/* 單位 */}
-            <col style={{ width: "5%" }} />  {/* 數量 */}
-            <col style={{ width: "13%" }} /> {/* 單價 */}
-            <col style={{ width: "13%" }} /> {/* 小計 */}
-            <col style={{ width: "14%" }} /> {/* 備註 */}
-          </colgroup>
+    <col style={{ width: "4%" }} />  {/* 項次：縮小 (原本5%) */}
+    <col style={{ width: "30%" }} /> {/* 品名：大幅加大 (原本22%) */}
+    <col style={{ width: "30%" }} /> {/* 規格：大幅加大 (原本23%) */}
+    <col style={{ width: "4%" }} />  {/* 單位：縮小 (原本5%) */}
+    <col style={{ width: "5%" }} />  {/* 數量：維持 (5%) */}
+    <col style={{ width: "9%" }} />  {/* 單價：縮減，數字夠放就好 (原本13%) */}
+    <col style={{ width: "10%" }} /> {/* 小計：縮減 (原本13%) */}
+    <col style={{ width: "8%" }} />  {/* 備註：縮減，非必要欄位 (原本14%) */}
+</colgroup>
           <thead>
             <tr>
                 <th style={TH}>項次</th>
