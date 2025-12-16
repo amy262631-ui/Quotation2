@@ -1502,7 +1502,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
   const isLeakageMode = quote.items.some(i => i.name?.includes("漏漿")) || quote.title?.includes("漏漿");
   
   // 過濾掉數量為 0 的項目 (只在漏漿模式生效)
-  const itemsToPrint = isLeakageMode ? quote.items.filter(item => item.quantity > 0) : quote.items;
+  const itemsToPrint = isLeakageMode ? quote.items.filter(item => item.qty > 0) : quote.items;
   const companyInfo = COMPANY_DATA[quote.company];
   const TH_TD = { border: "1px solid #000", padding: "6px", fontSize: "13px", verticalAlign: "middle" }; // 修正 verticalAlign
   const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center" };
