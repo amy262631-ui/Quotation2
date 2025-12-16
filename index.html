@@ -1872,6 +1872,11 @@ function LeakagePartsEditor({ parts, updateQuote }) {
   // P5 — App 根元件
  ***********************************************************/
 function App() {
+  const { 
+    quotes, setQuotes, 
+    activeQuoteId, setActiveQuoteId,
+    company 
+  } = React.useContext(AppContext);
     return (
         /* ✅ 修改 1：加入 print:block 與 print:bg-white，列印時取消 flex 左右排版 */
         <div className="min-h-screen bg-gray-50 flex print:block print:bg-white">
