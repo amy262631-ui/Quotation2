@@ -136,14 +136,25 @@ const DEFAULT_PAYMENT = `訂金：40%
 安裝完成：20%
 完工驗收：10%`;
 
+沒錯，就是這裡！
+
+我們要將原本寫死在列印頁面的「實支實付零件」，搬進來這個 QUOTE_MODES 設定檔裡面，變成「預設資料」。這樣以後您新增報價單時，這些零件就會自動帶入，讓您可以自由修改價格或刪除不需要的項目。
+
+請完整複製下方的程式碼，直接覆蓋您原本的 const QUOTE_MODES = [ ... ];：
+
+✅ 修改後的 QUOTE_MODES (加入 defaultLeakageParts)
+JavaScript
+
 /***********************************************************
- * 報價模式模板（QUOTE_MODES）
+ * 報價模式模板（QUOTE_MODES）— 已新增實支實付零件預設值
  ***********************************************************/
 const QUOTE_MODES = [
   {
     id: "mode_leak_repair",
     name: "拌合機漏漿更換工程",
     description: "拌合機漏漿修復，包工包料項目另計，零件實支實付",
+    
+    // 1. 主要工程項目 (維持原本設定)
     defaultItems: [
       {
         name: "更換 3m³ 拌合機【減速機側】漏漿（含工資及材料）",
@@ -168,6 +179,24 @@ const QUOTE_MODES = [
         subItems: []
       }
     ],
+
+    // ▼▼▼ 2. 新增：實支實付零件預設清單 (可自由修改) ▼▼▼
+    defaultLeakageParts: [
+      { name: "聯軸器 (台製)", spec: "台灣製造", unit: "組", price: 30000 },
+      { name: "聯軸器 (德製)", spec: "德國原裝", unit: "組", price: 58000 },
+      { name: "聯軸器橡膠墊圈 (台製)", spec: "台灣製造", unit: "只", price: 2000 },
+      { name: "聯軸器橡膠墊圈 (德製)", spec: "德國原裝", unit: "只", price: 9500 },
+      { name: "減速機鬆緊器", spec: "絞接螺栓及插銷", unit: "式", price: 5000 },
+      { name: "減速機支撐調整器", spec: "吊眼螺絲", unit: "式", price: 3150 },
+      { name: "油封", spec: "TC 140x180x14", unit: "只", price: 350 },
+      { name: "軸承", spec: "型號：23124", unit: "只", price: 8000 },
+      { name: "主軸套筒", spec: "120x140x120", unit: "式", price: 2600 },
+      { name: "鍵槽組", spec: "平鍵 32x18x315L 及斜鍵 10x7x50", unit: "式", price: 1800 },
+      { name: "O型環", spec: "3x120x126", unit: "只", price: 200 },
+      { name: "假日施工加價", spec: "非工作日出勤費用", unit: "式", price: 15000 },
+    ],
+    // ▲▲▲ 新增結束 ▲▲▲
+
     referenceItems: [],
     defaultNotes: DEFAULT_NOTES,
     defaultPayment: DEFAULT_PAYMENT
@@ -347,9 +376,29 @@ function AppProvider({ children }) {
     localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
   }, [quotes]);
 
+  /* ========================================================
+     1. 建立新報價單 (createQuote)
+     更新重點：新增讀取 leakageParts (實支實付零件) 的邏輯
+     ======================================================== */
   const createQuote = React.useCallback((modeId) => {
     const mode = QUOTE_MODES.find(m => m.id === modeId);
     
+    // 1. 處理主項目 (給予全新 ID)
+    const defaultItems = mode 
+      ? JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
+          ...item,
+          id: uuid() 
+        }))
+      : [];
+
+    // ▼▼▼ 2. 新增：處理實支實付零件 (如果有設定的話) ▼▼▼
+    const defaultLeakageParts = (mode && mode.defaultLeakageParts)
+      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
+          ...part,
+          id: uuid() // 一樣給予全新 ID，讓您可以自由刪減
+        }))
+      : [];
+
     const newQuote = {
         id: uuid(),
         company: company,
@@ -360,7 +409,8 @@ function AppProvider({ children }) {
         phone: "",
         location: "",
         date: formatDate(),
-        items: mode ? JSON.parse(JSON.stringify(mode.defaultItems)) : [],
+        items: defaultItems,
+        leakageParts: defaultLeakageParts, // ⭐ 把零件存進報價單裡
         notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
         payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
         discountPercent: 0,
@@ -371,15 +421,25 @@ function AppProvider({ children }) {
     setActiveQuoteId(newQuote.id);
   }, [company]);
 
+  /* ========================================================
+     2. 刪除報價單 (deleteQuote) - 維持不變
+     ======================================================== */
   const deleteQuote = React.useCallback((id) => {
     setQuotes(prev => prev.filter(q => q.id !== id));
     if (activeQuoteId === id) setActiveQuoteId(null);
   }, [activeQuoteId]);
 
+  /* ========================================================
+     3. 更新報價單 (updateQuote) - 維持不變
+     ======================================================== */
   const updateQuote = React.useCallback((id, data) => {
     setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
   }, []);
 
+  /* ========================================================
+     4. 套用模式 (applyMode)
+     更新重點：套用時也要把 leakageParts 抓進來
+     ======================================================== */
   const applyMode = React.useCallback((modeId) => {
     if (!activeQuoteId) return;
     const mode = QUOTE_MODES.find(m => m.id === modeId);
@@ -387,8 +447,23 @@ function AppProvider({ children }) {
 
     if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
 
+    // 主項目
+    const newItems = JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
+        ...item,
+        id: uuid() 
+    }));
+    
+    // ▼▼▼ 新增：套用零件 ▼▼▼
+    const newLeakageParts = (mode.defaultLeakageParts)
+      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
+          ...part,
+          id: uuid()
+        }))
+      : [];
+
     updateQuote(activeQuoteId, {
-        items: JSON.parse(JSON.stringify(mode.defaultItems)),
+        items: newItems,
+        leakageParts: newLeakageParts, // ⭐ 更新零件列表
         notes: mode.defaultNotes,
         payment: mode.defaultPayment
     });
@@ -1117,6 +1192,13 @@ function QuoteEditor() {
         ))}
       </div>
 
+      {/* ▼▼▼ 插入這裡：如果有零件資料，就顯示編輯器 ▼▼▼ */}
+            {activeQuote.leakageParts && (
+              <LeakagePartsEditor 
+                parts={activeQuote.leakageParts} 
+                updateQuote={(data) => updateQuote(activeQuote.id, data)} 
+              />
+            )}
       {/* ===== 備註 / 付款條件 ===== */}
       <div className="mt-10 grid grid-cols-2 gap-8">
         <div>
@@ -1702,7 +1784,114 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
     </div>
   );
 }
+/* ========================================================
+   ★ 新增組件：實支實付零件編輯器 (LeakagePartsEditor)
+   功能：提供介面讓使用者可以新增、修改、刪除零件
+   ======================================================== */
+function LeakagePartsEditor({ parts, updateQuote }) {
+  // 修改單行內容
+  const handleChange = (id, field, value) => {
+    const newParts = parts.map(p => p.id === id ? { ...p, [field]: value } : p);
+    updateQuote({ leakageParts: newParts });
+  };
 
+  // 刪除單行
+  const handleDelete = (id) => {
+    if(!window.confirm("確定刪除此零件嗎？")) return;
+    const newParts = parts.filter(p => p.id !== id);
+    updateQuote({ leakageParts: newParts });
+  };
+
+  // 新增一行空零件
+  const handleAdd = () => {
+    const newPart = { id: uuid(), name: "", spec: "", unit: "式", price: 0 };
+    updateQuote({ leakageParts: [...(parts || []), newPart] });
+  };
+
+  return (
+    <div className="mt-8 mb-6 border-t pt-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-bold text-gray-700 border-l-4 border-blue-500 pl-2">
+          ※ 實支實付維修零件清單
+          <span className="text-sm font-normal text-gray-500 ml-2">(此區不計入總報價)</span>
+        </h3>
+        <button 
+          onClick={handleAdd} 
+          className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 shadow flex items-center gap-1"
+        >
+          <span>＋</span> 新增零件
+        </button>
+      </div>
+
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-12 gap-2 text-sm text-gray-500 mb-2 px-2">
+           <div className="col-span-4">品名</div>
+           <div className="col-span-4">規格說明</div>
+           <div className="col-span-1 text-center">單位</div>
+           <div className="col-span-2 text-right">單價</div>
+           <div className="col-span-1"></div>
+        </div>
+
+        {(parts || []).map((part, index) => (
+          <div key={part.id} className="grid grid-cols-12 gap-2 mb-2 items-center">
+             {/* 品名 */}
+             <div className="col-span-4">
+                <input 
+                  className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-200 outline-none" 
+                  placeholder="輸入零件名稱..."
+                  value={part.name} 
+                  onChange={(e) => handleChange(part.id, "name", e.target.value)}
+                />
+             </div>
+             {/* 規格 */}
+             <div className="col-span-4">
+                <input 
+                  className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-200 outline-none" 
+                  placeholder="輸入規格..."
+                  value={part.spec} 
+                  onChange={(e) => handleChange(part.id, "spec", e.target.value)}
+                />
+             </div>
+             {/* 單位 */}
+             <div className="col-span-1">
+                <input 
+                  className="w-full border p-2 rounded text-sm text-center focus:ring-2 focus:ring-blue-200 outline-none" 
+                  value={part.unit} 
+                  onChange={(e) => handleChange(part.id, "unit", e.target.value)}
+                />
+             </div>
+             {/* 單價 */}
+             <div className="col-span-2">
+                <input 
+                  type="number"
+                  className="w-full border p-2 rounded text-sm text-right focus:ring-2 focus:ring-blue-200 outline-none font-bold text-gray-700" 
+                  value={part.price} 
+                  onFocus={(e) => e.target.select()} // 點擊時自動全選數字
+                  onChange={(e) => handleChange(part.id, "price", Number(e.target.value))}
+                />
+             </div>
+             {/* 刪除按鈕 */}
+             <div className="col-span-1 text-center">
+                <button 
+                  onClick={() => handleDelete(part.id)} 
+                  className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition-colors"
+                  title="刪除此項目"
+                >
+                  ✕
+                </button>
+             </div>
+          </div>
+        ))}
+
+        {(parts || []).length === 0 && (
+            <div className="text-gray-400 text-center py-6 border-2 border-dashed border-gray-200 rounded">
+                目前沒有零件項目，請點擊上方按鈕新增。
+            </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /***********************************************************
   // P5 — App 根元件
