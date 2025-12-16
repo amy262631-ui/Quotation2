@@ -1031,132 +1031,126 @@ function QuoteEditor() {
         編輯報價單：{activeQuote.title || "未命名"}
       </h1>
 
-      {/* ===== 報價單基本資料（表頭卡） ===== */}
-      <div className="bg-slate-50 p-6 rounded-xl mb-8 grid grid-cols-2 gap-x-6 gap-y-4 shadow-inner text-lg">
+     {/* ===== 報價單基本資料（表頭卡 - 緊湊版） ===== */}
+      <div className="bg-white p-4 rounded-lg mb-6 border border-gray-300 shadow-sm text-sm">
+        
+        {/* 使用 grid-cols-4 讓空間利用更有效率，gap 縮小為 3 */}
+        <div className="grid grid-cols-4 gap-3">
 
-        <div className="col-span-2 flex items-center">
-          <label className="font-semibold w-1/4 text-gray-700">報價單編號</label>
-          <div className="text-xl font-mono text-blue-700">
-            {activeQuote.quoteNo}
-          </div>
-        </div>
-
-        <div className="col-span-2">
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            工程名稱 / 標題
-          </label>
-          <input
-            type="text"
-            value={activeQuote.title}
-            onChange={(e) => handleChange("title", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-base"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            客戶名稱
-          </label>
-          <input
-            type="text"
-            value={activeQuote.customerName}
-            onChange={(e) => handleChange("customerName", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            聯絡人
-          </label>
-          <input
-            type="text"
-            value={activeQuote.contact}
-            onChange={(e) => handleChange("contact", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            聯絡電話
-          </label>
-          <input
-            type="text"
-            value={activeQuote.phone}
-            onChange={(e) => handleChange("phone", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            報價日期
-          </label>
-          <input
-            type="date"
-            value={activeQuote.date}
-            onChange={(e) => handleChange("date", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        <div className="col-span-2">
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            工程地點
-          </label>
-          <input
-            type="text"
-            value={activeQuote.location}
-            onChange={(e) => handleChange("location", e.target.value)}
-            className="w-full border rounded-lg px-3 py-2"
-          />
-        </div>
-
-        {/* ===== 金額摘要 ===== */}
-        <div className="col-span-2 mt-4 p-4 bg-blue-100 rounded-lg">
-          <div className="text-2xl font-bold text-blue-900">
-            總計金額（未稅）：NT$ {formatMoney(totalAmount)}
-          </div>
-        </div>
-
-        <div className="col-span-2 grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              折扣百分比（%）
-            </label>
-            <input
-              type="number"
-              value={activeQuote.discountPercent}
-              onChange={(e) =>
-                handleChange("discountPercent", Number(e.target.value))
-              }
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              最終報價（自定義）
-            </label>
-            <input
-              type="number"
-              value={activeQuote.negotiatedPrice}
-              onChange={(e) =>
-                handleChange("negotiatedPrice", Number(e.target.value))
-              }
-              className="w-full border rounded-lg px-3 py-2"
-            />
-          </div>
-        </div>
-
-        {showFinalPrice && (
-          <div className="col-span-2 mt-2 p-4 bg-red-100 rounded-lg border-l-4 border-red-500">
-            <div className="text-2xl font-bold text-red-800">
-              最終報價金額（未稅）：NT$ {formatMoney(negotiatedAmount)}
+          {/* 第一列：單號 (佔1) + 日期 (佔1) + 標題 (佔2) */}
+          <div className="col-span-1">
+            <label className="block text-xs font-bold text-gray-500 mb-1">報價單編號</label>
+            <div className="font-mono font-bold text-blue-700 text-base leading-tight mt-1">
+              {activeQuote.quoteNo}
             </div>
           </div>
-        )}
+
+          <div className="col-span-1">
+             <label className="block text-xs font-bold text-gray-500 mb-1">報價日期</label>
+             <input
+              type="date"
+              value={activeQuote.date}
+              onChange={(e) => handleChange("date", e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="col-span-2">
+            <label className="block text-xs font-bold text-gray-500 mb-1">工程名稱 / 標題</label>
+            <input
+              type="text"
+              value={activeQuote.title}
+              onChange={(e) => handleChange("title", e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder="請輸入工程名稱"
+            />
+          </div>
+
+          {/* 第二列：客戶 (佔1) + 聯絡人 (佔1) + 電話 (佔1) + 地點 (佔1) */}
+          <div className="col-span-1">
+            <label className="block text-xs font-bold text-gray-500 mb-1">客戶名稱</label>
+            <input
+              type="text"
+              value={activeQuote.customerName}
+              onChange={(e) => handleChange("customerName", e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-xs font-bold text-gray-500 mb-1">聯絡人</label>
+            <input
+              type="text"
+              value={activeQuote.contact}
+              onChange={(e) => handleChange("contact", e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-xs font-bold text-gray-500 mb-1">聯絡電話</label>
+            <input
+              type="text"
+              value={activeQuote.phone}
+              onChange={(e) => handleChange("phone", e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <div className="col-span-1">
+            <label className="block text-xs font-bold text-gray-500 mb-1">工程地點</label>
+            <input
+              type="text"
+              value={activeQuote.location}
+              onChange={(e) => handleChange("location", e.target.value)}
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+        </div>
+
+        {/* ===== 金額摘要區 (橫向排列，節省垂直空間) ===== */}
+        <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between bg-gray-50 px-3 py-2 rounded">
+            {/* 左邊：總金額 */}
+            <div className="flex items-center gap-2">
+                <span className="text-gray-600 font-bold">總計金額(未稅)：</span>
+                <span className="text-xl font-bold text-blue-700">
+                    NT$ {formatMoney(totalAmount)}
+                </span>
+            </div>
+
+            {/* 右邊：折扣與最終報價 (並排顯示) */}
+            <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500">折扣(%)</span>
+                    <input
+                        type="number"
+                        value={activeQuote.discountPercent}
+                        onChange={(e) => handleChange("discountPercent", Number(e.target.value))}
+                        className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-right focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500">自定義最終價</span>
+                    <input
+                        type="number"
+                        value={activeQuote.negotiatedPrice}
+                        onChange={(e) => handleChange("negotiatedPrice", Number(e.target.value))}
+                        className="w-24 border border-gray-300 rounded px-2 py-1 text-sm text-right focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                </div>
+
+                {/* 如果有最終報價，顯示紅色金額 */}
+                {showFinalPrice && (
+                    <div className="pl-4 border-l border-gray-300">
+                        <span className="text-red-600 font-bold text-lg">
+                           ${formatMoney(negotiatedAmount)}
+                        </span>
+                    </div>
+                )}
+            </div>
+        </div>
       </div>
 
       {/* ===== 報價項目列表 ===== */}
