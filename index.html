@@ -1768,20 +1768,17 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
    ★ 新增組件：實支實付零件編輯器 (LeakagePartsEditor)
    ======================================================== */
 function LeakagePartsEditor({ parts, updateQuote }) {
-  // 修改單行內容
   const handleChange = (id, field, value) => {
     const newParts = parts.map(p => p.id === id ? { ...p, [field]: value } : p);
     updateQuote({ leakageParts: newParts });
   };
 
-  // 刪除單行
   const handleDelete = (id) => {
     if(!window.confirm("確定刪除此零件嗎？")) return;
     const newParts = parts.filter(p => p.id !== id);
     updateQuote({ leakageParts: newParts });
   };
 
-  // 新增一行空零件
   const handleAdd = () => {
     const newPart = { id: uuid(), name: "", spec: "", unit: "式", price: 0 };
     updateQuote({ leakageParts: [...(parts || []), newPart] });
@@ -1868,19 +1865,16 @@ function LeakagePartsEditor({ parts, updateQuote }) {
 }
 
 /***********************************************************
-  // P5 — App 根元件 (修復版：移除重複列表、包含所有功能)
+  // P5 — App 根元件 (完整修復版)
  ***********************************************************/
 function App() {
-  // 1. 從 Context 取得資料
   const { 
     quotes, setQuotes, 
     activeQuoteId, setActiveQuoteId,
     company 
   } = React.useContext(AppContext);
 
-  /* ========================================================
-     (1) 新建報價單
-     ======================================================== */
+  // (1) 新建報價單
   const createQuote = React.useCallback((modeId = null) => {
     const mode = MODE_CONFIG.find(m => m.id === modeId) || MODE_CONFIG[0];
     const newQuote = {
@@ -1901,24 +1895,18 @@ function App() {
     setActiveQuoteId(newQuote.id);
   }, [company, setQuotes, setActiveQuoteId]);
 
-  /* ========================================================
-     (2) 刪除報價單
-     ======================================================== */
+  // (2) 刪除報價單
   const deleteQuote = React.useCallback((id) => {
     setQuotes(prev => prev.filter(q => q.id !== id));
     if (activeQuoteId === id) setActiveQuoteId(null);
   }, [activeQuoteId, setQuotes, setActiveQuoteId]);
 
-  /* ========================================================
-     (3) 更新報價單
-     ======================================================== */
+  // (3) 更新報價單
   const updateQuote = React.useCallback((id, data) => {
     setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
   }, [setQuotes]);
 
-  /* ========================================================
-     (4) 複製報價單
-     ======================================================== */
+  // (4) 複製報價單
   const duplicateQuote = React.useCallback((id) => {
     const sourceQuote = quotes.find(q => q.id === id);
     if (!sourceQuote) return;
@@ -1937,39 +1925,29 @@ function App() {
     setActiveQuoteId(newQuote.id);
   }, [quotes, setQuotes, setActiveQuoteId]);
 
-  /* ========================================================
-     (5) 套用模式
-     ======================================================== */
+  // (5) 套用模式
   const applyMode = React.useCallback((modeId) => {
     if (!activeQuoteId) return;
     const mode = MODE_CONFIG.find(m => m.id === modeId);
     if (!mode) return;
-
     if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
-
     const newItems = mode.defaultItems.map(item => ({ ...item, id: uuid() }));
-    const newLeakageParts = []; 
-
     updateQuote(activeQuoteId, {
       items: newItems,
-      leakageParts: newLeakageParts,
+      leakageParts: [],
       notes: mode.defaultNotes,
       payment: mode.defaultPayment
     });
   }, [activeQuoteId, updateQuote]);
 
-
-  // ▼▼▼▼▼ Return UI ▼▼▼▼▼
+  // UI 介面
   return (
     <div className="min-h-screen bg-gray-50 flex print:block print:bg-white">
-        
         {/* 側邊欄 */}
         <div className="w-96 bg-white p-6 shadow-lg flex-shrink-0 text-lg sticky top-0 h-screen overflow-y-auto no-print">
             <h1 className="text-2xl font-extrabold mb-6 text-center text-blue-700">工程報價系統</h1>
             <CompanySelector />
             <ModeSelector applyMode={applyMode} />
-            
-            {/* ✅ 修正：這裡只有一個 QuoteList */}
             <QuoteList 
                 quotes={quotes} 
                 activeId={activeQuoteId} 
@@ -1978,7 +1956,6 @@ function App() {
                 duplicateQuote={duplicateQuote} 
             />
         </div>
-        
         {/* 主編輯區 */}
         <div className="flex-grow p-8 text-base print:p-0">
             <QuoteEditor updateQuote={updateQuote} />
@@ -1986,7 +1963,6 @@ function App() {
     </div>
   );
 }
-
 /***********************************************************
  * P6 — React 18 啟動
  ***********************************************************/
