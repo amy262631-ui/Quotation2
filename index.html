@@ -20,13 +20,6 @@
       font-family: "Microsoft JhengHei", sans-serif;
     }
 
-    /* =========================================
-       列印專用內容，螢幕上一定要隱藏
-       ========================================= */
-    .print-only-layout {
-  display: none;
-}
-
     
  
  /* =================================================
@@ -43,11 +36,9 @@
 
   /* ❌ 所有畫面用內容，一律從排版樹移除 */
   .no-print,
-  .live-preview-box {
-    display: none !important;
-    height: 0 !important;
-    overflow: hidden !important;
-  }
+.live-preview-box {
+  display: none !important;
+}
 
   /* ✅ 只允許列印這一份 */
   .print-only-layout {
