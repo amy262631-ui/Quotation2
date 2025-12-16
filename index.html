@@ -24,43 +24,60 @@
       display: none;
     }
 
-    /* =================================================
-       ✅ 列印專用 CSS
+   /* =================================================
+       ✅ 修正後的列印專用 CSS
     ================================================= */
     @media print {
-      body, #root {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        background: white; /* 列印時背景改白 */
+      /* 1. 強制重置所有容器，取消 Flex 排版 */
+      body, 
+      #root, 
+      .quote-editor-root-container, 
+      div {
+        display: block !important; /* 關鍵：取消 flex，改為區塊 */
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: static !important;
+        background: white;
       }
 
-      /* 隱藏不需要列印的元素 */
+      /* 2. 隱藏不需要列印的元素 */
       .no-print,
-      .live-preview-box {
+      .live-preview-box,
+      aside, /* 如果側邊欄是用 aside */
+      nav {
         display: none !important;
       }
 
-      /* 強制顯示列印區塊 */
+      /* 3. 設定列印區域滿版 */
       .print-only-layout {
         display: block !important;
-        position: static !important;
         width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
       }
 
+      /* 4. 表格設定 */
       table {
-        width: 100%;
+        width: 100% !important;
         border-collapse: collapse;
+        table-layout: fixed; /* 讓欄位寬度依照設定的 % 跑，不要被內容撐開或壓縮 */
       }
 
       thead {
         display: table-header-group;
       }
 
-      tr, th, td {
+      tr {
         page-break-inside: avoid;
+      }
+
+      /* 5. 確保文字不會因為太擠而變直向 */
+      td, th {
+        white-space: normal; /* 允許換行 */
+        word-wrap: break-word; /*長單字換行*/
+        vertical-align: middle; /* 垂直置中 */
       }
 
       .print-footer-block,
@@ -70,7 +87,7 @@
 
       @page {
         size: A4;
-        margin: 10mm;
+        margin: 10mm; /* 邊距設為 10mm，讓空間更大 */
       }
     }
   </style>
