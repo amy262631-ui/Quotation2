@@ -419,7 +419,38 @@ function AppProvider({ children }) {
     setQuotes(prev => prev.filter(q => q.id !== id));
     if (activeQuoteId === id) setActiveQuoteId(null);
   }, [activeQuoteId]);
+/* ========================================================
+     新增功能：複製報價單 (duplicateQuote)
+     ======================================================== */
+  const duplicateQuote = React.useCallback((id) => {
+    // 1. 找到原本那張單
+    const sourceQuote = quotes.find(q => q.id === id);
+    if (!sourceQuote) return;
 
+    // 2. 深層複製 (Deep Copy) 並賦予新身分
+    // 我們用 JSON.parse(JSON.stringify(...)) 來切斷與舊資料的連結
+    const newQuote = {
+      ...JSON.parse(JSON.stringify(sourceQuote)), 
+      id: uuid(),                                // 給全新的 ID
+      quoteNo: generateQuoteNo(sourceQuote.company), // 給全新的報價單號
+      title: `${sourceQuote.title} (副本)`,       // 標題加上 (副本) 方便辨識
+      date: formatDate(),                        // 更新成今天的日期
+      
+      // 確保裡面的項目也有新 ID (避免 React 報錯 key 重複)
+      items: sourceQuote.items.map(item => ({
+         ...item,
+         id: uuid()
+      })),
+      leakageParts: (sourceQuote.leakageParts || []).map(part => ({
+         ...part,
+         id: uuid()
+      }))
+    };
+
+    // 3. 存入列表並選取它
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [quotes]);
   /* ========================================================
      3. 更新報價單 (updateQuote) - 維持不變
      ======================================================== */
@@ -603,68 +634,89 @@ function ModeSelector() {
   );
 }
 
-function QuoteList() {
-  const { quotes, activeQuoteId, setActiveQuoteId, createQuote, deleteQuote } = React.useContext(AppContext);
+/* ========================================================
+   組件：報價單列表 (QuoteList) — 升級版
+   功能：顯示列表、支援切換、刪除、複製
+   ======================================================== */
+function QuoteList({ quotes, activeId, selectQuote, deleteQuote, duplicateQuote }) {
+  // 1. 如果沒有單據，顯示提示
+  if (!quotes || quotes.length === 0) {
+    return (
+        <div className="text-gray-400 text-sm text-center mt-10 p-4 border-2 border-dashed border-gray-200 rounded-lg">
+            尚無報價單<br/>請由上方選擇模式新增
+        </div>
+    );
+  }
 
   return (
-    <div className="no-print">
-      <div className="flex justify-between items-center mb-3">
-        <div className="text-base font-semibold text-gray-700">
-          報價單列表
-        </div>
-        <button
-          className="text-sm px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700"
-          onClick={() => createQuote(null)}
+    <div className="space-y-3 pb-20"> {/* pb-20 是為了避免被底部擋住 */}
+      {quotes.map((quote) => (
+        <div
+          key={quote.id}
+          onClick={() => selectQuote(quote.id)}
+          className={`p-4 rounded-lg cursor-pointer border transition-all relative group ${
+            quote.id === activeId
+              ? "bg-blue-50 border-blue-500 shadow-md ring-1 ring-blue-500"
+              : "bg-white border-gray-200 hover:border-blue-300 hover:shadow-sm"
+          }`}
         >
-          + 新建空白
-        </button>
-      </div>
-
-      <div className="space-y-3 max-h-[420px] overflow-y-auto">
-        {quotes.length === 0 && (
-          <div className="text-gray-400 text-sm">
-            尚無報價單，請先新建。
-          </div>
-        )}
-
-        {quotes.map(q => (
-          <div
-            key={q.id}
-            className={`p-3 rounded-md border cursor-pointer flex justify-between items-start transition ${
-              q.id === activeQuoteId
-                ? "bg-blue-50 border-blue-400"
-                : "bg-white hover:bg-gray-50"
-            }`}
-            onClick={() => setActiveQuoteId(q.id)}
-          >
-            <div className="text-sm">
-              <div className="font-semibold mb-0.5">
-                {q.title || "未命名工程"}
-              </div>
-              <div className="text-gray-500">
-                {q.quoteNo}
-              </div>
-              {q.customerName && (
-                <div className="text-gray-500">
-                  客戶：{q.customerName}
-                </div>
-              )}
+          {/* 上排：公司標籤 + 單號 */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-2">
+               {/* 公司標籤：根據公司代號變色 */}
+               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded text-white ${
+                   quote.company === 'herhsin' ? 'bg-blue-600' : 'bg-green-600'
+               }`}>
+                 {quote.company === 'herhsin' ? '何鑫' : '薪昌'}
+               </span>
+               <span className="text-xs text-gray-400 font-mono">
+                 {quote.quoteNo}
+               </span>
             </div>
-
-            <button
-              className="ml-2 text-sm text-red-600 hover:text-red-800"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (window.confirm("確定要刪除此報價單？")) {
-                  deleteQuote(q.id);
-                }
-              }}
-            >
-              刪除
-            </button>
           </div>
-        ))}
-      </div>
+
+          {/* 中排：標題 */}
+          <div className="font-bold text-gray-800 mb-1 text-sm truncate pr-4">
+            {quote.title || "（未命名工程）"}
+          </div>
+
+          {/* 下排：客戶 + 日期 */}
+          <div className="text-xs text-gray-500 flex justify-between items-center mt-2 border-t pt-2 border-gray-100">
+             <span className="truncate max-w-[60%]">{quote.customerName || "未知客戶"}</span>
+             <span>{quote.date}</span>
+          </div>
+
+          {/* ▼▼▼ 懸浮按鈕區 (滑鼠移過去才會出現) ▼▼▼ */}
+          <div className="absolute top-2 right-2 hidden group-hover:flex gap-1">
+             {/* 📋 複製按鈕 */}
+             <button
+                onClick={(e) => {
+                  e.stopPropagation(); // 阻止點擊觸發「選取報價單」
+                  duplicateQuote(quote.id);
+                }}
+                className="p-1.5 bg-white text-gray-500 border border-gray-200 rounded hover:bg-blue-50 hover:text-blue-600 hover:border-blue-400 shadow-sm transition-colors"
+                title="複製此報價單 (建立副本)"
+             >
+                📋
+             </button>
+
+             {/* ✕ 刪除按鈕 */}
+             <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if(window.confirm(`確定要刪除單號 ${quote.quoteNo} 嗎？此動作無法復原。`)) {
+                      deleteQuote(quote.id);
+                  }
+                }}
+                className="p-1.5 bg-white text-gray-400 border border-gray-200 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-400 shadow-sm transition-colors"
+                title="刪除"
+             >
+                ✕
+             </button>
+          </div>
+
+        </div>
+      ))}
     </div>
   );
 }
@@ -1829,7 +1881,13 @@ function App() {
                 <h1 className="text-2xl font-extrabold mb-6 text-center text-blue-700">工程報價系統</h1>
                 <CompanySelector />
                 <ModeSelector />
-                <QuoteList />
+                <QuoteList /><QuoteList 
+                    quotes={quotes} 
+                    activeId={activeQuoteId} 
+                    selectQuote={setActiveQuoteId} 
+                    deleteQuote={deleteQuote} 
+                    duplicateQuote={duplicateQuote}  // 👈 重點就是補上這一行
+                />
             </div>
             
             {/* ✅ 修改 3：加入 print:p-0，列印時移除外圍 padding，避免留白 */}
