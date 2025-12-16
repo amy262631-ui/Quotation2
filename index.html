@@ -1385,7 +1385,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
   }
 
   const companyInfo = COMPANY_DATA[quote.company];
-  const TH_TD = { border: "1px solid #000", padding: "6px", fontSize: "13px", verticalAlign: "top" };
+  const TH_TD = { border: "1px solid #000", padding: "6px", fontSize: "13px", verticalAlign: "middle" }; // 修正 verticalAlign
   const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center" };
   const TD_RIGHT = { ...TH_TD, textAlign: "right" };
 
@@ -1394,71 +1394,68 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
 
   return (
     <div className="print-page">
-
-      
-
-
       {/* ===== 所有會換頁的內容一定要包在這 ===== */}
       <div className="print-content">
-        {/* ===== 每一頁都要出現的公司 / 客戶資料 ===== */}
-<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 10 }}>
-  <tbody>
-    <tr>
-      <td style={{ textAlign: "center", paddingBottom: 6 }}>
-        <h2 style={{ margin: 0 }}>{companyInfo.name}</h2>
-        <div style={{ fontSize: 13 }}>
-          統編 {companyInfo.taxId} ｜ 電話 {companyInfo.tel} ｜ 傳真 {companyInfo.fax}
-        </div>
-        <div style={{ fontSize: 13 }}>{companyInfo.address}</div>
-        <h3 style={{ marginTop: 6 }}>工程報價單</h3>
-      </td>
-    </tr>
-    <tr>
-      <td style={{ fontSize: 13 }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>報價單號：{quote.quoteNo}</div>
-          <div>報價日期：{quote.date}</div>
-        </div>
-        <div>工程名稱：{quote.title}</div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>客戶名稱：{quote.customerName}</div>
-          <div>聯絡人：{quote.contact}</div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>聯絡電話：{quote.phone}</div>
-          <div>工程地點：{quote.location}</div>
-        </div>
-      </td>
-    </tr>
-  </tbody>
-</table>
+        
+        {/* ===== 表頭資料區 (已修改為左右分欄) ===== */}
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 15 }}>
+          <tbody>
+            <tr>
+              <td colSpan="2" style={{ textAlign: "center", paddingBottom: 15 }}>
+                <h2 style={{ margin: 0, fontSize: "22px" }}>{companyInfo.name}</h2>
+                <div style={{ fontSize: 13, marginTop: 4 }}>
+                  統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}
+                </div>
+                <div style={{ fontSize: 13 }}>{companyInfo.address}</div>
+                <h3 style={{ marginTop: 10, fontSize: "20px", borderBottom: "2px solid #333", display: "inline-block", paddingBottom: 2 }}>工程報價單</h3>
+              </td>
+            </tr>
+            
+            {/* ✅ 這裡改成了左右分欄 */}
+            <tr>
+              {/* 左欄：客戶、工程、電話、地點 */}
+              <td style={{ verticalAlign: "bottom", width: "60%", fontSize: 14, lineHeight: "1.8em" }}>
+                 <div><strong>客戶名稱：</strong>{quote.customerName}</div>
+                 <div><strong>工程名稱：</strong>{quote.title}</div>
+                 <div><strong>工程地點：</strong>{quote.location}</div>
+                 <div><strong>聯絡電話：</strong>{quote.phone}</div>
+              </td>
 
+              {/* 右欄：單號、日期、聯絡人 (靠右對齊) */}
+              <td style={{ verticalAlign: "bottom", width: "40%", textAlign: "right", fontSize: 14, lineHeight: "1.8em" }}>
+                 <div><strong>報價單號：</strong>{quote.quoteNo}</div>
+                 <div><strong>報價日期：</strong>{quote.date}</div>
+                 <div><strong>聯絡人：</strong>{quote.contact}</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
+        {/* ===== 報價內容表格 ===== */}
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          {/* 調整寬度分配 */}
           <colgroup>
-    <col style={{ width: "5%" }} />  {/* 項次 */}
-     <col style={{ width: "22%" }} /> {/* 品名 (加大) */}
-            <col style={{ width: "23%" }} /> {/* 規格 (微調) */}
+            <col style={{ width: "5%" }} />  {/* 項次 */}
+            <col style={{ width: "22%" }} /> {/* 品名 */}
+            <col style={{ width: "23%" }} /> {/* 規格 */}
             <col style={{ width: "5%" }} />  {/* 單位 */}
             <col style={{ width: "5%" }} />  {/* 數量 */}
             <col style={{ width: "13%" }} /> {/* 單價 */}
             <col style={{ width: "13%" }} /> {/* 小計 */}
             <col style={{ width: "14%" }} /> {/* 備註 */}
-  </colgroup>
+          </colgroup>
           <thead>
-
-  {/* ===== 欄位標題（Chrome 會自動重複） ===== */}
-  <tr>
-    <th style={TH}>項次</th>
-    <th style={TH}>品名</th>
-    <th style={TH}>規格</th>
-    <th style={TH}>單位</th>
-    <th style={TH}>數量</th>
-    <th style={TH}>單價</th>
-    <th style={TH}>小計</th>
-    <th style={TH}>備註</th>
-  </tr>
-</thead>
+            <tr>
+                <th style={TH}>項次</th>
+                <th style={TH}>品名</th>
+                <th style={TH}>規格</th>
+                <th style={TH}>單位</th>
+                <th style={TH}>數量</th>
+                <th style={TH}>單價</th>
+                <th style={TH}>小計</th>
+                <th style={TH}>備註</th>
+            </tr>
+            </thead>
           <tbody>
             {quote.items.map((item, i) => (
               <React.Fragment key={item.id}>
@@ -1487,7 +1484,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
                   </tr>
                 )}
 
-                {/* 第三列：補充圖片（自動置中） */}
+                {/* 第三列：補充圖片/文字 */}
                 {item.subItems && item.subItems.map(sub => {
                   if (sub.type === "image") {
                     return (
@@ -1541,63 +1538,62 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount }) {
             )}
           </tbody>
         </table>
-<div className="print-footer-block">
 
-  {/* ===== 備註 / 付款條件 ===== */}
-  <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 15 }}>
-    <tbody>
-      <tr>
-        <td style={{ ...TH_TD, width: "50%" }}>
-          <strong>備註（不含稅）</strong>
-          <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>
-            {quote.notes}
-          </div>
-        </td>
-        <td style={{ ...TH_TD, width: "50%" }}>
-          <strong>付款條件</strong>
-          <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>
-            {quote.payment}
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+        <div className="print-footer-block">
+        {/* ===== 備註 / 付款條件 ===== */}
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 15 }}>
+            <tbody>
+            <tr>
+                <td style={{ ...TH_TD, width: "50%" }}>
+                <strong>備註（不含稅）</strong>
+                <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>
+                    {quote.notes}
+                </div>
+                </td>
+                <td style={{ ...TH_TD, width: "50%" }}>
+                <strong>付款條件</strong>
+                <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>
+                    {quote.payment}
+                </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
 
-  {/* ===== 簽章區 ===== */}
-  <table
-    className="print-signature-area"
-    style={{ width: "100%", borderCollapse: "collapse", marginTop: 30 }}
-  >
-    <tbody>
-      <tr>
-        <td style={{ ...TH_TD, width: "50%", height: 120 }}>
-          <strong>公司報價章</strong>
-          {companyInfo.stamp && (
-            <img
-              src={companyInfo.stamp}
-              alt="公司印章"
-              style={{ display: "block", margin: "10px auto", maxHeight: 70 }}
-            />
-          )}
-          <div style={{ borderTop: "1px solid #000", marginTop: 10 }}>
-            代表人：
-          </div>
-        </td>
-        <td style={{ ...TH_TD, width: "50%", height: 120 }}>
-          <strong>客戶回簽</strong>
-          <div style={{ borderTop: "1px solid #000", marginTop: 70 }}>
-            代表人：
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td style={TH_TD}>日期：</td>
-        <td style={TH_TD}>日期：</td>
-      </tr>
-    </tbody>
-  </table>
-
-</div>
+        {/* ===== 簽章區 ===== */}
+        <table
+            className="print-signature-area"
+            style={{ width: "100%", borderCollapse: "collapse", marginTop: 30 }}
+        >
+            <tbody>
+            <tr>
+                <td style={{ ...TH_TD, width: "50%", height: 120 }}>
+                <strong>公司報價章</strong>
+                {companyInfo.stamp && (
+                    <img
+                    src={companyInfo.stamp}
+                    alt="公司印章"
+                    style={{ display: "block", margin: "10px auto", maxHeight: 70 }}
+                    />
+                )}
+                <div style={{ borderTop: "1px solid #000", marginTop: 10 }}>
+                    代表人：
+                </div>
+                </td>
+                <td style={{ ...TH_TD, width: "50%", height: 120 }}>
+                <strong>客戶回簽</strong>
+                <div style={{ borderTop: "1px solid #000", marginTop: 70 }}>
+                    代表人：
+                </div>
+                </td>
+            </tr>
+            <tr>
+                <td style={TH_TD}>日期：</td>
+                <td style={TH_TD}>日期：</td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
       </div>
     </div>
   );
