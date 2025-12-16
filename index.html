@@ -135,6 +135,22 @@
     break-inside: avoid !important;
   }
 }
+/* ========= 列印時強制解除整個畫面的左右分欄（超關鍵） ========= */
+@media print {
+
+  body,
+  #root {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Tailwind / flex 版型一律解除 */
+  .flex,
+  .min-h-screen {
+    display: block !important;
+    width: 100% !important;
+  }
+}
 
   
   </style>
