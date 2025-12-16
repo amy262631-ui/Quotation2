@@ -55,11 +55,12 @@
 ================================================= */
 @media print {
 
-  /* ========= 基本重置 ========= */
-  body {
-    background: #ffffff;
+  body,
+  #root {
     margin: 0;
     padding: 0;
+    display: block !important;
+    width: 100% !important;
   }
 
   .no-print,
@@ -67,90 +68,38 @@
     display: none !important;
   }
 
-  /* ========= 強制顯示列印內容 ========= */
-  .print-only-layout {
-    position: static !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    opacity: 1 !important;
-    display: block !important;
-    pointer-events: auto !important;
-  }
-
-  /* ========= 頁面設定 ========= */
-  @page {
-    size: A4;
-    margin: 10mm;
-  }
-
-  /* ========= 終極修正：清除螢幕樣式 ========= */
-  .print-page {
-  display: block;
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-}
-
-  /* ========= 列印內容 ========= */
-  .print-content {
-    margin: 0;
-    padding: 0;
-  }
-
-  /* ========= 表格行為（關鍵） ========= */
-  table {
-    width: 100% !important;
-    table-layout: fixed !important;
-    border-collapse: collapse;
-  }
-
-  thead {
-    display: table-header-group !important;
-  }
-
-  th, td {
-    page-break-inside: avoid;
-    word-break: break-word;
-  }
-
-  tr {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* ========= 圖片 ========= */
-  img {
-    max-width: 100%;
-    height: auto;
-    page-break-inside: avoid;
-  }
-
-  /* ========= 簽名區保護 ========= */
-  .print-footer-block,
-  .print-signature-area {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-}
-/* ========= 列印時強制解除整個畫面的左右分欄（超關鍵） ========= */
-@media print {
-
-  body,
-  #root {
-    display: block !important;
-    width: 100% !important;
-  }
-
-  /* Tailwind / flex 版型一律解除 */
+  /* 解除左右分欄（超關鍵） */
   .flex,
   .min-h-screen {
     display: block !important;
     width: 100% !important;
   }
+
+  .print-only-layout {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr, th, td {
+    page-break-inside: avoid;
+  }
+
+  .print-footer-block,
+  .print-signature-area {
+    page-break-inside: avoid;
+  }
 }
+
 
   
   </style>
