@@ -1869,38 +1869,125 @@ function LeakagePartsEditor({ parts, updateQuote }) {
 }
 
 /***********************************************************
-  // P5 — App 根元件
+  // P5 — App 根元件 (完整修復版)
  ***********************************************************/
 function App() {
+  // 1. 從 Context 取得資料
   const { 
     quotes, setQuotes, 
     activeQuoteId, setActiveQuoteId,
     company 
   } = React.useContext(AppContext);
-    return (
-        /* ✅ 修改 1：加入 print:block 與 print:bg-white，列印時取消 flex 左右排版 */
-        <div className="min-h-screen bg-gray-50 flex print:block print:bg-white">
+
+  /* ========================================================
+     (1) 新建報價單
+     ======================================================== */
+  const createQuote = React.useCallback((modeId = null) => {
+    const mode = MODE_CONFIG.find(m => m.id === modeId) || MODE_CONFIG[0];
+    const newQuote = {
+      id: uuid(),
+      company: company, 
+      quoteNo: generateQuoteNo(company),
+      title: mode.defaultTitle,
+      customerName: "",
+      date: formatDate(),
+      items: mode.defaultItems.map(item => ({ ...item, id: uuid() })), 
+      leakageParts: [], 
+      notes: mode.defaultNotes,
+      payment: mode.defaultPayment,
+      discountPercent: 0,
+      negotiatedPrice: 0
+    };
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [company, setQuotes, setActiveQuoteId]);
+
+  /* ========================================================
+     (2) 刪除報價單
+     ======================================================== */
+  const deleteQuote = React.useCallback((id) => {
+    setQuotes(prev => prev.filter(q => q.id !== id));
+    if (activeQuoteId === id) setActiveQuoteId(null);
+  }, [activeQuoteId, setQuotes, setActiveQuoteId]);
+
+  /* ========================================================
+     (3) 更新報價單
+     ======================================================== */
+  const updateQuote = React.useCallback((id, data) => {
+    setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
+  }, [setQuotes]);
+
+  /* ========================================================
+     (4) 複製報價單 (您的新功能)
+     ======================================================== */
+  const duplicateQuote = React.useCallback((id) => {
+    const sourceQuote = quotes.find(q => q.id === id);
+    if (!sourceQuote) return;
+
+    const newQuote = {
+      ...JSON.parse(JSON.stringify(sourceQuote)), 
+      id: uuid(),                                
+      quoteNo: generateQuoteNo(sourceQuote.company), 
+      title: `${sourceQuote.title} (副本)`,       
+      date: formatDate(),                        
+      items: sourceQuote.items.map(item => ({ ...item, id: uuid() })),
+      leakageParts: (sourceQuote.leakageParts || []).map(part => ({ ...part, id: uuid() }))
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [quotes, setQuotes, setActiveQuoteId]);
+
+  /* ========================================================
+     (5) 套用模式 (Apply Mode)
+     ======================================================== */
+  const applyMode = React.useCallback((modeId) => {
+    if (!activeQuoteId) return;
+    const mode = MODE_CONFIG.find(m => m.id === modeId);
+    if (!mode) return;
+
+    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
+
+    const newItems = mode.defaultItems.map(item => ({ ...item, id: uuid() }));
+    // 這裡我們只給空陣列，因為套用模板時通常不需要預設零件，或者您也可以定義預設零件
+    const newLeakageParts = []; 
+
+    updateQuote(activeQuoteId, {
+      items: newItems,
+      leakageParts: newLeakageParts,
+      notes: mode.defaultNotes,
+      payment: mode.defaultPayment
+    });
+  }, [activeQuoteId, updateQuote]);
+
+
+  // ▼▼▼▼▼ 這裡是 Return UI 介面 ▼▼▼▼▼
+  return (
+    <div className="min-h-screen bg-gray-50 flex print:block print:bg-white">
+        
+        {/* 側邊欄：加入 no-print 隱藏 */}
+        <div className="w-96 bg-white p-6 shadow-lg flex-shrink-0 text-lg sticky top-0 h-screen overflow-y-auto no-print">
+            <h1 className="text-2xl font-extrabold mb-6 text-center text-blue-700">工程報價系統</h1>
+            <CompanySelector />
+            <ModeSelector applyMode={applyMode} />
             
-            {/* ✅ 修改 2：加入 no-print，讓側邊欄在列印時隱藏 */}
-            <div className="w-96 bg-white p-6 shadow-lg flex-shrink-0 text-lg sticky top-0 h-screen overflow-y-auto no-print">
-                <h1 className="text-2xl font-extrabold mb-6 text-center text-blue-700">工程報價系統</h1>
-                <CompanySelector />
-                <ModeSelector />
-                <QuoteList /><QuoteList 
-                    quotes={quotes} 
-                    activeId={activeQuoteId} 
-                    selectQuote={setActiveQuoteId} 
-                    deleteQuote={deleteQuote} 
-                    duplicateQuote={duplicateQuote}  // 👈 重點就是補上這一行
-                />
-            </div>
-            
-            {/* ✅ 修改 3：加入 print:p-0，列印時移除外圍 padding，避免留白 */}
-            <div className="flex-grow p-8 text-base print:p-0">
-                <QuoteEditor />
-            </div>
+            {/* ✅ 這裡修正了：只留下一個正確的 QuoteList */}
+            <QuoteList 
+                quotes={quotes} 
+                activeId={activeQuoteId} 
+                selectQuote={setActiveQuoteId} 
+                deleteQuote={deleteQuote} 
+                duplicateQuote={duplicateQuote} 
+            />
         </div>
-    );
+        
+        {/* 主編輯區：列印時移除 padding */}
+        <div className="flex-grow p-8 text-base print:p-0">
+            {/* 這裡要傳遞 updateQuote 給編輯器，否則編輯器會壞掉 */}
+            <QuoteEditor updateQuote={updateQuote} />
+        </div>
+    </div>
+  );
 }
 
 /***********************************************************
