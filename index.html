@@ -604,12 +604,13 @@ function QuoteList() {
 }
 
 /***********************************************************
- * P4-2 — 單一報價項目編輯（放大字級版）
+ * P4-2 — 單一報價項目編輯（緊湊優化版）
  ***********************************************************/
 function QuoteItem({ item, index, updateItem, deleteItem }) {
   const { specItems } = React.useContext(AppContext);
-  const [showSub, setShowSub] = React.useState(true);
+  // 移除原本的 showSub state，改用 HTML原生 <details> 標籤處理展開
 
+  /* --- 邏輯保持不變 --- */
   const handleChange = (field, value) => {
     updateItem({ [field]: value });
   };
@@ -639,13 +640,11 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
     reader.readAsDataURL(file);
   };
 
-  /* 刪除子項 */
   const handleDeleteSub = (subId) => {
     const newSubItems = item.subItems.filter(s => s.id !== subId);
     updateItem({ subItems: newSubItems });
   };
 
-  /* 更新子項 */
   const handleUpdateSub = (subId, field, value) => {
     const newSubItems = item.subItems.map(s => 
       s.id === subId ? { ...s, [field]: value } : s
@@ -654,244 +653,231 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
   };
 
   return (
-    <div className="mb-8 border rounded-xl bg-white shadow-md p-6 text-lg leading-relaxed">
-
-      {/* ===== 項次標題列 ===== */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-xl font-bold text-blue-700">
-          項次 {index + 1}：{item.name || "未命名"}
-        </div>
-        <div className="flex gap-2">
+    <div className="mb-3 border rounded-lg bg-white shadow-sm overflow-hidden text-sm">
+      
+      {/* ===== 第一區：核心輸入 (預設顯示) ===== */}
+      <div className="p-3 grid grid-cols-12 gap-3 items-start">
+        
+        {/* 1. 項次與刪除 (整合成一行) */}
+        <div className="col-span-12 flex justify-between items-center border-b pb-2 mb-1">
+          <div className="font-bold text-blue-700 text-base">
+            項次 {index + 1}
+          </div>
           <button
-            className="px-3 py-1 border rounded text-base"
-            onClick={() => setShowSub(!showSub)}
-          >
-            {showSub ? "收合" : "展開"}
-          </button>
-          <button
-            className="px-3 py-1 bg-red-500 text-white rounded text-base"
             onClick={() => deleteItem(item.id)}
+            className="text-red-500 hover:text-red-700 px-2 py-1 text-xs border border-red-200 rounded hover:bg-red-50 transition"
           >
-            刪除此項
+            🗑 刪除此項
           </button>
         </div>
-      </div>
 
-      {/* ===== 主欄位 ===== */}
-      <div className="grid grid-cols-4 gap-6">
-
-  {/* 品名 */}
- <div className="col-span-1">
-  <label className="block text-base font-semibold text-gray-700 mb-1">
-    品名
-  </label>
-
-  <input
-    type="text"
-    list={`spec-list-${item.id}`}
-    className="w-full border rounded-lg px-3 py-2"
-    value={item.name || ""}
-    onChange={(e) => {
-      const value = e.target.value;
-      handleChange("name", value);
-    }}
-    onBlur={(e) => {
-      const value = e.target.value;
-
-      const matched = specItems.find(
-        r => (r["品名"] || "") === value
-      );
-
-      if (!matched) return;
-
-      const materials = [
-        matched["用料1"],
-        matched["用料2"],
-        matched["用料3"]
-      ]
-        .filter(v => typeof v === "string" && v.trim() !== "")
-        .join("、");
-
-      updateItem({
-        name: matched["品名"] || "",
-        unit: matched["單位"] || "",
-        price: Number(matched["單價"] || 0),
-        specMain: matched["規格"] || "",  
-        specMaterial: materials            
-      });
-    }}
-  />
-
-  <datalist id={`spec-list-${item.id}`}>
-    {specItems.map((r, i) => (
-      <option key={i} value={r["品名"] || ""}>
-        {r["規格"] ? `(${r["規格"]})` : ""}
-      </option>
-    ))}
-  </datalist>
-</div>
-
-  {/* 規格說明（放右邊） */}
-  <div className="col-span-3">
-    <label className="block text-base font-semibold text-gray-700 mb-1">
-      規格說明
-    </label>
-    <textarea
-     className="w-full border rounded-lg px-3 py-2"
-      rows="2"
-      value={item.specMain || ""}
-      onChange={(e) => handleChange("specMain", e.target.value)}
-    />
-  </div>
-
-        <div>
-          <label className="block text-base font-semibold text-gray-700 mb-1">單位</label>
+        {/* 2. 品名 (保留原本的 Auto-complete 邏輯) */}
+        <div className="col-span-12 md:col-span-4">
+          <label className="block text-xs text-gray-500 mb-1">品名</label>
           <input
-            className="w-full border rounded-lg px-3 py-2"
+            type="text"
+            list={`spec-list-${item.id}`}
+            className="w-full border rounded px-2 py-1.5 focus:ring-2 focus:ring-blue-300 outline-none"
+            placeholder="輸入或選擇品名..."
+            value={item.name || ""}
+            onChange={(e) => handleChange("name", e.target.value)}
+            onBlur={(e) => {
+              // --- 保留原本的自動帶入邏輯 ---
+              const value = e.target.value;
+              const matched = specItems.find(r => (r["品名"] || "") === value);
+              if (!matched) return;
+
+              const materials = [matched["用料1"], matched["用料2"], matched["用料3"]]
+                .filter(v => typeof v === "string" && v.trim() !== "")
+                .join("、");
+
+              updateItem({
+                name: matched["品名"] || "",
+                unit: matched["單位"] || "",
+                price: Number(matched["單價"] || 0),
+                specMain: matched["規格"] || "",  
+                specMaterial: materials            
+              });
+            }}
+          />
+          <datalist id={`spec-list-${item.id}`}>
+            {specItems.map((r, i) => (
+              <option key={i} value={r["品名"] || ""}>
+                {r["規格"] ? `(${r["規格"]})` : ""}
+              </option>
+            ))}
+          </datalist>
+        </div>
+
+        {/* 3. 規格說明 */}
+        <div className="col-span-12 md:col-span-8">
+          <label className="block text-xs text-gray-500 mb-1">規格說明</label>
+          <input
+            type="text"
+            className="w-full border rounded px-2 py-1.5 focus:ring-2 focus:ring-blue-300 outline-none"
+            value={item.specMain || ""}
+            onChange={(e) => handleChange("specMain", e.target.value)}
+          />
+        </div>
+
+        {/* 4. 單位 (窄) */}
+        <div className="col-span-3 md:col-span-1">
+          <label className="block text-xs text-gray-500 mb-1">單位</label>
+          <input
+            type="text"
+            className="w-full border rounded px-2 py-1.5 text-center outline-none"
             value={item.unit || ""}
             onChange={(e) => handleChange("unit", e.target.value)}
           />
         </div>
 
-        <div>
-          <label className="block text-base font-semibold text-gray-700 mb-1">數量</label>
+        {/* 5. 數量 (窄) */}
+        <div className="col-span-3 md:col-span-1">
+          <label className="block text-xs text-gray-500 mb-1">數量</label>
           <input
             type="number"
-            className="w-full border rounded-lg px-3 py-2 text-right"
+            className="w-full border rounded px-2 py-1.5 text-center outline-none"
             value={item.qty}
             onChange={(e) => handleChange("qty", Number(e.target.value))}
           />
         </div>
 
-        <div>
-  {/* ⭐ 德製 / 台製（只有有 variants 才顯示） */}
-  {Array.isArray(item.variants) && (
-    <>
-      <label className="block text-base font-semibold text-gray-700 mb-1">
-        品牌 / 產地
-      </label>
+        {/* 6. 單價 (中) */}
+        <div className="col-span-6 md:col-span-2">
+          <label className="block text-xs text-gray-500 mb-1">單價</label>
+          <input
+            type="number"
+            className="w-full border rounded px-2 py-1.5 text-right outline-none"
+            value={item.price}
+            onChange={(e) => handleChange("price", Number(e.target.value))}
+          />
+        </div>
 
-      <select
-        className="w-full border rounded-lg px-3 py-2 mb-2"
-        value={item.selected}
-        onChange={(e) => {
-          const selectedKey = e.target.value;
-          const variant = item.variants.find(v => v.key === selectedKey);
-
-          updateItem({
-            selected: selectedKey,
-            price: variant ? variant.defaultPrice : item.price
-          });
-        }}
-      >
-        {item.variants.map(v => (
-          <option key={v.key} value={v.key}>
-            {v.label}
-          </option>
-        ))}
-      </select>
-    </>
-  )}
-
-  {/* 原本的單價（保留，可手動改） */}
-  <label className="block text-base font-semibold text-gray-700 mb-1">
-    單價
-  </label>
-  <input
-    type="number"
-    className="w-full border rounded-lg px-3 py-2 text-right"
-    value={item.price}
-    onChange={(e) => handleChange("price", Number(e.target.value))}
-  />
-</div>
-
-        <div>
-          <label className="block text-base font-semibold text-gray-700 mb-1">小計</label>
-          <div className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-right font-semibold">
-            {formatMoney(calcAmount(item))}
+        {/* 7. 小計 (純顯示) */}
+        <div className="col-span-6 md:col-span-2">
+          <label className="block text-xs text-gray-500 mb-1">小計</label>
+          <div className="w-full bg-gray-100 rounded px-2 py-1.5 text-right text-gray-700 font-medium">
+             {/* 這裡直接計算，避免找不到 calcAmount 函數 */}
+             {((item.qty || 0) * (item.price || 0)).toLocaleString()}
           </div>
         </div>
 
+        {/* 8. 品牌/產地 (如果有 variants 才顯示) */}
+        {Array.isArray(item.variants) && item.variants.length > 0 && (
+           <div className="col-span-12 md:col-span-6">
+             <label className="block text-xs text-gray-500 mb-1">品牌選項</label>
+             <select
+                className="w-full border rounded px-2 py-1.5"
+                value={item.selected}
+                onChange={(e) => {
+                  const selectedKey = e.target.value;
+                  const variant = item.variants.find(v => v.key === selectedKey);
+                  updateItem({
+                    selected: selectedKey,
+                    price: variant ? variant.defaultPrice : item.price
+                  });
+                }}
+              >
+                {item.variants.map(v => (
+                  <option key={v.key} value={v.key}>{v.label}</option>
+                ))}
+              </select>
+           </div>
+        )}
 
-        <div className="col-span-4">
-          <label className="block text-base font-semibold text-gray-700 mb-1">
-            用料明細（可修改，列印時會顯示在下方）
-          </label>
-          <textarea
-            className="w-full border rounded-lg px-3 py-2"
-            rows="2"
-            value={item.specMaterial || ""}
-            onChange={(e) => handleChange("specMaterial", e.target.value)}
-          />
-        </div>
-
-        <div className="col-span-4">
-          <label className="block text-base font-semibold text-gray-700 mb-1">備註</label>
-          <textarea
-            className="w-full border rounded-lg px-3 py-2"
-            rows="2"
-            value={item.remarks || ""}
-            onChange={(e) => handleChange("remarks", e.target.value)}
-          />
-        </div>
       </div>
 
-      {/* ===== 子項目 (編輯區顯示) ===== */}
-      {showSub && (
-        <div className="mt-4 border-t pt-4">
+      {/* ===== 第二區：進階輸入 (摺疊區) ===== */}
+      <details className="group border-t border-gray-100 bg-gray-50">
+        <summary className="cursor-pointer list-none p-2 text-center text-xs text-blue-600 hover:bg-blue-50 font-medium select-none flex items-center justify-center gap-2 transition-colors">
+          <span>📝 編輯用料明細 / 備註 / 補充圖片與文字 ({item.subItems?.length || 0})</span>
+          <span className="group-open:rotate-180 transition-transform duration-200">▼</span>
+        </summary>
+        
+        <div className="p-4 grid grid-cols-1 gap-4 animate-fade-in">
           
-          <div className="space-y-4 mb-4">
-            {(item.subItems || []).map((sub, idx) => (
-              <div key={sub.id} className="border p-3 rounded-lg bg-gray-50 flex gap-4 items-start">
-                <div className="mt-1 text-gray-500 font-bold">{idx + 1}.</div>
-                
-                {/* 圖片類型 */}
-                {sub.type === "image" && (
-                  <div className="flex-1">
-                    <div className="font-semibold text-blue-600 mb-2">補充圖片</div>
-                    <img src={sub.imageData} alt="upload" className="max-h-40 rounded border bg-white" />
-                  </div>
-                )}
-
-                {/* 文字類型 */}
-                {sub.type === "text" && (
-                  <div className="flex-1">
-                    <div className="font-semibold text-blue-600 mb-2">補充文字</div>
-                    <input 
-                      type="text" 
-                      placeholder="標題..."
-                      className="w-full border p-1 mb-1 rounded"
-                      value={sub.name}
-                      onChange={e => handleUpdateSub(sub.id, "name", e.target.value)}
-                    />
-                    <textarea 
-                      placeholder="內容..."
-                      className="w-full border p-1 rounded"
-                      value={sub.remarks}
-                      onChange={e => handleUpdateSub(sub.id, "remarks", e.target.value)}
-                    />
-                  </div>
-                )}
-
-                <button 
-                  className="text-red-500 hover:text-red-700"
-                  onClick={() => handleDeleteSub(sub.id)}
-                >
-                  刪除
-                </button>
-              </div>
-            ))}
+          {/* 用料明細 & 備註 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">用料明細 (列印時顯示)</label>
+              <textarea
+                className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-300 outline-none"
+                rows="3"
+                value={item.specMaterial || ""}
+                onChange={(e) => handleChange("specMaterial", e.target.value)}
+                placeholder="輸入詳細用料..."
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">備註</label>
+              <textarea
+                className="w-full border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-blue-300 outline-none"
+                rows="3"
+                value={item.remarks || ""}
+                onChange={(e) => handleChange("remarks", e.target.value)}
+                placeholder="輸入內部備註..."
+              />
+            </div>
           </div>
 
-          <div className="flex gap-3">
+          {/* 子項目列表 (補充文字/圖片) */}
+          {(item.subItems || []).length > 0 && (
+            <div className="space-y-2 mt-2">
+              <div className="text-xs font-bold text-gray-400">補充項目列表：</div>
+              {(item.subItems || []).map((sub, idx) => (
+                <div key={sub.id} className="border p-2 rounded bg-white flex gap-3 items-start shadow-sm">
+                  <div className="text-xs text-gray-400 mt-1">{idx + 1}.</div>
+                  
+                  {/* 圖片類型 */}
+                  {sub.type === "image" && (
+                    <div className="flex-1">
+                      <div className="text-xs text-blue-600 font-bold mb-1">圖片</div>
+                      <img src={sub.imageData} alt="upload" className="h-20 w-auto rounded border object-contain" />
+                    </div>
+                  )}
+
+                  {/* 文字類型 */}
+                  {sub.type === "text" && (
+                    <div className="flex-1 space-y-1">
+                      <div className="text-xs text-blue-600 font-bold">文字說明</div>
+                      <input 
+                        type="text" 
+                        placeholder="標題..."
+                        className="w-full border p-1 text-sm rounded"
+                        value={sub.name}
+                        onChange={e => handleUpdateSub(sub.id, "name", e.target.value)}
+                      />
+                      <textarea 
+                        placeholder="內容..."
+                        className="w-full border p-1 text-sm rounded"
+                        rows="1"
+                        value={sub.remarks}
+                        onChange={e => handleUpdateSub(sub.id, "remarks", e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  <button 
+                    className="text-red-400 hover:text-red-600 text-sm px-2"
+                    onClick={() => handleDeleteSub(sub.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 按鈕區 */}
+          <div className="flex gap-3 pt-2">
             <button
-              className="px-4 py-2 bg-gray-200 rounded-lg text-base"
+              className="flex-1 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 transition shadow-sm text-gray-700"
               onClick={handleAddSubText}
             >
               ＋ 補充文字
             </button>
 
-            <label className="px-4 py-2 bg-gray-200 rounded-lg cursor-pointer text-base hover:bg-gray-300">
+            <label className="flex-1 py-2 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 transition shadow-sm text-gray-700 cursor-pointer text-center">
               ＋ 補充圖片
               <input
                 type="file"
@@ -899,14 +885,14 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
                 className="hidden"
                 onChange={(e) => {
                   handleAddSubImage(e.target.files[0]);
-                  // Reset input value to allow selecting same file again
                   e.target.value = '';
                 }}
               />
             </label>
           </div>
+
         </div>
-      )}
+      </details>
     </div>
   );
 }
