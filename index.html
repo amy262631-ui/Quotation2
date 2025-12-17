@@ -1637,49 +1637,39 @@ function ExportWordButton() {
 // PrintButton (列印按鈕)
 function PrintButton() {
   const handlePrint = () => {
-    // 抓取隱藏在底部的列印版面
-    const printContent = document.querySelector('.print-only-layout');
-    if (!printContent) {
-      alert("請先選擇報價單");
+    // 1. 取得需要切換的元素
+    const editorRoot = document.querySelector('.p-8.bg-gray-100.rounded-xl'); // 編輯器主體
+    const printOnlyLayout = document.querySelector('.print-only-layout');    // 隱藏的列印版面
+
+    if (!editorRoot || !printOnlyLayout) {
+      // 如果找不到元素，退而求其次直接呼叫 window.print()
+      window.print();
       return;
     }
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>工程報價單列印</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
-            body { font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif; margin: 0; padding: 0; background: white; }
-            .print-page { width: 210mm; margin: 0 auto; padding: 10mm; box-sizing: border-box; }
-            table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } /* ⭐ 強制固定寬度避免擠壓 */
-            th, td { border: 1px solid black; padding: 4px 6px; word-break: break-word; font-size: 14px; line-height: 1.4; vertical-align: middle; }
-            th { background: #f0f0f0; font-weight: bold; text-align: center; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .font-bold { font-weight: bold; }
-            img { display: block; margin: 0 auto; }
-            @page { size: A4; margin: 0; }
-          </style>
-        </head>
-        <body>
-          <div class="print-page">${printContent.innerHTML}</div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    
-    // 給予 500ms 讓瀏覽器渲染與加載圖片
+    // 2. 暫時隱藏編輯器，顯示列印專用版面
+    // 這樣 window.print() 抓到的就會是那個「漂亮的預覽畫面」
+    const originalEditorDisplay = editorRoot.style.display;
+    const originalPrintDisplay = printOnlyLayout.style.display;
+
+    editorRoot.style.display = 'none';
+    printOnlyLayout.style.display = 'block';
+
+    // 3. 觸發列印
+    window.print();
+
+    // 4. 列印完後（或取消後）恢復原狀
     setTimeout(() => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
+      editorRoot.style.display = originalEditorDisplay;
+      printOnlyLayout.style.display = originalPrintDisplay;
     }, 500);
   };
 
   return (
-    <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-lg">
+    <button 
+      onClick={handlePrint} 
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-lg"
+    >
       列印報價單
     </button>
   );
