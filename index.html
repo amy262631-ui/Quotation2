@@ -348,27 +348,152 @@ function loadCSV(url) {
  ***********************************************************/
 const AppContext = React.createContext();
 // ========================================================
-// ⭐ 全局設定：客戶資料 CSV 網址 (請將此段貼入 AppProvider 定義之前) ⭐
+// ⭐ 全局設定：客戶資料 CSV 網址 (此處保持不變) ⭐
 // ========================================================
 const CUSTOMER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHQN_nMBB7l72PSD8omOO55UYRlIClUGEDgtzYzTKK-5fvRWIZowcdnMHvkkwJbdz7krhIiRc00sye/pub?gid=312161947&single=true&output=csv";
-    
+// 規格 CSV 網址
+const SPEC_CSV_URL = "https://docs.google.com/spreadsheets/d/1wjoNesgvgmkVoG4bI9ppl_1EktH88WZ6bxT9IeyX4YM/export?format=csv";
+
+
 function AppProvider({ children }) {
   const [company, setCompany] = React.useState("herhsin");
   const [quotes, setQuotes] = React.useState([]);
   const [activeQuoteId, setActiveQuoteId] = React.useState(null);
   const [specItems, setSpecItems] = React.useState([]);
+  // ⭐ 1. 新增：客戶資料狀態
+  const [customers, setCustomers] = React.useState([]); 
 
-  const SPEC_CSV_URL =
-    "https://docs.google.com/spreadsheets/d/1wjoNesgvgmkVoG4bI9ppl_1EktH88WZ6bxT9IeyX4YM/export?format=csv";
-
+  // 載入規格 (保持不變)
   const loadSpecItems = React.useCallback(() => {
     loadCSV(SPEC_CSV_URL).then(data => setSpecItems(data));
   }, []);
 
-  React.useEffect(() => {
-    loadSpecItems();
-  }, [loadSpecItems]);
+  // ⭐ 2. 新增：載入客戶資料的函式
+  const loadCustomers = React.useCallback(() => {
+    if (CUSTOMER_CSV_URL && CUSTOMER_CSV_URL.includes("http")) {
+        loadCSV(CUSTOMER_CSV_URL).then(data => {
+            console.log("Customer data loaded successfully. Count:", data.length);
+            setCustomers(data);
+        }).catch(error => {
+            console.error("Failed to load customer data:", error);
+            setCustomers([]);
+        });
+    }
+  }, []); 
 
+  /* ========================================================
+    1. 建立新報價單 (createQuote) - 保持不變
+    ======================================================== */
+  const createQuote = React.useCallback((modeId) => {
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    
+    // 1. 處理主項目 (給予全新 ID)
+    const defaultItems = mode 
+      ? JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
+          ...item,
+          id: uuid() 
+        }))
+      : [];
+
+    // 2. 處理實支實付零件 (如果有設定的話) 
+    const defaultLeakageParts = (mode && mode.defaultLeakageParts)
+      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
+          ...part,
+          id: uuid() // 一樣給予全新 ID
+        }))
+      : [];
+
+    const newQuote = {
+        id: uuid(),
+        company: company,
+        quoteNo: generateQuoteNo(company),
+        title: "",
+        customerName: "",
+        contact: "",
+        phone: "",
+        location: "",
+        date: formatDate(),
+        items: defaultItems,
+        leakageParts: defaultLeakageParts, 
+        notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
+        payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
+        discountPercent: 0,
+        negotiatedPrice: 0
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [company]);
+
+  /* ========================================================
+    2. 刪除報價單 (deleteQuote) - 保持不變
+    ======================================================== */
+  const deleteQuote = React.useCallback((id) => {
+    setQuotes(prev => prev.filter(q => q.id !== id));
+    if (activeQuoteId === id) setActiveQuoteId(null);
+  }, [activeQuoteId]);
+
+  /* ========================================================
+    新增功能：複製報價單 (duplicateQuote) - 保持不變
+    ======================================================== */
+  const duplicateQuote = React.useCallback((id) => {
+    const sourceQuote = quotes.find(q => q.id === id);
+    if (!sourceQuote) return;
+
+    const newQuote = {
+      ...JSON.parse(JSON.stringify(sourceQuote)), 
+      id: uuid(), 
+      quoteNo: generateQuoteNo(sourceQuote.company), 
+      title: `${sourceQuote.title} (副本)`, 
+      date: formatDate(), 
+      items: sourceQuote.items.map(item => ({ ...item, id: uuid() })),
+      leakageParts: (sourceQuote.leakageParts || []).map(part => ({ ...part, id: uuid() }))
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [quotes]);
+
+  /* ========================================================
+    3. 更新報價單 (updateQuote) - 保持不變
+    ======================================================== */
+  const updateQuote = React.useCallback((id, data) => {
+    setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
+  }, []);
+
+  /* ========================================================
+    4. 套用模式 (applyMode) - 保持不變
+    ======================================================== */
+  const applyMode = React.useCallback((modeId) => {
+    if (!activeQuoteId) return;
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    if (!mode) return;
+
+    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
+
+    // 主項目
+    const newItems = JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
+        ...item,
+        id: uuid() 
+    }));
+    
+    // 套用零件
+    const newLeakageParts = (mode.defaultLeakageParts)
+      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
+          ...part,
+          id: uuid()
+        }))
+      : [];
+
+    updateQuote(activeQuoteId, {
+        items: newItems,
+        leakageParts: newLeakageParts,
+        notes: mode.defaultNotes,
+        payment: mode.defaultPayment
+    });
+  }, [activeQuoteId, updateQuote]);
+
+  // 載入 localStorage (保持不變)
   React.useEffect(() => {
     const saved = localStorage.getItem("HERHSIN_QUOTES");
     if (saved) {
@@ -385,136 +510,20 @@ function AppProvider({ children }) {
     }
   }, []);
 
+  // 儲存到 localStorage (保持不變)
   React.useEffect(() => {
     localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
   }, [quotes]);
 
-  /* ========================================================
-     1. 建立新報價單 (createQuote)
-     更新重點：新增讀取 leakageParts (實支實付零件) 的邏輯
-     ======================================================== */
-  const createQuote = React.useCallback((modeId) => {
-    const mode = QUOTE_MODES.find(m => m.id === modeId);
-    
-    // 1. 處理主項目 (給予全新 ID)
-    const defaultItems = mode 
-      ? JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
-          ...item,
-          id: uuid() 
-        }))
-      : [];
-
-    // ▼▼▼ 2. 新增：處理實支實付零件 (如果有設定的話) ▼▼▼
-    const defaultLeakageParts = (mode && mode.defaultLeakageParts)
-      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
-          ...part,
-          id: uuid() // 一樣給予全新 ID，讓您可以自由刪減
-        }))
-      : [];
-
-    const newQuote = {
-        id: uuid(),
-        company: company,
-        quoteNo: generateQuoteNo(company),
-        title: "",
-        customerName: "",
-        contact: "",
-        phone: "",
-        location: "",
-        date: formatDate(),
-        items: defaultItems,
-        leakageParts: defaultLeakageParts, // ⭐ 把零件存進報價單裡
-        notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
-        payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
-        discountPercent: 0,
-        negotiatedPrice: 0
-    };
-
-    setQuotes(prev => [newQuote, ...prev]);
-    setActiveQuoteId(newQuote.id);
-  }, [company]);
-
-  /* ========================================================
-     2. 刪除報價單 (deleteQuote) - 維持不變
-     ======================================================== */
-  const deleteQuote = React.useCallback((id) => {
-    setQuotes(prev => prev.filter(q => q.id !== id));
-    if (activeQuoteId === id) setActiveQuoteId(null);
-  }, [activeQuoteId]);
-/* ========================================================
-     新增功能：複製報價單 (duplicateQuote)
-     ======================================================== */
-  const duplicateQuote = React.useCallback((id) => {
-    // 1. 找到原本那張單
-    const sourceQuote = quotes.find(q => q.id === id);
-    if (!sourceQuote) return;
-
-    // 2. 深層複製 (Deep Copy) 並賦予新身分
-    // 我們用 JSON.parse(JSON.stringify(...)) 來切斷與舊資料的連結
-    const newQuote = {
-      ...JSON.parse(JSON.stringify(sourceQuote)), 
-      id: uuid(),                                // 給全新的 ID
-      quoteNo: generateQuoteNo(sourceQuote.company), // 給全新的報價單號
-      title: `${sourceQuote.title} (副本)`,       // 標題加上 (副本) 方便辨識
-      date: formatDate(),                        // 更新成今天的日期
-      
-      // 確保裡面的項目也有新 ID (避免 React 報錯 key 重複)
-      items: sourceQuote.items.map(item => ({
-         ...item,
-         id: uuid()
-      })),
-      leakageParts: (sourceQuote.leakageParts || []).map(part => ({
-         ...part,
-         id: uuid()
-      }))
-    };
-
-    // 3. 存入列表並選取它
-    setQuotes(prev => [newQuote, ...prev]);
-    setActiveQuoteId(newQuote.id);
-  }, [quotes]);
-  /* ========================================================
-     3. 更新報價單 (updateQuote) - 維持不變
-     ======================================================== */
-  const updateQuote = React.useCallback((id, data) => {
-    setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
-  }, []);
-
-  /* ========================================================
-     4. 套用模式 (applyMode)
-     更新重點：套用時也要把 leakageParts 抓進來
-     ======================================================== */
-  const applyMode = React.useCallback((modeId) => {
-    if (!activeQuoteId) return;
-    const mode = QUOTE_MODES.find(m => m.id === modeId);
-    if (!mode) return;
-
-    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
-
-    // 主項目
-    const newItems = JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
-        ...item,
-        id: uuid() 
-    }));
-    
-    // ▼▼▼ 新增：套用零件 ▼▼▼
-    const newLeakageParts = (mode.defaultLeakageParts)
-      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
-          ...part,
-          id: uuid()
-        }))
-      : [];
-
-    updateQuote(activeQuoteId, {
-        items: newItems,
-        leakageParts: newLeakageParts, // ⭐ 更新零件列表
-        notes: mode.defaultNotes,
-        payment: mode.defaultPayment
-    });
-  }, [activeQuoteId, updateQuote]);
+  // ⭐ 3. 新增：啟動時載入規格和客戶資料
+  React.useEffect(() => {
+    loadSpecItems();
+    loadCustomers(); 
+  }, [loadSpecItems, loadCustomers]); // 加入 loadCustomers 依賴
 
   const activeQuote = quotes.find(q => q.id === activeQuoteId);
 
+  // 4. 匯出上下文值
   const value = {
     company,
     setCompany,
@@ -524,11 +533,13 @@ function AppProvider({ children }) {
     activeQuoteId,
     setActiveQuoteId,
     specItems,
+    customers, // ⭐ 必須將 customers 傳遞出去
     loadSpecItems,
     createQuote,
     deleteQuote,
     updateQuote,
-    applyMode
+    applyMode,
+    duplicateQuote
   };
 
   window.__APP_CONTEXT__ = value;
@@ -539,7 +550,6 @@ function AppProvider({ children }) {
     </AppContext.Provider>
   );
 }
-
 
 /***********************************************************
  * P4-1 — 公司切換 / 模式選擇 / 報價單列表
