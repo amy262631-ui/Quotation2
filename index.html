@@ -1695,7 +1695,19 @@ function ExportWordButton() {
     </button>
   );
 }
-
+// ===============================
+// 2. 請把 PrintButton 貼在這裡 (這一段正下方) 
+// ===============================
+function PrintButton() {
+  return (
+    <button
+      onClick={() => window.print()}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      列印報價單
+    </button>
+  );
+}
 /***********************************************************
  * 列印排版組件（PrintLayout）— 安全版 (標題不裁切)
  ***********************************************************/
