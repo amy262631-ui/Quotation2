@@ -1448,7 +1448,7 @@ function ExportButton() {
   );
 }
 // ===============================
-// Word 匯出 (無邊界極限版：消除頂部留白)
+// Word 匯出 (極限版 v2：頂部留白消除)
 // ===============================
 function ExportWordButton() {
   const { activeQuote } = React.useContext(AppContext);
@@ -1478,17 +1478,17 @@ function ExportWordButton() {
         <meta charset="utf-8">
         <title>${activeQuote.title}</title>
         <style>
-          /* 1. 設定極窄邊界：上下左右僅留 8mm (約 0.8公分) */
+          /* 1. ⭐ 關鍵修改：頂部邊界縮至 5mm (0.5cm) ⭐ */
           @page {
             mso-page-orientation: portrait;
             size: 210mm 297mm;
-            margin: 8mm 8mm 8mm 8mm; 
+            margin: 5mm 8mm 5mm 8mm; /* 上下 5mm, 左右 8mm */
           }
-          /* 消除 Body 預設邊距 */
+          /* 2. 消除 Body 預設邊距，字體基線微調 */
           body {
             font-family: "Microsoft JhengHei", "PMingLiU", serif;
-            font-size: 9pt; 
-            line-height: 1.0; /* 行高壓到最小 */
+            font-size: 8pt; /* 整體字體微縮到 8pt */
+            line-height: 1.0; 
             margin: 0;
             padding: 0;
           }
@@ -1497,43 +1497,43 @@ function ExportWordButton() {
             width: 100%;
             border-collapse: collapse;
             border-spacing: 0;
-            margin-bottom: 3px; /* 表格間距極小 */
+            margin-bottom: 0px; /* ⭐ 表格間距全部設為 0 ⭐ */
           }
-          /* 2. 儲存格內距縮到 1px */
+          /* 儲存格內距縮到 1px */
           td, th {
             border: 1px solid black;
             padding: 1px 3px; 
             vertical-align: middle;
-            font-size: 9pt;
+            font-size: 8pt;
           }
           /* 用料明細更扁 */
           .detail-row td {
              padding: 0px 3px !important; 
-             font-size: 8pt;
+             font-size: 7pt;
              color: #444;
              border-top: 1px dashed #ccc;
           }
 
           .no-border, .no-border td { border: none !important; }
           
-          /* 3. 標題強制貼頂，消除 margin */
-          h1 { font-size: 18pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; }
-          h2 { font-size: 14pt; text-align: center; margin: 2px 0; text-decoration: underline; }
-          .sub-info { font-size: 8pt; text-align: center; margin-bottom: 2px; color: #444; }
+          /* 3. 標題強制貼頂，字體再縮 */
+          h1 { font-size: 15pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; } 
+          h2 { font-size: 12pt; text-align: center; margin: 1px 0; text-decoration: underline; }
+          .sub-info { font-size: 7pt; text-align: center; margin-bottom: 1px; color: #444; }
           
           .text-center { text-align: center; }
           .text-right { text-align: right; }
           .font-bold { font-weight: bold; }
           
           /* 4. 簽名欄高度壓縮 */
-          .sig-box { height: 40px; vertical-align: top; } 
+          .sig-box { height: 35px; vertical-align: top; } 
         </style>
       </head>
       <body>
         
-        <table class="no-border">
+        <table class="no-border" style="margin-bottom: 0;"> 
           <tr>
-            <td class="text-center">
+            <td class="text-center" style="padding: 0;">
               <h1>${companyInfo.name}</h1>
               <div class="sub-info">
                 統編：${companyInfo.taxId} ｜ 電話：${companyInfo.tel} ｜ 傳真：${companyInfo.fax} <br/>
@@ -1544,15 +1544,15 @@ function ExportWordButton() {
           </tr>
         </table>
 
-        <table class="no-border" style="margin-bottom: 5px;">
+        <table class="no-border" style="margin-bottom: 2px;">
           <tr>
-            <td width="60%" valign="bottom" style="line-height: 1.2;">
+            <td width="60%" valign="bottom" style="line-height: 1.1;">
               <strong>客戶名稱：</strong>${activeQuote.customerName || ""}<br/>
               <strong>工程名稱：</strong>${activeQuote.title || ""}<br/>
               <strong>工程地點：</strong>${activeQuote.location || ""}<br/>
               <strong>聯絡電話：</strong>${activeQuote.phone || ""}
             </td>
-            <td width="40%" valign="bottom" class="text-right" style="line-height: 1.2;">
+            <td width="40%" valign="bottom" class="text-right" style="line-height: 1.1;">
               <strong>報價單號：</strong>${activeQuote.quoteNo}<br/>
               <strong>報價日期：</strong>${activeQuote.date}<br/>
               <strong>聯絡人：</strong>${activeQuote.contact || ""}
@@ -1560,7 +1560,7 @@ function ExportWordButton() {
           </tr>
         </table>
 
-        <table>
+        <table style="margin-bottom: 2px;">
           <thead>
             <tr style="background-color: #f0f0f0;">
               <th width="5%">項次</th>
@@ -1579,9 +1579,9 @@ function ExportWordButton() {
                 <td>${item.name || ""}</td>
                 <td>${item.specMain || ""}</td>
                 <td class="text-center">${item.unit || ""}</td>
-                <td class="text-center">${item.qty}</td>
-                <td class="text-right">${item.price ? formatMoney(item.price) : "-"}</td>
-                <td class="text-right font-bold">${calcAmount(item) ? formatMoney(calcAmount(item)) : "-"}</td>
+                <td class="text-center num-cell">${item.qty}</td>
+                <td class="text-right num-cell">${item.price ? formatMoney(item.price) : "-"}</td>
+                <td class="text-right num-cell font-bold">${calcAmount(item) ? formatMoney(calcAmount(item)) : "-"}</td>
               </tr>
               ${item.specMaterial ? `
               <tr class="detail-row">
@@ -1599,14 +1599,14 @@ function ExportWordButton() {
               </tr>` : ""}
             `).join("")}
             
-            <tr style="height: 18px;">
+            <tr style="height: 16px;">
               <td colspan="5" class="no-border"></td>
               <td class="text-center font-bold" style="background-color: #f0f0f0;">總計金額</td>
               <td class="text-right font-bold" style="background-color: #f0f0f0;">${formatMoney(totalAmount)}</td>
             </tr>
             
             ${showFinalPrice ? `
-            <tr style="height: 18px;">
+            <tr style="height: 16px;">
                <td colspan="5" class="no-border"></td>
                <td class="text-center font-bold" style="color: red; border-top: none;">最終報價</td>
                <td class="text-right font-bold" style="color: red; border-top: none;">${formatMoney(negotiatedAmount)}</td>
@@ -1616,8 +1616,8 @@ function ExportWordButton() {
         </table>
 
         ${hasLeakageParts ? `
-        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 3px 0 2px 0; font-size: 9pt;">
-          ※ 實支實付維修零件 <span style="font-size: 8pt; font-weight: normal;">(不計入總額)</span>
+        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 1px 0; font-size: 8pt;">
+          ※ 實支實付維修零件 <span style="font-size: 7pt; font-weight: normal;">(不計入總額)</span>
         </div>
         <table>
           <thead>
@@ -1634,39 +1634,39 @@ function ExportWordButton() {
                 <td>${part.name || ""}</td>
                 <td>${part.spec || ""}</td>
                 <td class="text-center">${part.unit || ""}</td>
-                <td class="text-right font-bold">${part.price ? formatMoney(part.price) : "-"}</td>
+                <td class="text-right num-cell font-bold">${part.price ? formatMoney(part.price) : "-"}</td>
               </tr>
             `).join("")}
           </tbody>
         </table>
         ` : ""}
 
-        <table style="margin-top: 3px;">
+        <table style="margin-top: 2px;">
           <tr>
-             <td width="50%" valign="top">
+             <td width="50%" valign="top" class="note-cell">
                 <strong>備註：</strong><br/>
-                <div style="font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.notes || ""}</div>
+                <div style="font-size: 7pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.notes || ""}</div>
              </td>
-             <td width="50%" valign="top">
+             <td width="50%" valign="top" class="note-cell">
                 <strong>付款條件：</strong><br/>
-                <div style="font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.payment || ""}</div>
+                <div style="font-size: 7pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.payment || ""}</div>
              </td>
           </tr>
         </table>
 
-        <table style="margin-top: 3px;">
+        <table style="margin-top: 1px;">
           <tr>
             <td width="50%" class="sig-box">
                <strong>公司報價章</strong><br/>
-               ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="60" height="60" style="display:block; margin: 0 auto;" />` : ""}
+               ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="55" height="55" style="display:block; margin: 0 auto;" />` : ""}
             </td>
             <td width="50%" class="sig-box">
                <strong>客戶回簽</strong>
             </td>
           </tr>
           <tr>
-             <td class="text-center" style="font-size: 8pt; border-top: none; padding-top: 0;">日期：</td>
-             <td class="text-center" style="font-size: 8pt; border-top: none; padding-top: 0;">日期：</td>
+             <td class="text-center" style="font-size: 7pt; border-top: none; padding-top: 0;">日期：</td>
+             <td class="text-center" style="font-size: 7pt; border-top: none; padding-top: 0;">日期：</td>
           </tr>
         </table>
 
@@ -1687,7 +1687,7 @@ function ExportWordButton() {
 
   return (
     <button onClick={handleExportWord} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-      匯出 Word (極限版)
+      匯出 Word (極限版 v2)
     </button>
   );
 }
