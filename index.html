@@ -28,40 +28,34 @@
        ✅ 修正後的列印專用 CSS
     ================================================= */
  @media print {
-      /* 1. 強制重置所有容器，取消 Flex 排版 */
-      body, 
-      #root, 
-      .quote-editor-root-container, 
-      div {
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        position: static !important;
-        background: white;
-        min-height: 0 !important; /* ⭐ 新增：防止父容器產生額外高度 */
-      }
+        /* ⭐ 關鍵修正：隱藏整個 App 介面，只顯示列印專用區 */
+        body, #root, .quote-editor-root-container {
+          display: block !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white;
+          position: relative !important; /* 必須讓 body 為 relative，讓 print-only-layout 絕對定位 */
+        }
 
-      /* 2. 隱藏不需要列印的元素 */
-      .no-print,
-      .live-preview-box,
-      aside, /* 如果側邊欄是用 aside */
-      nav {
-        display: none !important;
-      }
+        /* 2. 徹底隱藏不需要列印的元素 */
+        .no-print,
+        .live-preview-box,
+        aside, 
+        nav {
+          display: none !important;
+        }
 
-      /* 3. 設定列印區域滿版 */
-      .print-only-layout {
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box;
-        /* ⭐ 關鍵修正：強制定位到頂部 (解決空白/大空白問題) */
-        position: absolute !important; 
-        top: 0 !important;
-        left: 0 !important;
-      }
+        /* 3. 強制顯示列印區域並定位到頂部 (解決空白頁/印出網頁資料問題) */
+        .print-only-layout {
+          display: block !important;
+          width: 100% !important;
+          position: absolute !important; 
+          top: 0 !important;
+          left: 0 !important;
+          box-sizing: border-box; 
+          overflow: visible !important; /* 確保內容不會被裁切 */
+        }
 
       /* 4. 表格設定 */
       table {
@@ -1431,7 +1425,7 @@ function QuoteEditor() {
                             width: "210mm", 
                             minHeight: "297mm", 
                             margin: "0 auto", 
-                            padding: "20mm", 
+                            padding: "10mm", 
                             boxShadow: "0 0 20px rgba(0,0,0,0.5)",
                             boxSizing: "border-box"
                         }}
@@ -1919,21 +1913,21 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
       {/* ==========================================
             Part 2: 主項目列表 - 修正排版
             ========================================== */}
-        <table style={{ 
+       <table style={{ 
             width: "100%", 
             borderCollapse: "collapse", 
             border: "2px solid black",
-            tableLayout: "fixed" /* ⭐ 關鍵修正：強制固定寬度，解決擠壓問題 ⭐ */
+            tableLayout: "fixed" /* ⭐ 關鍵修正：強制固定表格寬度 ⭐ */
         }}>
           <colgroup>
-            <col style={{ width: "5%" }} />
-            <col style={{ width: "25%" }} /> {/* 調整品名寬度 */}
-            <col style={{ width: "30%" }} /> {/* 調整規格寬度 */}
-            <col style={{ width: "5%" }} /> 
-            <col style={{ width: "5%" }} /> 
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} /> {/* 調整備註寬度，確保總和 100% */}
+            <col style={{ width: "5%" }} /> /* 項次 */
+            <col style={{ width: "25%" }} /> /* 品名 */
+            <col style={{ width: "30%" }} /> /* 規格 */
+            <col style={{ width: "5%" }} /> /* 單位 */
+            <col style={{ width: "5%" }} /> /* 數量 */
+            <col style={{ width: "10%" }} /> /* 單價 */
+            <col style={{ width: "10%" }} /> /* 小計 */
+            <col style={{ width: "10%" }} /> /* 備註 */
           </colgroup>
           <thead>
             <tr>
