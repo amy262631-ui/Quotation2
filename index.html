@@ -342,7 +342,11 @@ async function loadCSV(url) {
  * P3 — AppContext（資料中心）
  ***********************************************************/
 const AppContext = React.createContext();
-
+// ========================================================
+// ⭐ 全局設定：客戶資料 CSV 網址 (請將此段貼入 AppProvider 定義之前) ⭐
+// ========================================================
+const CUSTOMER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHQN_nMBB7l72PSD8omOO55UYRlIClUGEDgtzYzTKK-5fvRWIZowcdnMHvkkwJbdz7krhIiRc00sye/pub?gid=312161947&single=true&output=csv";
+    
 function AppProvider({ children }) {
   const [company, setCompany] = React.useState("herhsin");
   const [quotes, setQuotes] = React.useState([]);
@@ -1133,15 +1137,50 @@ function QuoteEditor() {
             />
           </div>
 
+          // ... 在 QuoteEditor 裡面 ...
+// 請注意：這段代碼是替換客戶資料那一排輸入框的結構
+
           {/* 第二列：客戶 (佔1) + 聯絡人 (佔1) + 電話 (佔1) + 地點 (佔1) */}
           <div className="col-span-1">
-            <label className="block text-xs font-bold text-gray-500 mb-1">客戶名稱</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1">客戶名稱 (可搜尋)</label>
             <input
               type="text"
+              list="customer-list-options" // 綁定 datalist ID
               value={activeQuote.customerName}
               onChange={(e) => handleChange("customerName", e.target.value)}
+              // ⭐ 關鍵修正：離開輸入框時，檢查是否為資料庫中的客戶 ⭐
+              onBlur={(e) => {
+                 const val = e.target.value.trim(); // 取得使用者輸入的值並去除空白
+                 
+                 // 1. 確保儲存使用者最終輸入的名稱
+                 handleChange("customerName", val);
+                 
+                 // 2. 在清單中尋找符合的名字
+                 const found = customers.find(c => c["客戶名稱"] === val);
+                 
+                 if (found) {
+                   // 3. ⭐ 如果是舊客戶：強制覆蓋所有相關欄位 ⭐
+                   updateQuote(activeQuote.id, {
+                     customerName: found["客戶名稱"],
+                     contact: found["聯絡人"] || activeQuote.contact || "", // 如果資料庫欄位為空，則保留現有值
+                     phone: found["電話"] || activeQuote.phone || "",
+                     location: found["地址"] || activeQuote.location || ""
+                   });
+                 }
+                 // 4. 如果是新客戶：不做任何事，所有欄位維持使用者手動輸入的狀態
+              }}
               className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder="輸入或選取..."
             />
+            {/* 定義下拉選單內容 (datalist) */}
+            <datalist id="customer-list-options">
+              {customers.map((c, i) => (
+                // 請注意：Google Sheet 的欄位名稱必須是中文
+                <option key={i} value={c["客戶名稱"]}>
+                   {c["聯絡人"] ? `(聯絡人: ${c["聯絡人"]})` : ""}
+                </option>
+              ))}
+            </datalist>
           </div>
 
           <div className="col-span-1">
@@ -1173,7 +1212,6 @@ function QuoteEditor() {
               className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
             />
           </div>
-
         </div>
 
         {/* ===== 金額摘要區 (橫向排列，節省垂直空間) ===== */}
