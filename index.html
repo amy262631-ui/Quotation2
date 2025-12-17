@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     body {
       background: #f3f4f6;
@@ -1241,6 +1241,7 @@ function QuoteEditor() {
                 <div className="mt-10 pt-6 border-t flex gap-4 justify-end">
                     <ExportButton />
                     <ExportWordButton />
+                   <ExportPDFButton /> {/* ⭐ 新增的按鈕 */}
                     <PrintButton />
                 </div>
                 {/* (簡略示意原本內容結束) */}
@@ -1633,6 +1634,45 @@ function ExportWordButton() {
     </button>
   );
 }
+function ExportPDFButton() {
+  const { activeQuote } = React.useContext(AppContext);
+
+  const handleExportPDF = () => {
+    // 抓取隱藏的列印區塊
+    const element = document.querySelector('.print-only-layout');
+    if (!element) {
+      alert("請先選擇報價單");
+      return;
+    }
+
+    // 先暫時顯示它以便擷取
+    element.style.display = 'block';
+
+    const opt = {
+      margin:       10,
+      filename:     `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // 執行轉換
+    html2pdf().set(opt).from(element).save().then(() => {
+      // 完成後恢復隱藏
+      element.style.display = 'none';
+    });
+  };
+
+  return (
+    <button 
+      onClick={handleExportPDF} 
+      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2"
+    >
+      <span>📄</span> 匯出 PDF
+    </button>
+  );
+}
+    
 // ===============================
 // PrintButton (列印按鈕)
 function PrintButton() {
