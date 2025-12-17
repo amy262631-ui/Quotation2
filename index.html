@@ -27,73 +27,60 @@
    /* =================================================
        ✅ 修正後的列印專用 CSS
     ================================================= */
- @media print {
-        /* ⭐ 關鍵修正：隱藏整個 App 介面，只顯示列印專用區 */
-        body, #root, .quote-editor-root-container {
-          display: block !important;
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: white;
-          position: relative !important; /* 必須讓 body 為 relative，讓 print-only-layout 絕對定位 */
-        }
-
-        /* 2. 徹底隱藏不需要列印的元素 */
-        .no-print,
-        .live-preview-box,
-        aside, 
-        nav {
+@media print {
+        /* 1. 【核心修正】: 隱藏頁面上所有元素 */
+        body * {
           display: none !important;
+          visibility: hidden !important;
         }
 
-        /* 3. 強制顯示列印區域並定位到頂部 (解決空白頁/印出網頁資料問題) */
-        .print-only-layout {
+        /* 2. 【核心修正】: 顯示列印專用區塊及其所有子元素 */
+        .print-only-layout, 
+        .print-only-layout *,
+        .print-only-layout div { /* 確保所有內層 div 都被強制顯示 */
           display: block !important;
-          width: 100% !important;
-          position: absolute !important; 
-          top: 0 !important;
-          left: 0 !important;
-          box-sizing: border-box; 
-          overflow: visible !important; /* 確保內容不會被裁切 */
+          visibility: visible !important;
         }
 
-      /* 4. 表格設定 */
-      table {
-        width: 100% !important;
-        border-collapse: collapse;
-        table-layout: fixed; /* 讓欄位寬度依照設定的 % 跑，不要被內容撐開或壓縮 */
-      }
-      /* ⭐ 新增：確保表格內元素不會被其他樣式影響到換行 */
-      td {
-          word-break: break-word; 
-          min-width: 0;
-      }
+        /* 3. 重設根元素與列印區域定位 */
+        body, #root {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            position: relative !important;
+            overflow: hidden !important; /* 確保列印不會包含瀏覽器滾動條 */
+        }
+        .print-only-layout {
+            position: absolute !important; 
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
 
+        /* 4. 表格設定 (繼承您原本的樣式，但確保 table-layout: fixed) */
+        table {
+          width: 100% !important;
+          border-collapse: collapse;
+          table-layout: fixed; 
+        }
 
-      thead {
-        display: table-header-group;
-      }
+        td, th {
+          word-break: break-word; 
+          white-space: normal;
+          vertical-align: middle;
+        }
 
-      tr {
-        page-break-inside: avoid;
-      }
+        tr, .print-footer-block {
+          page-break-inside: avoid;
+        }
 
-      /* 5. 確保文字不會因為太擠而變直向 */
-      td, th {
-        white-space: normal;
-        word-wrap: break-word;
-        vertical-align: middle;
-      }
-
-      .print-footer-block,
-      .print-signature-area {
-        page-break-inside: avoid;
-      }
-
-      @page {
-        size: A4;
-        margin: 10mm;
-      }
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
     }
   </style>
 </head>
@@ -1911,18 +1898,18 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
 
       {/* ==========================================
-            Part 2: 主項目列表 - 修正排版
+            Part 2: 主項目列表 - 最終排版修正
             ========================================== */}
-       <table style={{ 
+        <table style={{ 
             width: "100%", 
             borderCollapse: "collapse", 
             border: "2px solid black",
-            tableLayout: "fixed" /* ⭐ 關鍵修正：強制固定表格寬度 ⭐ */
+            tableLayout: "fixed" /* ⭐ 確保固定寬度生效 ⭐ */
         }}>
           <colgroup>
             <col style={{ width: "5%" }} /> /* 項次 */
             <col style={{ width: "25%" }} /> /* 品名 */
-            <col style={{ width: "30%" }} /> /* 規格 */
+    在         <col style={{ width: "30%" }} /> /* 規格 */
             <col style={{ width: "5%" }} /> /* 單位 */
             <col style={{ width: "5%" }} /> /* 數量 */
             <col style={{ width: "10%" }} /> /* 單價 */
