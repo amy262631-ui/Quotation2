@@ -1883,7 +1883,7 @@ function PrintButton() {
   );
 }
 /***********************************************************
- * 列印排版組件（PrintLayout）— 安全版 (標題不裁切)
+ * 列印排版組件（PrintLayout）— 最終版 (字體放大)
  ***********************************************************/
 function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   // 1. 防呆檢查
@@ -1902,13 +1902,15 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
   const calcAmount = (item) => item.price * item.qty;
 
- // 3. 樣式定義
-  // ⭐ 修正：基礎字體放大到 18px (約 14pt)
-  const BASE_FONT_SIZE = "18px"; 
-  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: BASE_FONT_SIZE, verticalAlign: "middle", lineHeight: "1.2" };
-  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
-  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
-  const TD_CENTER = { ...TH_TD, textAlign: "center" };
+  // 3. 樣式定義 (使用絕對像素值，確保一致性)
+  const BASE_FONT_SIZE = "16px"; // ⭐ 核心修正：基礎字體大小 16px
+  const SMALL_FONT_SIZE = "14px"; // 品項明細/子項目使用 14px
+  const LARGE_FONT_SIZE = "18px"; // ⭐ 修正：用料明細/備註/付款條件標題使用 18px
+
+  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: BASE_FONT_SIZE, verticalAlign: "middle", lineHeight: "1.2" };
+  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
+  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
+  const TD_CENTER = { ...TH_TD, textAlign: "center" };
 
   return (
     <div className="print-page">
@@ -1938,19 +1940,25 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
               </td>
             </tr>
             <tr>
-             <td style={{ verticalAlign: "bottom", width: "60%", fontSize: BASE_FONT_SIZE, lineHeight: "1.4em" }}>
-                 <div><strong>工程名稱：</strong>{quote.title}</div>
-                 <div><strong>工程地點：</strong>{quote.location}</div>
-                 <div><strong>聯絡電話：</strong>{quote.phone}</div>
+              {/* 客戶基本資料 (左側) */}
+              {/* ⭐ 修正：客戶基本資料文字改 16px (BASE_FONT_SIZE) */}
+              <td style={{ verticalAlign: "bottom", width: "60%", fontSize: BASE_FONT_SIZE, lineHeight: "1.4em" }}>
+                  <div><strong>客戶名稱：</strong>{quote.customerName}</div>
+                  <div><strong>工程名稱：</strong>{quote.title}</div>
+                  <div><strong>工程地點：</strong>{quote.location}</div>
+                  <div><strong>聯絡電話：</strong>{quote.phone}</div>
               </td>
-             <td style={{ verticalAlign: "bottom", width: "40%", textAlign: "right", fontSize: BASE_FONT_SIZE, lineHeight: "1.4em" }}>
-                 <div><strong>報價單號：</strong>{quote.quoteNo}</div>
-                 <div><strong>報價日期：</strong>{quote.date}</div>
-                 <div><strong>聯絡人：</strong>{quote.contact}</div>
+              {/* 報價單號/日期/聯絡人 (右側) */}
+              {/* ⭐ 修正：報價單內的文字改 16px (BASE_FONT_SIZE) */}
+              <td style={{ verticalAlign: "bottom", width: "40%", textAlign: "right", fontSize: BASE_FONT_SIZE, lineHeight: "1.4em" }}>
+                  <div><strong>報價單號：</strong>{quote.quoteNo}</div>
+                  {/* ⭐ 修正：日期文字改 16px (已包含在 BASE_FONT_SIZE) */}
+                  <div><strong>報價日期：</strong>{quote.date}</div>
+                  <div><strong>聯絡人：</strong>{quote.contact}</div>
               </td>
             </tr>
           </tbody>
-        </table> 
+        </table> 
 
 
         {/* ==========================================
@@ -1968,6 +1976,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             <col style={{ width: "8%" }} />
           </colgroup>
           <thead>
+            {/* 表格標題行會繼承 TH_TD 的 BASE_FONT_SIZE (16px) */}
             <tr>
               <th style={TH}>項<br />次</th>
               <th style={TH}>品名</th>
@@ -1982,7 +1991,9 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
           <tbody>
             {itemsToPrint.map((item, index) => (
               <React.Fragment key={item.id || index}>
+                {/* 報價項目主行 */}
                 <tr>
+                    {/* 項目內容會繼承 TH_TD 的 BASE_FONT_SIZE (16px) */}
                     <td style={TD_CENTER}>{index + 1}</td>
                     <td style={TH_TD}>{item.name}</td>
                     <td style={{ ...TH_TD, color: "#444" }}>{item.specMain}</td>
@@ -1996,97 +2007,118 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     </td>
                     <td style={TH_TD}>{item.remarks}</td>
                 </tr>
+                {/* 用料明細行 */}
                 {item.specMaterial && (
                   <tr>
                     <td style={{ ...TH_TD, borderTop: "none" }}></td>
-                    <td colSpan="7" style={{ ...TH_TD, color: "#444", fontSize: "11px", borderTop: "1px dashed #ccc" }}>
+                    {/* ⭐ 修正：用料明細文字放大一號到 18px (LARGE_FONT_SIZE) */}
+                    <td colSpan="7" style={{ ...TH_TD, color: "#444", fontSize: LARGE_FONT_SIZE, borderTop: "1px dashed #ccc" }}>
                       <span style={{ fontWeight: "bold" }}>用料：</span>{item.specMaterial}
                     </td>
                   </tr>
                 )}
+                {/* 子項目行 */}
                 {item.subItems && item.subItems.map(sub => (
                     <tr key={sub.id}>
-                         <td style={{ ...TH_TD, borderTop: "none" }}></td>
-                         <td colSpan="7" style={{ ...TH_TD, color: "#666", fontSize: "11px", textAlign: sub.type === "image" ? "center" : "left" }}>
-                           {sub.type === "image" ? (
-                             <img src={sub.imageData} alt="圖片" style={{ maxWidth: "50%", maxHeight: "150px", display: "block", margin: "0 auto" }} />
-                           ) : (
-                             <span><span style={{fontWeight: "bold"}}>{sub.name}</span>：{sub.remarks}</span>
-                           )}
-                         </td>
+                          <td style={{ ...TH_TD, borderTop: "none" }}></td>
+                          {/* 子項目維持 16px (BASE_FONT_SIZE) 或可使用更小的 14px 保持層次感 */}
+                          <td colSpan="7" style={{ ...TH_TD, color: "#666", fontSize: SMALL_FONT_SIZE, textAlign: sub.type === "image" ? "center" : "left" }}>
+                             {sub.type === "image" ? (
+                               <img src={sub.imageData} alt="圖片" style={{ maxWidth: "50%", maxHeight: "150px", display: "block", margin: "0 auto" }} />
+                             ) : (
+                               <span><span style={{fontWeight: "bold"}}>{sub.name}</span>：{sub.remarks}</span>
+                             )}
+                          </td>
                     </tr>
                 ))}
               </React.Fragment>
             ))}
 
             {itemsToPrint.length === 0 && (
-                <tr><td colSpan={8} style={{...TD_CENTER, padding: 10, color: "#999"}}>無項目</td></tr>
+                <tr><td colSpan={8} style={{...TD_CENTER, padding: 10, color: "#999", fontSize: BASE_FONT_SIZE}}>無項目</td></tr>
             )}
+            
+            {/* 金額總計行：使用 16px (BASE_FONT_SIZE) */}
+            <tr style={{ height: "18px" }}>
+              <td colspan="5" style={{ border: "none" }}></td>
+              <td style={{ ...TH_TD, textAlign: "center", fontWeight: "bold", background: "#f0f0f0", fontSize: BASE_FONT_SIZE }}>總計金額</td>
+              <td style={{ ...TD_RIGHT, fontWeight: "bold", background: "#f0f0f0", fontSize: BASE_FONT_SIZE }}>{formatMoney(totalAmount)}</td>
+              <td style={{ ...TH_TD, background: "#f0f0f0", fontSize: BASE_FONT_SIZE }}></td>
+            </tr>
+            
+            {/* 最終報價行：使用 16px (BASE_FONT_SIZE) */}
+            {showFinalPrice ? (
+            <tr style={{ height: "18px" }}>
+               <td colspan="5" style={{ border: "none" }}></td>
+               <td style={{ ...TH_TD, textAlign: "center", fontWeight: "bold", color: "red", borderTop: "none", fontSize: BASE_FONT_SIZE }}>最終報價</td>
+               <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", borderTop: "none", fontSize: BASE_FONT_SIZE }}>{formatMoney(negotiatedAmount)}</td>
+               <td style={{ ...TH_TD, borderTop: "none" }}></td>
+            </tr>
+            ) : null}
           </tbody>
         </table>
 
 
-       {/* ==========================================
-      Part 3: 金額總結 (強制不換行)
-      ========================================== */}
-<table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
-  <colgroup>
-    <col style={{ width: "75%" }} />
-    <col style={{ width: "20%" }} />
-    <col style={{ width: "5%" }} />
-  </colgroup>
-  <tbody>
-    <tr>
-      <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
-        總計金額（未稅）
-      </td>
-      {/* ⭐ 修正 1: 總計金額（未稅）字體放大 */}
-      <td style={{ 
-        ...TD_RIGHT, 
-        fontWeight: "bold", 
-        whiteSpace: "nowrap", 
-        borderBottom: "1px solid #000",
-        fontSize: "18px" // ⭐ 修正：總計金額放大到 18px
-      }}>
-        {formatMoney(totalAmount)}
-      </td>
-      <td style={{ ...TH_TD, border: "none" }}></td>
-    </tr>
-    {showFinalPrice && (
-        <tr>
-          <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
-            最終報價金額（未稅）
-          </td>
-          {/* ⭐ 修正 2: 最終報價金額（未稅）字體放大 */}
-          <td style={{ 
-            ...TD_RIGHT, 
-            fontWeight: "bold", 
-            color: "red", 
-            whiteSpace: "nowrap", 
-            borderBottom: "1px solid #000",
-            fontSize: "18px" // ⭐ 修正：總計金額放大到 18px
-          }}>
-            {formatMoney(negotiatedAmount)}
-          </td>
-          <td style={{ ...TH_TD, border: "none" }}></td>
-        </tr>
-    )}
-  </tbody>
-</table>
+        {/* ==========================================
+            Part 3: 金額總結 (底部浮動金額，金額放大到 21px)
+            ========================================== */}
+        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
+          <colgroup>
+            <col style={{ width: "75%" }} />
+            <col style={{ width: "20%" }} />
+            <col style={{ width: "5%" }} />
+          </colgroup>
+          <tbody>
+            <tr>
+              <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none", fontSize: BASE_FONT_SIZE }}>
+                總計金額（未稅）
+              </td>
+              <td style={{ 
+                ...TD_RIGHT, 
+                fontWeight: "bold", 
+                whiteSpace: "nowrap", 
+                borderBottom: "1px solid #000",
+                fontSize: "21px" // ⭐ 核心金額字體 21px
+              }}>
+                {formatMoney(totalAmount)}
+              </td>
+              <td style={{ ...TH_TD, border: "none" }}></td>
+            </tr>
+            {showFinalPrice && (
+                <tr>
+                  <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none", fontSize: BASE_FONT_SIZE }}>
+                    最終報價金額（未稅）
+                  </td>
+                  <td style={{ 
+                    ...TD_RIGHT, 
+                    fontWeight: "bold", 
+                    color: "red", 
+                    whiteSpace: "nowrap", 
+                    borderBottom: "1px solid #000",
+                    fontSize: "21px" // ⭐ 核心金額字體 21px
+                  }}>
+                    {formatMoney(negotiatedAmount)}
+                  </td>
+                  <td style={{ ...TH_TD, border: "none" }}></td>
+                </tr>
+            )}
+          </tbody>
+        </table>
 
         {/* ==========================================
             Part 4: 實支實付零件表
             ========================================== */}
         {quote.leakageParts && quote.leakageParts.length > 0 && (
         <div className="mt-2 mb-2 page-break-inside-avoid">
-            <div className="font-bold text-gray-800 mb-1 pl-2 border-l-2 border-blue-600 text-xs">
+            <div className="font-bold text-gray-800 mb-1 pl-2 border-l-2 border-blue-600" style={{fontSize: BASE_FONT_SIZE}}>
             ※ 實支實付維修零件價目表
-            <span className="text-[10px] font-normal text-gray-500 ml-2">
+            <span className="font-normal text-gray-500 ml-2" style={{fontSize: SMALL_FONT_SIZE}}>
                 (不計入總額，依實作數量計價)
             </span>
             </div>
             
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", border: "1px solid #ccc" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: SMALL_FONT_SIZE, border: "1px solid #ccc" }}>
+            {/* 表頭和內容都使用 14px (SMALL_FONT_SIZE) */}
             <thead>
                 <tr style={{ backgroundColor: "#f4f4f4", borderBottom: "1px solid #ccc" }}>
                     <th style={{ padding: "2px 4px", textAlign: "left", width: "35%" }}>品名</th>
@@ -2112,44 +2144,47 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         )}
 
 
-       {/* ==========================================
-            Part 5: 頁尾 & 簽名 (暴力修復版：寬度 98% + 置中)
+        {/* ==========================================
+            Part 5: 頁尾 & 簽名
             ========================================== */}
         <div className="print-footer-block">
             <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
                 <tbody>
                 <tr>
-                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "11px" }}>
-                        <strong>備註：</strong>
+                    {/* 備註區塊 */}
+                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: BASE_FONT_SIZE }}>
+                        {/* ⭐ 修正：備註標題文字放大一號到 18px (LARGE_FONT_SIZE) */}
+                        <strong style={{fontSize: LARGE_FONT_SIZE}}>備註：</strong><br/>
                         <div style={{ whiteSpace: "pre-wrap", marginTop: 2 }}>{quote.notes}</div>
                     </td>
-                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "11px" }}>
-                        <strong>付款條件：</strong>
+                    {/* 付款條件區塊 */}
+                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: BASE_FONT_SIZE }}>
+                        {/* ⭐ 修正：付款條件標題文字放大一號到 18px (LARGE_FONT_SIZE) */}
+                        <strong style={{fontSize: LARGE_FONT_SIZE}}>付款條件：</strong><br/>
                         <div style={{ whiteSpace: "pre-wrap", marginTop: 2 }}>{quote.payment}</div>
                     </td>
                 </tr>
                 </tbody>
             </table>
             
-            {/* ▼▼▼ 修改重點：寬度改 98%，加入 margin: "10px auto" 讓它置中 ▼▼▼ */}
             <table className="print-signature-area" style={{ width: "98%", margin: "10px auto", borderCollapse: "collapse", borderRight: "1px solid #000" }}>
                 <tbody>
                 <tr>
-                    {/* 這裡加入 borderRight 確保中間那條線也在 */}
-                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
+                    {/* 報價章/回簽區塊維持 16px (BASE_FONT_SIZE) */}
+                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000", fontSize: BASE_FONT_SIZE }}>
                         <strong>公司報價章</strong>
                         {companyInfo.stamp && (
                             <img src={companyInfo.stamp} alt="公司印章" style={{ display: "block", margin: "2px auto", maxHeight: 60 }} />
                         )}
                     </td>
-                    {/* 強制加上右邊框 */}
-                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
+                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000", fontSize: BASE_FONT_SIZE }}>
                         <strong>客戶回簽</strong>
                     </td>
                 </tr>
                 <tr>
-                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px", borderRight: "1px solid #000"}}>日期：</td>
-                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px", borderRight: "1px solid #000"}}>日期：</td>
+                    {/* 日期區塊維持 16px (BASE_FONT_SIZE) */}
+                    <td style={{...TH_TD, borderTop: "none", fontSize: BASE_FONT_SIZE, borderRight: "1px solid #000"}}>日期：</td>
+                    <td style={{...TH_TD, borderTop: "none", fontSize: BASE_FONT_SIZE, borderRight: "1px solid #000"}}>日期：</td>
                 </tr>
                 </tbody>
             </table>
