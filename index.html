@@ -1638,28 +1638,44 @@ function ExportPDFButton() {
   const { activeQuote } = React.useContext(AppContext);
 
   const handleExportPDF = () => {
-    // 抓取隱藏的列印區塊
+    // 1. 抓取隱藏的列印版面
     const element = document.querySelector('.print-only-layout');
     if (!element) {
       alert("請先選擇報價單");
       return;
     }
 
-    // 先暫時顯示它以便擷取
+    // 2. ⭐ 核心修正：強制讓元素在後台顯示，但用透明度隱藏，避免抓到空白
+    const originalStyle = element.getAttribute('style');
     element.style.display = 'block';
+    element.style.position = 'fixed';
+    element.style.left = '-9999px'; // 移出螢幕外
+    element.style.top = '0';
+    element.style.zIndex = '-1';
 
     const opt = {
-      margin:       10,
+      margin:       [10, 10], // 上下左右邊界 10mm
       filename:     `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      image:        { type: 'jpeg', quality: 1 }, // 最高品質
+      html2canvas:  { 
+        scale: 3,        // 放大倍率提高到 3，讓字體跟印章非常清晰
+        useCORS: true,   // 允許跨網域圖片(印章)
+        letterRendering: true 
+      },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // 執行轉換
+    // 3. 執行轉換
     html2pdf().set(opt).from(element).save().then(() => {
-      // 完成後恢復隱藏
-      element.style.display = 'none';
+      // 4. 恢復原狀
+      if (originalStyle) {
+        element.setAttribute('style', originalStyle);
+      } else {
+        element.style.display = 'none';
+      }
+    }).catch(err => {
+      console.error("PDF 轉換錯誤:", err);
+      alert("PDF 生成失敗，請再試一次");
     });
   };
 
@@ -1668,7 +1684,7 @@ function ExportPDFButton() {
       onClick={handleExportPDF} 
       className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2"
     >
-      <span>📄</span> 匯出 PDF
+      <span style={{fontSize: '1.2rem'}}>📄</span> 一鍵轉 PDF
     </button>
   );
 }
@@ -1967,6 +1983,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         <img 
             src={companyInfo.stamp} 
             alt="公司印章" 
+            crossOrigin="anonymous" // ⭐ 加入這行
             style={{ 
                 display: "block", 
                 margin: "5px auto", 
