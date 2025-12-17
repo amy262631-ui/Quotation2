@@ -1635,77 +1635,78 @@ function ExportWordButton() {
     // 2. 產生 Word HTML (清晰可讀排版)
     const wordContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head>
-        <meta charset="utf-8">
-        <title>${activeQuote.title}</title>
-        <style>
-          /* 1. ⭐ 邊界設定：上下 5mm, 左右 8mm ⭐ */
-          @page {
-            mso-page-orientation: portrait;
-            size: 210mm 297mm;
-            margin: 5mm 8mm 5mm 8mm; 
-            
-            /* ⭐ 修正 Word 頁首/頁尾空間，強制貼頂 ⭐ */
-            mso-header-margin: 0;
-            mso-footer-margin: 0;
-            mso-margin-top-header: 0;
-            mso-margin-bottom-footer: 0;
-          }
-          /* 2. 消除 Body 預設邊距，字體基線調整回 9pt */
-          body {
-            font-family: "Microsoft JhengHei", "PMingLiU", serif;
-            font-size: 9pt; /* 調整回 9pt，確保清晰度 */
-            line-height: 1.05; 
-            margin: 0;
-            padding: 0;
-          }
-          /* 表格設定 */
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            border-spacing: 0;
-            margin-bottom: 3px; 
-          }
-          /* 儲存格內距微調 */
-          td, th {
-            border: 1px solid black;
-            padding: 2px 3px; /* 上下 2px，保持可讀 */
-            vertical-align: top; /* 垂直向上對齊 */
-            font-size: 9pt;
-          }
-          /* 數字欄位字體，確保清晰 */
-          .num-cell {
-            font-size: 9pt; 
-            font-weight: bold; 
-          }
-          
-          /* 備註/用料明細縮小到 8pt，可讀性尚可 */
-          .detail-row td {
-             padding: 1px 3px !important; 
-             font-size: 8pt; 
-             color: #444;
-             border-top: 1px dashed #ccc;
-          }
+     <head>
+        <meta charset="utf-8">
+        <title>${activeQuote.title}</title>
+        <style>
+          /* 1. 邊界設定 */
+          @page {
+            mso-page-orientation: portrait;
+            size: 210mm 297mm;
+            margin: 5mm 8mm 5mm 8mm; 
+            mso-header-margin: 0;
+            mso-footer-margin: 0;
+            mso-margin-top-header: 0;
+            mso-margin-bottom-footer: 0;
+          }
+          /* 2. 基礎字體調整 */
+          body {
+            font-family: "Microsoft JhengHei", "PMingLiU", serif;
+            /* ⭐ 修正：基礎字體從 9pt/10pt 放大到 12pt ⭐ */
+            font-size: 12pt; 
+            line-height: 1.05; 
+            margin: 0;
+            padding: 0;
+          }
+          /* 表格設定 */
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin-bottom: 3px; 
+          }
+          /* 儲存格內距微調 */
+          td, th {
+            border: 1px solid black;
+            padding: 2px 3px; 
+            vertical-align: top; 
+            /* ⭐ 修正：儲存格字體從 9pt/10pt 放大到 12pt ⭐ */
+            font-size: 12pt;
+          }
+          /* 數字欄位字體 */
+          .num-cell {
+            /* ⭐ 修正：數字字體從 9pt/10pt 放大到 12pt ⭐ */
+            font-size: 12pt; 
+            font-weight: bold; 
+          }
+          
+          /* 備註/用料明細縮小到 10pt (維持清晰度，因為基礎已是 12pt) */
+          .detail-row td {
+             padding: 1px 3px !important; 
+             font-size: 10pt; 
+             color: #444;
+             border-top: 1px dashed #ccc;
+          }
 
-          .no-border, .no-border td { border: none !important; }
-          
-          /* 3. 標題強制貼頂，字體微調 */
-          h1 { font-size: 16pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; } 
-          h2 { font-size: 13pt; text-align: center; margin: 2px 0; text-decoration: underline; }
-          .sub-info { font-size: 8pt; text-align: center; margin-bottom: 2px; color: #444; } /* 公司資訊調整回 8pt */
-          
-          .text-center { text-align: center; }
-          .text-right { text-align: right; }
-          .font-bold { font-weight: bold; }
-          
-          /* 4. 簽名欄高度壓縮 */
-          .sig-box { height: 40px; vertical-align: top; } 
-          
-          /* 備註/付款條件字體調整為 8pt */
-          .note-text { font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.2; }
-          
-        </style>
-      </head>
+          .no-border, .no-border td { border: none !important; }
+          
+          /* 3. 標題與附屬資訊微調 */
+          h1 { font-size: 18pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; } /* 標題微調放大 */
+          h2 { font-size: 14pt; text-align: center; margin: 2px 0; text-decoration: underline; } /* 副標題微調放大 */
+          .sub-info { font-size: 10pt; text-align: center; margin-bottom: 2px; color: #444; } /* 公司資訊調整到 10pt */
+          
+          .text-center { text-align: center; }
+          .text-right { text-align: right; }
+          .font-bold { font-weight: bold; }
+          
+          /* 4. 簽名欄高度壓縮 */
+          .sig-box { height: 40px; vertical-align: top; } 
+          
+          /* 備註/付款條件字體調整為 10pt */
+          .note-text { font-size: 10pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.2; }
+          
+        </style>
+      </head>
       <body>
         
         <table class="no-border" style="margin-bottom: 0; mso-yfti-tbllook:1184;">
@@ -1901,11 +1902,13 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
   const calcAmount = (item) => item.price * item.qty;
 
-  // 3. 樣式定義
-  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: "12px", verticalAlign: "middle", lineHeight: "1.2" };
-  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
-  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
-  const TD_CENTER = { ...TH_TD, textAlign: "center" };
+ // 3. 樣式定義
+  // ⭐ 修正：基礎字體放大到 18px (約 14pt)
+  const BASE_FONT_SIZE = "18px"; 
+  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: BASE_FONT_SIZE, verticalAlign: "middle", lineHeight: "1.2" };
+  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
+  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
+  const TD_CENTER = { ...TH_TD, textAlign: "center" };
 
   return (
     <div className="print-page">
@@ -1935,13 +1938,12 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
               </td>
             </tr>
             <tr>
-              <td style={{ verticalAlign: "bottom", width: "60%", fontSize: 12, lineHeight: "1.4em" }}>
-                 <div><strong>客戶名稱：</strong>{quote.customerName}</div>
+             <td style={{ verticalAlign: "bottom", width: "60%", fontSize: BASE_FONT_SIZE, lineHeight: "1.4em" }}>
                  <div><strong>工程名稱：</strong>{quote.title}</div>
                  <div><strong>工程地點：</strong>{quote.location}</div>
                  <div><strong>聯絡電話：</strong>{quote.phone}</div>
               </td>
-              <td style={{ verticalAlign: "bottom", width: "40%", textAlign: "right", fontSize: 12, lineHeight: "1.4em" }}>
+             <td style={{ verticalAlign: "bottom", width: "40%", textAlign: "right", fontSize: BASE_FONT_SIZE, lineHeight: "1.4em" }}>
                  <div><strong>報價單號：</strong>{quote.quoteNo}</div>
                  <div><strong>報價日期：</strong>{quote.date}</div>
                  <div><strong>聯絡人：</strong>{quote.contact}</div>
@@ -2044,7 +2046,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         fontWeight: "bold", 
         whiteSpace: "nowrap", 
         borderBottom: "1px solid #000",
-        fontSize: 14 // 放大字體
+        fontSize: "18px" // ⭐ 修正：總計金額放大到 18px
       }}>
         {formatMoney(totalAmount)}
       </td>
@@ -2062,7 +2064,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             color: "red", 
             whiteSpace: "nowrap", 
             borderBottom: "1px solid #000",
-            fontSize: 16 // 放大字體，比總計金額再大一點
+            fontSize: "18px" // ⭐ 修正：總計金額放大到 18px
           }}>
             {formatMoney(negotiatedAmount)}
           </td>
