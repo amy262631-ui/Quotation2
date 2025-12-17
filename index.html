@@ -2032,17 +2032,22 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         {/* ==========================================
             Part 2: 主項目列表
             ========================================== */}
-        <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid black" }}>
-          <colgroup>
-            <col style={{ width: "5%" }} />
-            <col style={{ width: "28%" }} />
-            <col style={{ width: "28%" }} />
-            <col style={{ width: "5%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "8%" }} />
-          </colgroup>
+        <table style={{ 
+            width: "100%", 
+            borderCollapse: "collapse", 
+            border: "2px solid black",
+            tableLayout: "fixed", /* ⭐ 關鍵修正：強制固定表格寬度，避免擠壓 ⭐ */
+        }}>
+          <colgroup>
+            <col style={{ width: "5%" }} />
+            <col style={{ width: "25%" }} /> {/* ⭐ 調整寬度，給「品名」更多空間 */}
+            <col style={{ width: "30%" }} /> {/* ⭐ 調整寬度，給「規格」更多空間 */}
+            <col style={{ width: "5%" }} /> 
+            <col style={{ width: "5%" }} /> 
+            <col style={{ width: "10%" }} /> 
+            <col style={{ width: "10%" }} /> 
+            <col style={{ width: "10%" }} /> {/* ⭐ 調整寬度，確保總和為 100% */}
+          </colgroup>
           <thead>
             {/* 表格標題行會繼承 TH_TD 的 BASE_FONT_SIZE (16px) */}
             <tr>
