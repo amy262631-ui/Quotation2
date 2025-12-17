@@ -1638,63 +1638,43 @@ function ExportPDFButton() {
   const { activeQuote } = React.useContext(AppContext);
 
   const handleExportPDF = () => {
-    // 1. 抓取隱藏的列印版面
-    const element = document.querySelector('.print-only-layout');
-    if (!element) {
-      alert("請先選擇報價單");
+    const editorRoot = document.querySelector('.p-8.bg-gray-100.rounded-xl');
+    const printOnlyLayout = document.querySelector('.print-only-layout');
+
+    if (!editorRoot || !printOnlyLayout) {
+      window.print();
       return;
     }
 
-    // 2. ⭐ 核心修正：讓元素在後台「可見」但「不被看見」 ⭐
-    // 先備份原始屬性
-    const originalStyle = element.getAttribute('style');
-    
-    // 強制顯示並移到螢幕左邊極遠處 (-9999px)，避免畫面閃爍
-    element.style.display = 'block';
-    element.style.position = 'fixed';
-    element.style.left = '-9999px';
-    element.style.top = '0';
-    element.style.width = '210mm'; // 鎖定 A4 寬度
-    element.style.backgroundColor = 'white';
+    // 1. 暫時隱藏編輯器，只顯示乾淨的列印版面
+    const originalEditorDisplay = editorRoot.style.display;
+    editorRoot.style.display = 'none';
+    printOnlyLayout.style.display = 'block';
 
-    const opt = {
-      margin:       [10, 10], // 上下左右邊界
-      filename:     `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單.pdf`,
-      image:        { type: 'jpeg', quality: 1.0 }, // 最高清晰度
-      html2canvas:  { 
-        scale: 3,         // ⭐ 提高縮放倍率到 3，確保文字與印章不模糊
-        useCORS: true,    // 允許跨網域載入 GitHub 上的印章圖片
-        logging: false,
-        letterRendering: true
-      },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    // 2. 更改標題，這會自動變成下載 PDF 的預設檔名
+    const originalTitle = document.title;
+    document.title = `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單`;
 
-    // 3. 執行轉換
-    html2pdf().set(opt).from(element).toPdf().get('pdf').save().then(() => {
-      // 4. 完成後恢復原始隱藏狀態
-      if (originalStyle) {
-        element.setAttribute('style', originalStyle);
-      } else {
-        element.style.display = 'none';
-      }
-    }).catch(err => {
-      console.error("PDF 轉換錯誤:", err);
-      alert("PDF 生成失敗，請檢查網路後再試一次。");
-      element.style.display = 'none'; // 發生錯誤也要藏起來
-    });
+    // 3. 呼叫列印 (使用者只需在目的地選擇「另存為 PDF」)
+    window.print();
+
+    // 4. 恢復原狀
+    setTimeout(() => {
+      editorRoot.style.display = originalEditorDisplay;
+      printOnlyLayout.style.display = 'none';
+      document.title = originalTitle;
+    }, 500);
   };
 
   return (
     <button 
       onClick={handleExportPDF} 
-      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2 transition-all active:scale-95"
+      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2"
     >
-      <span style={{fontSize: '1.2rem'}}>📄</span> 一鍵轉 PDF
+      <span style={{fontSize: '1.2rem'}}>📄</span> 轉 PDF / 列印
     </button>
   );
 }
-    
 // ===============================
 // PrintButton (列印按鈕)
 function PrintButton() {
