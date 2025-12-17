@@ -1870,12 +1870,80 @@ function ExportWordButton() {
   );
 }
 // ===============================
-// PrintButton (列印按鈕)
+// PrintButton (列印按鈕) - 修正版
 // ===============================
 function PrintButton() {
+  
+  const handlePrint = () => {
+      // 1. 確保報價單內容已渲染
+      const printContent = document.querySelector('.print-page');
+
+      if (!printContent) {
+          alert("找不到報價單預覽內容。請先選擇或新增報價單。");
+          return;
+      }
+
+      // 2. 取得報價單的 HTML 內容
+      const content = printContent.outerHTML;
+
+      // 3. 創建一個新的 iframe/視窗用於列印，以隔離內容
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+          alert("無法開啟列印視窗，請檢查是否被瀏覽器阻擋彈出視窗。");
+          return;
+      }
+
+      // 4. 準備列印所需的完整 HTML 結構
+      const printDoc = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>報價單列印</title>
+              <meta charset="utf-8">
+              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet">
+              <style>
+                  /* 確保 PrintLayout 內部的 style 標籤能生效 */
+                  @media print {
+                      @page { margin: 10mm 10mm 10mm 10mm; size: A4; }
+                      body { margin: 0; padding: 0; }
+                      .print-page { width: 100%; }
+                      /* 確保中文字體能正確顯示 */
+                      body, table, td, th { font-family: "Microsoft JhengHei", "PMingLiU", serif; }
+                  }
+              </style>
+          </head>
+          <body>
+              ${content}
+          </body>
+          </html>
+      `;
+
+      // 5. 寫入內容並開啟列印
+      printWindow.document.write(printDoc);
+      printWindow.document.close();
+
+      // 6. 確保內容加載完成後再執行列印
+      printWindow.onload = function() {
+          // 給予微小延遲確保瀏覽器渲染完成
+          setTimeout(() => {
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+          }, 300); 
+      };
+      
+      // Fallback 機制 (如果 onload 沒有觸發)
+      setTimeout(() => {
+          if (printWindow && printWindow.document.readyState !== 'loading') {
+               printWindow.focus();
+               printWindow.print();
+          }
+      }, 1500);
+  };
+
   return (
     <button
-      onClick={() => window.print()}
+      onClick={handlePrint} // 呼叫新的自定義函式
       className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
     >
       列印報價單
