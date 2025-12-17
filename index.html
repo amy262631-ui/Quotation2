@@ -1966,14 +1966,13 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     <td style={{ ...TH_TD, width: "50%", height: 90, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
     <strong>公司報價章</strong>
     {companyInfo.stamp && (
-        <img 
+       <img 
     src={companyInfo.stamp} 
     alt="公司印章" 
-    crossOrigin="anonymous" /* ⭐ 這行一定要加，否則 PDF 裡的印章會變空白 ⭐ */
     style={{ 
         display: "block", 
         margin: "5px auto", 
-        maxHeight: "75px", 
+        maxHeight: "75px", /* 1.2倍放大 */
         width: "auto"
     }} 
 />
