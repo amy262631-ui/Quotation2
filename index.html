@@ -1998,7 +1998,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 5 }}>
           <tbody>
             <tr>
-              <td colSpan="2" style={{ textAlign: "center", paddingBottom: 5 }}>
+              <td colSpan={2} style={{ textAlign: "center", paddingBottom: 5 }}> {/* ✅ 修正為 JSX 語法 colSpan={2} */}
                 <h2 style={{ margin: 0, fontSize: "24px", lineHeight: "1.2" }}>{companyInfo.name}</h2>
                 <div style={{ fontSize: 11, marginTop: 4 }}>
                   統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}
@@ -2080,7 +2080,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                   <tr>
                     <td style={{ ...TH_TD, borderTop: "none" }}></td>
                     {/* ⭐ 修正：用料明細文字放大一號到 18px (LARGE_FONT_SIZE) */}
-                    <td colSpan="7" style={{ ...TH_TD, color: "#444", fontSize: LARGE_FONT_SIZE, borderTop: "1px dashed #ccc" }}>
+                    <td colSpan={7} style={{ ...TH_TD, color: "#444", fontSize: LARGE_FONT_SIZE, borderTop: "1px dashed #ccc" }}> {/* ✅ 修正為 colSpan={7} */}
                       <span style={{ fontWeight: "bold" }}>用料：</span>{item.specMaterial}
                     </td>
                   </tr>
@@ -2090,7 +2090,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     <tr key={sub.id}>
                           <td style={{ ...TH_TD, borderTop: "none" }}></td>
                           {/* 子項目維持 16px (BASE_FONT_SIZE) 或可使用更小的 14px 保持層次感 */}
-                          <td colSpan="7" style={{ ...TH_TD, color: "#666", fontSize: SMALL_FONT_SIZE, textAlign: sub.type === "image" ? "center" : "left" }}>
+                          <td colSpan={7} style={{ ...TH_TD, color: "#666", fontSize: SMALL_FONT_SIZE, textAlign: sub.type === "image" ? "center" : "left" }}> {/* ✅ 修正為 colSpan={7} */}
                              {sub.type === "image" ? (
                                <img src={sub.imageData} alt="圖片" style={{ maxWidth: "50%", maxHeight: "150px", display: "block", margin: "0 auto" }} />
                              ) : (
@@ -2108,7 +2108,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             
             {/* 金額總計行：使用 16px (BASE_FONT_SIZE) */}
             <tr style={{ height: "18px" }}>
-              <td colspan="5" style={{ border: "none" }}></td>
+             <td colSpan={5} style={{ border: "none" }}></td> {/* ✅ 修正為 colSpan={5} */}
               <td style={{ ...TH_TD, textAlign: "center", fontWeight: "bold", background: "#f0f0f0", fontSize: BASE_FONT_SIZE }}>總計金額</td>
               <td style={{ ...TD_RIGHT, fontWeight: "bold", background: "#f0f0f0", fontSize: BASE_FONT_SIZE }}>{formatMoney(totalAmount)}</td>
               <td style={{ ...TH_TD, background: "#f0f0f0", fontSize: BASE_FONT_SIZE }}></td>
@@ -2117,7 +2117,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             {/* 最終報價行：使用 16px (BASE_FONT_SIZE) */}
             {showFinalPrice ? (
             <tr style={{ height: "18px" }}>
-               <td colspan="5" style={{ border: "none" }}></td>
+               <td colSpan={5} style={{ border: "none" }}></td> {/* ✅ 修正為 colSpan={5} */}
                <td style={{ ...TH_TD, textAlign: "center", fontWeight: "bold", color: "red", borderTop: "none", fontSize: BASE_FONT_SIZE }}>最終報價</td>
                <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", borderTop: "none", fontSize: BASE_FONT_SIZE }}>{formatMoney(negotiatedAmount)}</td>
                <td style={{ ...TH_TD, borderTop: "none" }}></td>
