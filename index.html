@@ -27,61 +27,69 @@
    /* =================================================
        ✅ 修正後的列印專用 CSS
     ================================================= */
-@media print {
-        /* 1. 【核心修正】: 隱藏頁面上所有元素 */
-        body * {
-          display: none !important;
-          visibility: hidden !important;
-        }
+    @media print {
+      /* 1. 強制重置所有容器，取消 Flex 排版 */
+      body, 
+      #root, 
+      .quote-editor-root-container, 
+      div {
+        display: block !important; /* 關鍵：取消 flex，改為區塊 */
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: static !important;
+        background: white;
+      }
 
-        /* 2. 【核心修正】: 顯示列印專用區塊及其所有子元素 */
-        .print-only-layout, 
-        .print-only-layout *,
-        .print-only-layout div { /* 確保所有內層 div 都被強制顯示 */
-          display: block !important;
-          visibility: visible !important;
-        }
+      /* 2. 隱藏不需要列印的元素 */
+      .no-print,
+      .live-preview-box,
+      aside, /* 如果側邊欄是用 aside */
+      nav {
+        display: none !important;
+      }
 
-        /* 3. 重設根元素與列印區域定位 */
-        body, #root {
-            display: block !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            position: relative !important;
-            overflow: hidden !important; /* 確保列印不會包含瀏覽器滾動條 */
-        }
-        .print-only-layout {
-            position: absolute !important; 
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
+      /* 3. 設定列印區域滿版 */
+      .print-only-layout {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
+      }
 
-        /* 4. 表格設定 (繼承您原本的樣式，但確保 table-layout: fixed) */
-        table {
-          width: 100% !important;
-          border-collapse: collapse;
-          table-layout: fixed; 
-        }
+      /* 4. 表格設定 */
+      table {
+        width: 100% !important;
+        border-collapse: collapse;
+        table-layout: fixed; /* 讓欄位寬度依照設定的 % 跑，不要被內容撐開或壓縮 */
+      }
 
-        td, th {
-          word-break: break-word; 
-          white-space: normal;
-          vertical-align: middle;
-        }
+      thead {
+        display: table-header-group;
+      }
 
-        tr, .print-footer-block {
-          page-break-inside: avoid;
-        }
+      tr {
+        page-break-inside: avoid;
+      }
 
-        @page {
-          size: A4;
-          margin: 10mm;
-        }
-    }
+      /* 5. 確保文字不會因為太擠而變直向 */
+      td, th {
+        white-space: normal; /* 允許換行 */
+        word-wrap: break-word; /*長單字換行*/
+        vertical-align: middle; /* 垂直置中 */
+      }
+
+      .print-footer-block,
+      .print-signature-area {
+        page-break-inside: avoid;
+      }
+
+      @page {
+        size: A4;
+        margin: 10mm; /* 邊距設為 10mm，讓空間更大 */
+      }
+    }
   </style>
 </head>
 
@@ -1138,7 +1146,32 @@ function QuoteEditor() {
             </div>
         );
     }
-    
+    // ⭐ 在這裡之後，就是我們要放入 return 結構的地方 ⭐
+    return (
+        <div className="quote-editor-root-container">
+            {/* 1. 編輯介面 (原本的大容器) */}
+            <div className="p-8 bg-gray-100 rounded-xl shadow-xl no-print">
+                {/* 這裡請保留您原本編輯區內的所有 HTML 內容：
+                    包括 <h1>標題、基本資料卡、新增項目按鈕、項目清單、備註區、匯出按鈕等 */}
+                
+                {/* 這裡加入實時預覽區 */}
+                <div className="live-preview-box mt-12 no-print">
+                    <h3 className="text-center font-bold text-2xl text-blue-700 mb-6">實時預覽區</h3>
+                    <div style={{ backgroundColor: "#525659", padding: "20px", overflowX: "auto" }}>
+                        <div style={{ backgroundColor: "white", width: "210mm", margin: "0 auto", padding: "15mm", boxShadow: "0 0 20px rgba(0,0,0,0.5)" }}>
+                            <PrintLayout quote={activeQuote} totalAmount={totalAmount} negotiatedAmount={negotiatedAmount} isPreview={true} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 2. ⭐ 列印專用隱藏版面 - 確保它在編輯介面的外層 ⭐ */}
+            <div className="print-only-layout" style={{ display: "none" }}>
+                <PrintLayout quote={activeQuote} totalAmount={totalAmount} negotiatedAmount={negotiatedAmount} isPreview={false} />
+            </div>
+        </div> 
+    ); // 這是 QuoteEditor 函式的最後一個 } 之前
+}
     const handleChange = (field, value) => {
         updateQuote(activeQuote.id, { [field]: value });
     };
@@ -1412,7 +1445,7 @@ function QuoteEditor() {
                             width: "210mm", 
                             minHeight: "297mm", 
                             margin: "0 auto", 
-                            padding: "10mm", 
+                            padding: "20mm", 
                             boxShadow: "0 0 20px rgba(0,0,0,0.5)",
                             boxSizing: "border-box"
                         }}
@@ -1815,44 +1848,52 @@ function ExportWordButton() {
   );
 }
 // ===============================
-// PrintButton (列印按鈕) - 終極穩定版 (使用原生列印 + 結構覆蓋)
-// ===============================
+// PrintButton (列印按鈕)
 function PrintButton() {
-  
   const handlePrint = () => {
-      // 1. 為了確保 CSS 能夠正確作用，我們必須切換 body 上的 CSS 類別
-      const body = document.body;
-      const editorRoot = document.querySelector('.quote-editor-root-container');
-      const printLayout = document.querySelector('.print-only-layout');
+    // 抓取隱藏在底部的列印版面
+    const printContent = document.querySelector('.print-only-layout');
+    if (!printContent) {
+      alert("請先選擇報價單");
+      return;
+    }
 
-      if (!editorRoot || !printLayout) {
-          alert("DOM 元素結構不完整，無法執行列印。");
-          return;
-      }
-      
-      // 2. 暫存原始樣式 (以防萬一)
-      const originalDisplay = editorRoot.style.display;
-      const originalPrintDisplay = printLayout.style.display;
-      
-      // 3. 執行列印前，強制隱藏編輯器並顯示列印區塊
-      editorRoot.style.display = 'none';
-      printLayout.style.display = 'block';
-      
-      // 4. 執行原生列印
-      window.print();
-
-      // 5. 列印完成後，恢復原始樣式 (使用 setTimeout 確保瀏覽器有時間處理列印對話框)
-      setTimeout(() => {
-          editorRoot.style.display = originalDisplay;
-          printLayout.style.display = originalPrintDisplay;
-      }, 500); 
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>工程報價單列印</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+            body { font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif; margin: 0; padding: 0; background: white; }
+            .print-page { width: 210mm; margin: 0 auto; padding: 10mm; box-sizing: border-box; }
+            table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 5px; } /* ⭐ 強制固定寬度避免擠壓 */
+            th, td { border: 1px solid black; padding: 4px 6px; word-break: break-word; font-size: 14px; line-height: 1.4; vertical-align: middle; }
+            th { background: #f0f0f0; font-weight: bold; text-align: center; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .font-bold { font-weight: bold; }
+            img { display: block; margin: 0 auto; }
+            @page { size: A4; margin: 0; }
+          </style>
+        </head>
+        <body>
+          <div class="print-page">${printContent.innerHTML}</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    
+    // 給予 500ms 讓瀏覽器渲染與加載圖片
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }, 500);
   };
 
   return (
-    <button
-      onClick={handlePrint} // 呼叫新的自定義函式
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-    >
+    <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-lg">
       列印報價單
     </button>
   );
@@ -1877,13 +1918,11 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
   const calcAmount = (item) => item.price * item.qty;
 
- // 3. 樣式定義
-  // 確保所有字體大小和行高一致，消除擠壓
-  const BASE_FONT_SIZE = "12px"; 
-  const TH_TD = { border: "1px solid #000", padding: "5px 4px", fontSize: BASE_FONT_SIZE, verticalAlign: "middle", lineHeight: "1.5" }; 
-  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "6px 4px" }; 
-  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
-  const TD_CENTER = { ...TH_TD, textAlign: "center" };
+  // 3. 樣式定義
+  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: "12px", verticalAlign: "middle", lineHeight: "1.2" };
+  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
+  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
+  const TD_CENTER = { ...TH_TD, textAlign: "center" };
 
   return (
     <div className="print-page">
@@ -1930,36 +1969,35 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
 
       {/* ==========================================
-            Part 2: 主項目列表 - 最終排版修正
-            ========================================== */}
-        <table style={{ 
+            Part 2: 主項目列表 - 修正排版
+            ========================================== */}
+        <table style={{ 
             width: "100%", 
             borderCollapse: "collapse", 
             border: "2px solid black",
-            tableLayout: "fixed" /* ⭐ 確保固定寬度生效 ⭐ */
+            tableLayout: "fixed" /* ⭐ 關鍵：固定布局 */
         }}>
-          <colgroup>
-            <col style={{ width: "5%" }} /> /* 項次 */
-            <col style={{ width: "25%" }} /> /* 品名 */
-    在         <col style={{ width: "30%" }} /> /* 規格 */
-            <col style={{ width: "5%" }} /> /* 單位 */
-            <col style={{ width: "5%" }} /> /* 數量 */
-            <col style={{ width: "10%" }} /> /* 單價 */
-            <col style={{ width: "10%" }} /> /* 小計 */
-            <col style={{ width: "10%" }} /> /* 備註 */
-          </colgroup>
-          <thead>
+          <colgroup>
+            <col style={{ width: "8%" }} />  {/* 項次 */}
+            <col style={{ width: "26%" }} /> {/* 品名 */}
+            <col style={{ width: "30%" }} /> {/* 規格 */}
+            <col style={{ width: "7%" }} />  {/* 單位 */}
+            <col style={{ width: "7%" }} />  {/* 數量 */}
+            <col style={{ width: "10%" }} /> {/* 單價 */}
+            <col style={{ width: "12%" }} /> {/* 小計 */}
+          </colgroup>
+          <thead>
             <tr>
-              <th style={TH}>項<br />次</th>
+              <th style={TH}>項次</th>
               <th style={TH}>品名</th>
               <th style={TH}>規格</th>
               <th style={TH}>單位</th>
               <th style={TH}>數量</th>
               <th style={TH}>單價</th>
               <th style={TH}>小計</th>
-              <th style={TH}>備註</th>
             </tr>
           </thead>
+          {/* <tbody> 內容維持不變，但記得移除最後一欄備註，因為寬度不夠，建議併入規格或備註於下方 */}
           <tbody>
             {itemsToPrint.map((item, index) => (
               <React.Fragment key={item.id || index}>
