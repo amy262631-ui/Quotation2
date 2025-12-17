@@ -1823,12 +1823,73 @@ function ExportWordButton() {
   );
 }
 // ===============================
-// PrintButton (列印按鈕)
+// PrintButton (列印按鈕) - 修正版
 // ===============================
 function PrintButton() {
+  // 這裡必須取得列印專用的隱藏版面，而不是整個頁面
+  const handlePrint = () => {
+      const printContent = document.querySelector('.print-only-layout');
+
+      if (!printContent) {
+          alert("找不到報價單內容。請先選擇或新增報價單。");
+          return;
+      }
+
+      // 1. 取得列印專用區塊的 HTML 內容
+      const content = printContent.innerHTML;
+
+      // 2. 創建一個新的視窗用於列印 (使用新視窗確保 CSS 隔離)
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+          alert("無法開啟列印視窗，請檢查是否被瀏覽器阻擋彈出視窗。");
+          return;
+      }
+
+      // 3. 準備列印所需的完整 HTML 結構 (包含所有 CSS)
+      const printDoc = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>報價單列印</title>
+              <meta charset="utf-8">
+              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet">
+              ${document.head.innerHTML.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/g, "")}
+              <style>
+                  /* 確保 PrintLayout 內的表格屬性能被繼承 */
+                  .print-page { 
+                      width: 210mm;
+                      margin: 0 auto;
+                  }
+                  /* 隱藏預覽容器可能引入的邊界 */
+                  .print-content { 
+                      padding: 0; 
+                      margin: 0;
+                  }
+              </style>
+          </head>
+          <body>
+              ${content}
+          </body>
+          </html>
+      `;
+
+      // 4. 寫入內容並開啟列印
+      printWindow.document.write(printDoc);
+      printWindow.document.close();
+
+      // 5. 確保內容加載完成後再執行列印
+      printWindow.onload = function() {
+          setTimeout(() => {
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+          }, 300); // 給予微小延遲確保瀏覽器渲染完成
+      };
+  };
+
   return (
     <button
-      onClick={() => window.print()}
+      onClick={handlePrint} // 呼叫新的自定義函式
       className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
     >
       列印報價單
@@ -1908,17 +1969,22 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         {/* ==========================================
             Part 2: 主項目列表
             ========================================== */}
-        <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid black" }}>
-          <colgroup>
-            <col style={{ width: "5%" }} />
-            <col style={{ width: "28%" }} />
-            <col style={{ width: "28%" }} />
-            <col style={{ width: "5%" }} />
-            <col style={{ width: "6%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "8%" }} />
-          </colgroup>
+        <table style={{ 
+            width: "100%", 
+            borderCollapse: "collapse", 
+            border: "2px solid black",
+            tableLayout: "fixed" /* ⭐ 新增：強制固定寬度，解決擠壓問題 ⭐ */
+        }}>
+          <colgroup>
+            <col style={{ width: "5%" }} />
+            <col style={{ width: "25%" }} /> {/* 調整為 25% */}
+            <col style={{ width: "30%" }} /> {/* 調整為 30% */}
+            <col style={{ width: "5%" }} /> 
+            <col style={{ width: "5%" }} /> 
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} /> {/* 調整為 10%，確保總和為 100% */}
+          </colgroup>
           <thead>
             <tr>
               <th style={TH}>項<br />次</th>
