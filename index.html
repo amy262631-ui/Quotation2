@@ -1045,7 +1045,7 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
   );
 }
 // ========================================================
-// 客戶名稱搜尋元件 (取代 datalist)
+// 客戶名稱搜尋元件 (取代 datalist) - 最終除錯版本
 // ========================================================
 function CustomerSearchInput({ value, onChange, onSelect }) {
   const { customers } = React.useContext(AppContext); // 從 Context 讀取客戶資料
@@ -1053,12 +1053,10 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const wrapperRef = React.useRef(null);
 
-  // 當 QuoteEditor 傳入的 value 改變時，更新 searchTerm (通常是載入新報價單時)
   React.useEffect(() => {
     setSearchTerm(value);
   }, [value]);
 
-  // 點擊外部時隱藏建議清單
   React.useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -1069,45 +1067,68 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [wrapperRef]);
   
-  // 篩選客戶列表的邏輯 (只要輸入一個字元就開始篩選)
+  // 篩選客戶列表的邏輯
   const filteredCustomers = React.useMemo(() => {
-    // ⭐ 允許空字串時不顯示清單 (但會顯示輸入框本身)
     if (!searchTerm || searchTerm.trim().length === 0) return [];
     
     const lowerCaseSearch = searchTerm.trim().toLowerCase();
     
-    // ⭐ 關鍵：篩選邏輯，只要「客戶名稱」包含關鍵字就顯示
+    // ⭐ 關鍵：篩選邏輯
     return (customers || [])
         .filter(c => c["客戶名稱"]?.toLowerCase().includes(lowerCaseSearch))
-        .slice(0, 10); // 只顯示前 10 筆
+        .slice(0, 10);
   }, [customers, searchTerm]);
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
-    setSearchTerm(newValue); // 先更新搜尋狀態，讓 filteredCustomers 重新計算
-    onChange(newValue); // 更新 QuoteEditor 的 activeQuote
-    setShowSuggestions(true); // 顯示建議清單
+    setSearchTerm(newValue);
+    onChange(newValue);
+    setShowSuggestions(true);
   };
 
   const handleSuggestionClick = (customer) => {
-    onSelect(customer); // 呼叫父元件的選擇處理邏輯 (帶入所有資料)
-    setSearchTerm(customer["客戶名稱"]); // 確保輸入框顯示完整名稱
-    setShowSuggestions(false); // 隱藏清單
+    onSelect(customer);
+    setSearchTerm(customer["客戶名稱"]);
+    setShowSuggestions(false);
+  };
+  
+  // ⭐ 新增：除錯函式，檢查載入的資料
+  const debugData = () => {
+      console.log("--- Customer Data Debug ---");
+      console.log("Total Records:", customers ? customers.length : 0);
+      if (customers && customers.length > 0) {
+          console.log("First Record:", customers[0]);
+          console.log("Expected Column Names (from Google Sheet):", Object.keys(customers[0]));
+          console.log("---------------------------");
+      } else {
+          console.log("Error: Data array is empty or undefined.");
+          console.log("---------------------------");
+      }
   };
 
   return (
     <div className="relative" ref={wrapperRef}>
-      <input
-        type="text"
-        value={value} // 這裡使用 value，確保輸入框與 QuoteEditor 狀態同步
-        onChange={handleInputChange}
-        onFocus={() => setShowSuggestions(true)}
-        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-        placeholder="輸入關鍵字..."
-        autoComplete="off" // 避免瀏覽器內建的自動填充干擾
-      />
+      <div className="flex items-center gap-2"> {/* 讓輸入框和按鈕並排 */}
+        <input
+          type="text"
+          value={value}
+          onChange={handleInputChange}
+          onFocus={() => setShowSuggestions(true)}
+          className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+          placeholder="輸入關鍵字..."
+          autoComplete="off"
+        />
+        {/* ⭐ 除錯按鈕：點擊後檢查 Console ⭐ */}
+        <button
+          onClick={debugData}
+          className="bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600"
+          title="Debug: Check if data is loaded and format is correct"
+        >
+          偵錯
+        </button>
+      </div>
       
-      {/* 搜尋建議清單：只有在 showSuggestions 且有篩選結果時才顯示 */}
+      {/* 搜尋建議清單 */}
       {(showSuggestions && filteredCustomers.length > 0) && (
         <ul className="absolute z-10 w-full max-h-48 overflow-y-auto bg-white border border-gray-400 rounded mt-1 shadow-lg">
           {filteredCustomers.map((c, i) => (
