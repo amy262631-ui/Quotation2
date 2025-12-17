@@ -1238,12 +1238,11 @@ function QuoteEditor() {
                     <div><h3 className="font-bold text-lg mb-2">付款條件</h3><textarea value={activeQuote.payment} onChange={(e) => handleChange("payment", e.target.value)} rows="8" className="w-full border rounded-lg px-3 py-2" /></div>
                 </div>
 
-                <div className="mt-10 pt-6 border-t flex gap-4 justify-end">
-                    <ExportButton />
-                    <ExportWordButton />
-                   <ExportPDFButton /> {/* ⭐ 新增的按鈕 */}
-                    <PrintButton />
-                </div>
+               <div className="mt-10 pt-6 border-t flex gap-4 justify-end no-print">
+    <ExportButton />      {/* Excel */}
+    <ExportWordButton />  {/* Word */}
+    <PrintButton />       {/* 列印與 PDF 共用此高品質按鈕 */}
+</div>
                 {/* (簡略示意原本內容結束) */}
 
                 {/* 即時預覽區 */}
@@ -1679,41 +1678,43 @@ function ExportPDFButton() {
 // ===============================
 // PrintButton (列印按鈕)
 function PrintButton() {
+  const { activeQuote } = React.useContext(AppContext);
+
   const handlePrint = () => {
-    // 1. 取得需要切換的元素
-    const editorRoot = document.querySelector('.p-8.bg-gray-100.rounded-xl'); // 編輯器主體
-    const printOnlyLayout = document.querySelector('.print-only-layout');    // 隱藏的列印版面
+    const editorRoot = document.querySelector('.p-8.bg-gray-100.rounded-xl');
+    const printOnlyLayout = document.querySelector('.print-only-layout');
 
     if (!editorRoot || !printOnlyLayout) {
-      // 如果找不到元素，退而求其次直接呼叫 window.print()
       window.print();
       return;
     }
 
-    // 2. 暫時隱藏編輯器，顯示列印專用版面
-    // 這樣 window.print() 抓到的就會是那個「漂亮的預覽畫面」
-    const originalEditorDisplay = editorRoot.style.display;
-    const originalPrintDisplay = printOnlyLayout.style.display;
+    // 1. 設定下載 PDF 時的預設檔名
+    const originalTitle = document.title;
+    document.title = `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單`;
 
-    editorRoot.style.display = 'none';
+    // 2. 切換顯示狀態：隱藏 UI，顯示純淨報價單
+    editorRoot.classList.add('hidden'); // 使用 Tailwind class 隱藏
     printOnlyLayout.style.display = 'block';
 
-    // 3. 觸發列印
+    // 3. 觸發系統視窗
+    // 提醒：在跳出的視窗中，「目的地」選印表機就是列印，選「另存為 PDF」就是存檔
     window.print();
 
-    // 4. 列印完後（或取消後）恢復原狀
+    // 4. 恢復原狀
     setTimeout(() => {
-      editorRoot.style.display = originalEditorDisplay;
-      printOnlyLayout.style.display = originalPrintDisplay;
+      editorRoot.classList.remove('hidden');
+      printOnlyLayout.style.display = 'none';
+      document.title = originalTitle;
     }, 500);
   };
 
   return (
     <button 
       onClick={handlePrint} 
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-lg"
+      className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-lg flex items-center gap-2 font-bold"
     >
-      列印報價單
+      <span>🖨️ / 📄</span> 列印或轉存 PDF
     </button>
   );
 }
