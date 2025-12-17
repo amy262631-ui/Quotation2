@@ -1034,20 +1034,95 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
     </div>
   );
 }
+// ========================================================
+// 客戶名稱搜尋元件 (取代 datalist)
+// ========================================================
+function CustomerSearchInput({ value, onChange, onSelect }) {
+  const { customers } = React.useContext(AppContext); // 從 Context 讀取客戶資料
+  const [searchTerm, setSearchTerm] = React.useState(value);
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const wrapperRef = React.useRef(null);
 
+  // 延遲更新，避免輸入框每次打字都觸發昂貴的篩選
+  React.useEffect(() => {
+    setSearchTerm(value);
+  }, [value]);
+
+  // 點擊外部時隱藏建議清單
+  React.useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [wrapperRef]);
+  
+  // 篩選客戶列表的邏輯 (只要輸入一個字元就開始篩選)
+  const filteredCustomers = React.useMemo(() => {
+    if (!searchTerm || searchTerm.length === 0) return [];
+    
+    const lowerCaseSearch = searchTerm.toLowerCase();
+    
+    // ⭐ 關鍵：篩選邏輯，只要「客戶名稱」包含關鍵字就顯示
+    return (customers || [])
+        .filter(c => c["客戶名稱"]?.toLowerCase().includes(lowerCaseSearch))
+        .slice(0, 10); // 只顯示前 10 筆，避免清單過長
+  }, [customers, searchTerm]);
+
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    onChange(newValue); // 先更新 QuoteEditor 的 activeQuote
+    setShowSuggestions(true); // 顯示建議清單
+  };
+
+  const handleSuggestionClick = (customer) => {
+    onSelect(customer); // 呼叫父元件的選擇處理邏輯
+    setShowSuggestions(false); // 隱藏清單
+  };
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      <input
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        onFocus={() => setShowSuggestions(true)}
+        className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+        placeholder="輸入關鍵字..."
+        autoComplete="off" // 避免瀏覽器內建的自動填充干擾
+      />
+      
+      {/* 搜尋建議清單 */}
+      {(showSuggestions && filteredCustomers.length > 0) && (
+        <ul className="absolute z-10 w-full max-h-48 overflow-y-auto bg-white border border-gray-400 rounded mt-1 shadow-lg">
+          {filteredCustomers.map((c, i) => (
+            <li
+              key={i}
+              className="px-3 py-2 text-sm cursor-pointer hover:bg-blue-100 border-b border-gray-200"
+              onClick={() => handleSuggestionClick(c)}
+            >
+              <span className="font-bold">{c["客戶名稱"]}</span>
+              {c["聯絡人"] && <span className="text-gray-500 ml-2 text-xs">({c["聯絡人"]})</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 /***********************************************************
-  * P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
+ * P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
  ***********************************************************/
 // 報價單編輯主元件
 function QuoteEditor() {
-    // ⭐ 修正：從 Context 中解構出 customers
+    // 修正：從 Context 中解構出 customers
     const { activeQuote, updateQuote, customers } = React.useContext(AppContext);
     
-    // ⭐ 新增：防呆機制。如果客戶列表尚未載入，則使用空陣列。
-    const customerList = customers || []; 
-  // 插入這一行：
-  console.log("Customers loaded count:", customerList.length);
-    
+    // 新增：防呆機制。如果客戶列表尚未載入，則使用空陣列。
+    const customerList = customers || []; // 雖然在這個元件中沒被直接用，但留著是好習慣
+
     const componentRef = React.useRef(null);
 
     if (!activeQuote) {
@@ -1145,49 +1220,29 @@ function QuoteEditor() {
                         />
                     </div>
 
-                    {/* 第二列：客戶 (佔1) + 聯絡人 (佔1) + 電話 (佔1) + 地點 (佔1) */}
+                    {/* 第二列：客戶 (佔1) - 使用自定義搜尋元件 */}
                     <div className="col-span-1">
                         <label className="block text-xs font-bold text-gray-500 mb-1">客戶名稱 (可搜尋)</label>
-                        <input
-                            type="text"
-                            list="customer-list-options" // 綁定 datalist ID
+                        <CustomerSearchInput
                             value={activeQuote.customerName}
-                            onChange={(e) => handleChange("customerName", e.target.value)}
-                            // ⭐ 客戶資料連動邏輯 ⭐
-                            onBlur={(e) => {
-                                const val = e.target.value.trim(); 
-                                
+                            onChange={(val) => handleChange("customerName", val)}
+                            // 新增：onSelect 邏輯，處理選取時自動帶入所有資料
+                            onSelect={(found) => {
                                 // 1. 確保儲存使用者最終輸入的名稱
-                                handleChange("customerName", val);
-                                
-                                // 2. 在清單中尋找符合的名字 (使用防呆的 customerList)
-                                const found = customerList.find(c => c["客戶名稱"] === val);
-                                
-                                if (found) {
-                                    // 3. 如果是舊客戶：強制覆蓋所有相關欄位
-                                    updateQuote(activeQuote.id, {
-                                        customerName: found["客戶名稱"],
-                                        contact: found["聯絡人"] || activeQuote.contact || "", 
-                                        phone: found["電話"] || activeQuote.phone || "",
-                                        location: found["地址"] || activeQuote.location || ""
-                                    });
-                                }
-                                // 4. 如果是新客戶：不做任何事，所有欄位維持使用者手動輸入的狀態
-                            }}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
-                            placeholder="輸入或選取..."
-                        />
-                        {/* 定義下拉選單內容 (datalist) */}
-                        <datalist id="customer-list-options">
-                            {/* ⭐ 使用 customerList 避免 customers 載入錯誤 ⭐ */}
-                            {customerList.map((c, i) => ( 
-                                <option key={i} value={c["客戶名稱"]}>
-                                    {c["聯絡人"] ? `(聯絡人: ${c["聯絡人"]})` : ""}
-                                </option>
-                            ))}
-                        </datalist>
-                    </div>
+                                handleChange("customerName", found["客戶名稱"]);
 
+                                // 2. 如果是舊客戶：強制覆蓋所有相關欄位
+                                updateQuote(activeQuote.id, {
+                                    customerName: found["客戶名稱"],
+                                    contact: found["聯絡人"] || activeQuote.contact || "",
+                                    phone: found["電話"] || activeQuote.phone || "",
+                                    location: found["地址"] || activeQuote.location || ""
+                                });
+                            }}
+                        />
+                    </div>
+                    
+                    {/* 聯絡人 (佔1) */}
                     <div className="col-span-1">
                         <label className="block text-xs font-bold text-gray-500 mb-1">聯絡人</label>
                         <input
@@ -1198,6 +1253,7 @@ function QuoteEditor() {
                         />
                     </div>
 
+                    {/* 電話 (佔1) */}
                     <div className="col-span-1">
                         <label className="block text-xs font-bold text-gray-500 mb-1">聯絡電話</label>
                         <input
@@ -1208,6 +1264,7 @@ function QuoteEditor() {
                         />
                     </div>
 
+                    {/* 地點 (佔1) */}
                     <div className="col-span-1">
                         <label className="block text-xs font-bold text-gray-500 mb-1">工程地點</label>
                         <input
@@ -1217,6 +1274,7 @@ function QuoteEditor() {
                             className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
                         />
                     </div>
+
                 </div>
 
                 {/* ===== 金額摘要區 (橫向排列，節省垂直空間) ===== */}
