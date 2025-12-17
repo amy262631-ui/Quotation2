@@ -1043,7 +1043,7 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const wrapperRef = React.useRef(null);
 
-  // 延遲更新，避免輸入框每次打字都觸發昂貴的篩選
+  // 當 QuoteEditor 傳入的 value 改變時，更新 searchTerm (通常是載入新報價單時)
   React.useEffect(() => {
     setSearchTerm(value);
   }, [value]);
@@ -1061,24 +1061,27 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
   
   // 篩選客戶列表的邏輯 (只要輸入一個字元就開始篩選)
   const filteredCustomers = React.useMemo(() => {
-    if (!searchTerm || searchTerm.length === 0) return [];
+    // ⭐ 允許空字串時不顯示清單 (但會顯示輸入框本身)
+    if (!searchTerm || searchTerm.trim().length === 0) return [];
     
-    const lowerCaseSearch = searchTerm.toLowerCase();
+    const lowerCaseSearch = searchTerm.trim().toLowerCase();
     
     // ⭐ 關鍵：篩選邏輯，只要「客戶名稱」包含關鍵字就顯示
     return (customers || [])
         .filter(c => c["客戶名稱"]?.toLowerCase().includes(lowerCaseSearch))
-        .slice(0, 10); // 只顯示前 10 筆，避免清單過長
+        .slice(0, 10); // 只顯示前 10 筆
   }, [customers, searchTerm]);
 
   const handleInputChange = (e) => {
     const newValue = e.target.value;
-    onChange(newValue); // 先更新 QuoteEditor 的 activeQuote
+    setSearchTerm(newValue); // 先更新搜尋狀態，讓 filteredCustomers 重新計算
+    onChange(newValue); // 更新 QuoteEditor 的 activeQuote
     setShowSuggestions(true); // 顯示建議清單
   };
 
   const handleSuggestionClick = (customer) => {
-    onSelect(customer); // 呼叫父元件的選擇處理邏輯
+    onSelect(customer); // 呼叫父元件的選擇處理邏輯 (帶入所有資料)
+    setSearchTerm(customer["客戶名稱"]); // 確保輸入框顯示完整名稱
     setShowSuggestions(false); // 隱藏清單
   };
 
@@ -1086,7 +1089,7 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
     <div className="relative" ref={wrapperRef}>
       <input
         type="text"
-        value={value}
+        value={value} // 這裡使用 value，確保輸入框與 QuoteEditor 狀態同步
         onChange={handleInputChange}
         onFocus={() => setShowSuggestions(true)}
         className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-blue-500 outline-none"
@@ -1094,7 +1097,7 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
         autoComplete="off" // 避免瀏覽器內建的自動填充干擾
       />
       
-      {/* 搜尋建議清單 */}
+      {/* 搜尋建議清單：只有在 showSuggestions 且有篩選結果時才顯示 */}
       {(showSuggestions && filteredCustomers.length > 0) && (
         <ul className="absolute z-10 w-full max-h-48 overflow-y-auto bg-white border border-gray-400 rounded mt-1 shadow-lg">
           {filteredCustomers.map((c, i) => (
