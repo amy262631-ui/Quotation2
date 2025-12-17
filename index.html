@@ -1815,17 +1815,110 @@ function ExportWordButton() {
   );
 }
 // ===============================
-// PrintButton (列印按鈕) - 最終修正版
+// PrintButton (列印按鈕) - 最終穩定版
 // ===============================
 function PrintButton() {
-  return (
-    <button
-      onClick={() => window.print()} /* ⭐ 換回簡單的 window.print()，依靠 CSS 處理 */
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-    >
-      列印報價單
-    </button>
-  );
+  
+  const handlePrint = () => {
+      const printContent = document.querySelector('.print-only-layout');
+
+      if (!printContent) {
+          alert("找不到報價單內容。請先選擇或新增報價單。");
+          return;
+      }
+
+      const content = printContent.innerHTML;
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+          alert("無法開啟列印視窗，請檢查是否被瀏覽器阻擋彈出視窗。");
+          return;
+      }
+
+      // 複製原始頁面的所有 <link> 標籤和 <style> 內容 (排除可能造成問題的 <script>)
+      const headContent = Array.from(document.head.children)
+          .filter(el => (el.tagName === 'LINK' && el.rel === 'stylesheet') || el.tagName === 'STYLE')
+          .map(el => el.outerHTML)
+          .join('');
+
+      const printDoc = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>報價單列印</title>
+              <meta charset="utf-8">
+              ${headContent}
+              <style>
+                  /* 確保 PrintLayout 內的表格屬性能被繼承 */
+                  .print-page { 
+                      width: 210mm;
+                      margin: 0 auto;
+                  }
+                  /* 避免自定義列印視窗中的排版問題 */
+                  body { margin: 0; padding: 0; background: white; }
+                  table { table-layout: fixed; }
+                  td { word-break: break-word; }
+              </style>
+          </head>
+          <body>
+              ${content}
+          </body>
+          </html>
+      `;
+
+      printWindow.document.write(printDoc);
+      printWindow.document.close();
+
+      // 使用定時器強制延遲，確保圖片和 CSS 載入，解決空白頁問題
+      let imagesLoaded = 0;
+      const images = printWindow.document.querySelectorAll('img');
+      const totalImages = images.length;
+      
+      if (totalImages === 0) {
+          setTimeout(() => {
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+          }, 300);
+          return;
+      }
+
+      images.forEach(img => {
+          if (img.complete) {
+              imagesLoaded++;
+          } else {
+              img.onload = () => {
+                  imagesLoaded++;
+                  if (imagesLoaded === totalImages) {
+                      setTimeout(() => {
+                          printWindow.focus();
+                          printWindow.print();
+                          printWindow.close();
+                      }, 300);
+                  }
+              };
+              img.onerror = img.onload; // 圖片載入失敗也算完成
+          }
+      });
+      
+      // 設置一個最大延遲時間，防止圖片卡住列印
+      setTimeout(() => {
+          if (imagesLoaded < totalImages) {
+              printWindow.focus();
+              printWindow.print();
+              printWindow.close();
+          }
+      }, 3000); 
+  };
+
+  return (
+    <button
+      onClick={handlePrint}
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      列印報價單
+    </button>
+  );
 }
 /***********************************************************
  * 列印排版組件（PrintLayout）— 安全版 (標題不裁切)
@@ -1848,10 +1941,10 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const calcAmount = (item) => item.price * item.qty;
 
   // 3. 樣式定義
-  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: "12px", verticalAlign: "middle", lineHeight: "1.2" };
-  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
-  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
-  const TD_CENTER = { ...TH_TD, textAlign: "center" };
+  const TH_TD = { border: "1px solid #000", padding: "5px 4px", fontSize: "16px", verticalAlign: "middle", lineHeight: "1.5" }; // ⭐ 增加 padding 和 lineHeight
+  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "6px 4px" }; // ⭐ 增加 TH 的 padding
+  const TD_RIGHT = { ...TH_TD, textAlign: "right" };
+  const TD_CENTER = { ...TH_TD, textAlign: "center" };
 
   return (
     <div className="print-page">
