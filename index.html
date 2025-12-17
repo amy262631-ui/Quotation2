@@ -27,69 +27,80 @@
    /* =================================================
        ✅ 修正後的列印專用 CSS
     ================================================= */
-    @media print {
-      /* 1. 強制重置所有容器，取消 Flex 排版 */
-      body, 
-      #root, 
-      .quote-editor-root-container, 
-      div {
-        display: block !important; /* 關鍵：取消 flex，改為區塊 */
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        position: static !important;
-        background: white;
+ @media print {
+      /* 1. 強制重置所有容器，取消 Flex 排版 */
+      body, 
+      #root, 
+      .quote-editor-root-container, 
+      div {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: static !important;
+        background: white;
+        min-height: 0 !important; /* ⭐ 新增：防止父容器產生額外高度 */
+      }
+
+      /* 2. 隱藏不需要列印的元素 */
+      .no-print,
+      .live-preview-box,
+      aside, /* 如果側邊欄是用 aside */
+      nav {
+        display: none !important;
+      }
+
+      /* 3. 設定列印區域滿版 */
+      .print-only-layout {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box;
+        /* ⭐ 關鍵修正：強制定位到頂部 (解決空白/大空白問題) */
+        position: absolute !important; 
+        top: 0 !important;
+        left: 0 !important;
+      }
+
+      /* 4. 表格設定 */
+      table {
+        width: 100% !important;
+        border-collapse: collapse;
+        table-layout: fixed; /* 讓欄位寬度依照設定的 % 跑，不要被內容撐開或壓縮 */
+      }
+      /* ⭐ 新增：確保表格內元素不會被其他樣式影響到換行 */
+      td {
+          word-break: break-word; 
+          min-width: 0;
       }
 
-      /* 2. 隱藏不需要列印的元素 */
-      .no-print,
-      .live-preview-box,
-      aside, /* 如果側邊欄是用 aside */
-      nav {
-        display: none !important;
-      }
 
-      /* 3. 設定列印區域滿版 */
-      .print-only-layout {
-        display: block !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
-      }
+      thead {
+        display: table-header-group;
+      }
 
-      /* 4. 表格設定 */
-      table {
-        width: 100% !important;
-        border-collapse: collapse;
-        table-layout: fixed; /* 讓欄位寬度依照設定的 % 跑，不要被內容撐開或壓縮 */
-      }
+      tr {
+        page-break-inside: avoid;
+      }
 
-      thead {
-        display: table-header-group;
-      }
+      /* 5. 確保文字不會因為太擠而變直向 */
+      td, th {
+        white-space: normal;
+        word-wrap: break-word;
+        vertical-align: middle;
+      }
 
-      tr {
-        page-break-inside: avoid;
-      }
+      .print-footer-block,
+      .print-signature-area {
+        page-break-inside: avoid;
+      }
 
-      /* 5. 確保文字不會因為太擠而變直向 */
-      td, th {
-        white-space: normal; /* 允許換行 */
-        word-wrap: break-word; /*長單字換行*/
-        vertical-align: middle; /* 垂直置中 */
-      }
-
-      .print-footer-block,
-      .print-signature-area {
-        page-break-inside: avoid;
-      }
-
-      @page {
-        size: A4;
-        margin: 10mm; /* 邊距設為 10mm，讓空間更大 */
-      }
-    }
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+    }
   </style>
 </head>
 
@@ -1823,79 +1834,17 @@ function ExportWordButton() {
   );
 }
 // ===============================
-// PrintButton (列印按鈕) - 修正版
+// PrintButton (列印按鈕) - 最終修正版
 // ===============================
 function PrintButton() {
-  
-  const handlePrint = () => {
-      // 必須強制抓取列印專用的隱藏版面
-      const printContent = document.querySelector('.print-only-layout');
-
-      if (!printContent) {
-          alert("找不到報價單內容。請先選擇或新增報價單。");
-          return;
-      }
-
-      // 1. 取得列印專用區塊的 HTML 內容
-      const content = printContent.innerHTML;
-
-      // 2. 創建一個新的視窗用於列印 (使用新視窗確保 CSS 隔離)
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-          alert("無法開啟列印視窗，請檢查是否被瀏覽器阻擋彈出視窗。");
-          return;
-      }
-
-      // 3. 準備列印所需的完整 HTML 結構 (包含所有 CSS)
-      const printDoc = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>報價單列印</title>
-              <meta charset="utf-8">
-              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2/dist/tailwind.min.css" rel="stylesheet">
-              ${document.head.innerHTML.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/g, "")}
-              <style>
-                  /* 確保 PrintLayout 內的表格屬性能被繼承 */
-                  .print-page { 
-                      width: 210mm;
-                      margin: 0 auto;
-                  }
-                  /* 隱藏預覽容器可能引入的邊界 */
-                  .print-content { 
-                      padding: 0; 
-                      margin: 0;
-                  }
-              </style>
-          </head>
-          <body>
-              ${content}
-          </body>
-          </html>
-      `;
-
-      // 4. 寫入內容並開啟列印
-      printWindow.document.write(printDoc);
-      printWindow.document.close();
-
-      // 5. 確保內容加載完成後再執行列印
-      printWindow.onload = function() {
-          setTimeout(() => {
-              printWindow.focus();
-              printWindow.print();
-              printWindow.close();
-          }, 300); 
-      };
-  };
-
-  return (
-    <button
-      onClick={handlePrint} // 呼叫新的自定義函式
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-    >
-      列印報價單
-    </button>
-  );
+  return (
+    <button
+      onClick={() => window.print()} /* ⭐ 換回簡單的 window.print()，依靠 CSS 處理 */
+      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+    >
+      列印報價單
+    </button>
+  );
 }
 /***********************************************************
  * 列印排版組件（PrintLayout）— 安全版 (標題不裁切)
@@ -1967,14 +1916,14 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         </table> 
 
 
-       {/* ==========================================
+      {/* ==========================================
             Part 2: 主項目列表 - 修正排版
             ========================================== */}
         <table style={{ 
             width: "100%", 
             borderCollapse: "collapse", 
             border: "2px solid black",
-            tableLayout: "fixed" /* ⭐ 關鍵修正：強制固定表格寬度，避免擠壓 ⭐ */
+            tableLayout: "fixed" /* ⭐ 關鍵修正：強制固定寬度，解決擠壓問題 ⭐ */
         }}>
           <colgroup>
             <col style={{ width: "5%" }} />
