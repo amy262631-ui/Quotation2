@@ -1045,6 +1045,8 @@ function QuoteEditor() {
     
     // ⭐ 新增：防呆機制。如果客戶列表尚未載入，則使用空陣列。
     const customerList = customers || []; 
+  // 插入這一行：
+  console.log("Customers loaded count:", customerList.length);
     
     const componentRef = React.useRef(null);
 
