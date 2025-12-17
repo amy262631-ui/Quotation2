@@ -1826,8 +1826,9 @@ function ExportWordButton() {
 // PrintButton (列印按鈕) - 修正版
 // ===============================
 function PrintButton() {
-  // 這裡必須取得列印專用的隱藏版面，而不是整個頁面
+  
   const handlePrint = () => {
+      // 必須強制抓取列印專用的隱藏版面
       const printContent = document.querySelector('.print-only-layout');
 
       if (!printContent) {
@@ -1883,7 +1884,7 @@ function PrintButton() {
               printWindow.focus();
               printWindow.print();
               printWindow.close();
-          }, 300); // 給予微小延遲確保瀏覽器渲染完成
+          }, 300); 
       };
   };
 
@@ -1966,26 +1967,26 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         </table> 
 
 
-        {/* ==========================================
-            Part 2: 主項目列表
-            ========================================== */}
-        <table style={{ 
+       {/* ==========================================
+            Part 2: 主項目列表 - 修正排版
+            ========================================== */}
+        <table style={{ 
             width: "100%", 
             borderCollapse: "collapse", 
             border: "2px solid black",
-            tableLayout: "fixed" /* ⭐ 新增：強制固定寬度，解決擠壓問題 ⭐ */
+            tableLayout: "fixed" /* ⭐ 關鍵修正：強制固定表格寬度，避免擠壓 ⭐ */
         }}>
           <colgroup>
             <col style={{ width: "5%" }} />
-            <col style={{ width: "25%" }} /> {/* 調整為 25% */}
-            <col style={{ width: "30%" }} /> {/* 調整為 30% */}
+            <col style={{ width: "25%" }} /> {/* 調整品名寬度 */}
+            <col style={{ width: "30%" }} /> {/* 調整規格寬度 */}
             <col style={{ width: "5%" }} /> 
             <col style={{ width: "5%" }} /> 
             <col style={{ width: "10%" }} />
             <col style={{ width: "10%" }} />
-            <col style={{ width: "10%" }} /> {/* 調整為 10%，確保總和為 100% */}
+            <col style={{ width: "10%" }} /> {/* 調整備註寬度，確保總和 100% */}
           </colgroup>
-          <thead>
+          <thead>
             <tr>
               <th style={TH}>項<br />次</th>
               <th style={TH}>品名</th>
