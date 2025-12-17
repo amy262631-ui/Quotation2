@@ -1638,30 +1638,31 @@ function ExportPDFButton() {
   const { activeQuote } = React.useContext(AppContext);
 
   const handleExportPDF = () => {
-    const editorRoot = document.querySelector('.p-8.bg-gray-100.rounded-xl');
+    // 1. 取得編輯器與列印版面的 DOM
+    // 請確認您的編輯器主體有 no-print class，或是直接用 div 定位
+    const editorUI = document.querySelector('.no-print'); 
     const printOnlyLayout = document.querySelector('.print-only-layout');
 
-    if (!editorRoot || !printOnlyLayout) {
-      window.print();
+    if (!printOnlyLayout) {
+      alert("找不到列印內容，請確認報價單已選取");
       return;
     }
 
-    // 1. 暫時隱藏編輯器，只顯示乾淨的列印版面
-    const originalEditorDisplay = editorRoot.style.display;
-    editorRoot.style.display = 'none';
-    printOnlyLayout.style.display = 'block';
-
-    // 2. 更改標題，這會自動變成下載 PDF 的預設檔名
+    // 2. ⭐ 自動設定預設檔名 (這是轉 PDF 的關鍵便利點)
     const originalTitle = document.title;
     document.title = `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單`;
 
-    // 3. 呼叫列印 (使用者只需在目的地選擇「另存為 PDF」)
+    // 3. 暫時強制顯示列印版面 (不使用 fixed 推走，直接原位顯示以利截取)
+    const originalDisplay = printOnlyLayout.style.display;
+    printOnlyLayout.style.display = 'block';
+
+    // 4. 觸發系統列印
+    // 在列印視窗中，請將「目的地」選擇為「另存為 PDF」
     window.print();
 
-    // 4. 恢復原狀
+    // 5. 恢復原狀
     setTimeout(() => {
-      editorRoot.style.display = originalEditorDisplay;
-      printOnlyLayout.style.display = 'none';
+      printOnlyLayout.style.display = originalDisplay;
       document.title = originalTitle;
     }, 500);
   };
@@ -1671,7 +1672,7 @@ function ExportPDFButton() {
       onClick={handleExportPDF} 
       className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2"
     >
-      <span style={{fontSize: '1.2rem'}}>📄</span> 轉 PDF / 列印
+      <span style={{fontSize: '1.1rem'}}>📄</span> 轉存 PDF 檔案
     </button>
   );
 }
@@ -1966,13 +1967,13 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     <td style={{ ...TH_TD, width: "50%", height: 90, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
     <strong>公司報價章</strong>
     {companyInfo.stamp && (
-       <img 
+      <img 
     src={companyInfo.stamp} 
     alt="公司印章" 
     style={{ 
         display: "block", 
         margin: "5px auto", 
-        maxHeight: "75px", /* 1.2倍放大 */
+        maxHeight: "75px", // 放大 1.2 倍後的尺寸
         width: "auto"
     }} 
 />
