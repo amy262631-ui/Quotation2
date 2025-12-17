@@ -1339,118 +1339,7 @@ function QuoteEditor() {
 }
 
 // ===============================
-// Excel 匯出
-// ===============================
-function ExportButton() {
-  const { activeQuote } = React.useContext(AppContext);
-
-  const handleExport = () => {
-    if (!activeQuote || !activeQuote.items?.length) {
-      alert("請先新增報價項目");
-      return;
-    }
-
-    const companyKey = activeQuote.company || "herhsin";
-    const company = COMPANY_DATA[companyKey];
-    const total = calcTotal(activeQuote.items);
-    const negotiated = calcNegotiated(total, activeQuote.discountPercent, activeQuote.negotiatedPrice);
-    
-    // 判斷是否顯示最終報價
-    const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
-
-    const rows = [];
-    let r = 0;
-
-    rows[r++] = [company.name];
-    rows[r++] = ["工程報價單"];
-    rows[r++] = [];
-
-    rows[r++] = ["報價單號", activeQuote.quoteNo, "", "", "報價日期", activeQuote.date];
-    rows[r++] = ["工程名稱", activeQuote.title];
-    rows[r++] = ["客戶名稱", activeQuote.customerName, "", "聯絡人", activeQuote.contact];
-    rows[r++] = ["工程地點", activeQuote.location];
-    rows[r++] = [];
-
-    rows[r++] = ["項次","品名","規格 / 補充內容","單位","數量","單價","金額(小計)","備註","用料明細"];
-
-    let index = 1;
-    activeQuote.items.forEach(item => {
-      rows[r++] = [
-        index++,
-        item.name || "",
-        item.specMain || "",
-        item.unit || "",
-        item.qty || "",
-        item.price || "",
-        calcAmount(item),
-        item.remarks || "",
-        item.specMaterial || ""
-      ];
-
-      if (item.specMaterial) {
-         rows[r++] = ["", `用料明細：${item.specMaterial}`, "", "", "", "", "", "", ""];
-      }
-
-      (item.subItems || []).forEach(sub => {
-        if (sub.type === "text") {
-          rows[r++] = ["", `補充：${sub.name || ""}`, sub.remarks || "", "", "", "", "", "", ""];
-        }
-        if (sub.type === "image") {
-          rows[r++] = ["", "補充圖片", "（圖片請參考列印版）", "", "", "", "", "", ""];
-        }
-      });
-    });
-
-    rows[r++] = [];
-    rows[r++] = ["", "", "", "", "", "總計", total];
-    
-    // ⭐ 如果沒有折扣/自定義價格，就不輸出這兩行
-    if (showFinalPrice) {
-        rows[r++] = ["", "", "", "", "", "折扣(%)", activeQuote.discountPercent || 0];
-        rows[r++] = ["", "", "", "", "", "最終報價", negotiated];
-    }
-    
-    rows[r++] = [];
-    rows[r++] = ["備註"];
-    rows[r++] = [activeQuote.notes || ""];
-    rows[r++] = [];
-    rows[r++] = ["付款條件"];
-    rows[r++] = [activeQuote.payment || ""];
-
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-
-    ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
-      { s: { r: 4, c: 1 }, e: { r: 4, c: 8 } },
-      { s: { r: 5, c: 1 }, e: { r: 5, c: 8 } },
-    ];
-    
-    ws["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 42 }, { wch: 8 }, { wch: 8 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 32 }];
-
-    Object.keys(ws).forEach(key => {
-      if (ws[key]?.v && typeof ws[key].v === "number") ws[key].z = "#,##0";
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "報價單");
-
-    const filename = `${activeQuote.quoteNo}_${activeQuote.customerName || "未填客戶"}-${activeQuote.title || "未命名工程"} 報價單.xlsx`.replace(/[\\/:*?"<>|]/g,"");
-    XLSX.writeFile(wb, filename);
-  };
-
-  return (
-    <button
-      onClick={handleExport}
-      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-    >
-      匯出 Excel（報價單版型）
-    </button>
-  );
-}
-
-// ===============================
-// Word 匯出 (極致緊湊版：強制單頁輸出)
+// Word 匯出 (無邊界極限版：消除頂部留白)
 // ===============================
 function ExportWordButton() {
   const { activeQuote } = React.useContext(AppContext);
@@ -1473,42 +1362,44 @@ function ExportWordButton() {
     const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
     const hasLeakageParts = activeQuote.leakageParts && activeQuote.leakageParts.length > 0;
     
-    // 2. 產生 Word HTML (極致緊湊排版)
+    // 2. 產生 Word HTML (消除頂部留白 + 極限壓縮)
     const wordContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
         <meta charset="utf-8">
         <title>${activeQuote.title}</title>
         <style>
-          /* 1. 設定極窄邊界：上下僅留 5mm，左右 8mm (讓表格更寬) */
+          /* 1. 設定極窄邊界：上下左右僅留 8mm (約 0.8公分) */
           @page {
             mso-page-orientation: portrait;
             size: 210mm 297mm;
-            margin: 5mm 8mm 5mm 8mm; 
+            margin: 8mm 8mm 8mm 8mm; 
           }
-          /* 字體與行高設定 */
+          /* 消除 Body 預設邊距 */
           body {
             font-family: "Microsoft JhengHei", "PMingLiU", serif;
             font-size: 9pt; 
-            line-height: 1.05; /* 行高再縮緊一點 */
+            line-height: 1.0; /* 行高壓到最小 */
+            margin: 0;
+            padding: 0;
           }
           /* 表格設定 */
           table {
             width: 100%;
             border-collapse: collapse;
             border-spacing: 0;
-            margin-bottom: 3px; /* 表格間距縮到最小 */
+            margin-bottom: 3px; /* 表格間距極小 */
           }
-          /* 2. 關鍵修改：儲存格內距縮到 1px，強制壓扁表格 */
+          /* 2. 儲存格內距縮到 1px */
           td, th {
             border: 1px solid black;
-            padding: 1px 3px; /* 上下 1px, 左右 3px */
+            padding: 1px 3px; 
             vertical-align: middle;
             font-size: 9pt;
           }
-          /* 用料明細的特別設定 (更扁) */
+          /* 用料明細更扁 */
           .detail-row td {
-             padding: 0px 3px !important; /* 極限壓縮 */
+             padding: 0px 3px !important; 
              font-size: 8pt;
              color: #444;
              border-top: 1px dashed #ccc;
@@ -1516,8 +1407,8 @@ function ExportWordButton() {
 
           .no-border, .no-border td { border: none !important; }
           
-          /* 3. 標題間距縮緊 */
-          h1 { font-size: 18pt; text-align: center; margin: 0; }
+          /* 3. 標題強制貼頂，消除 margin */
+          h1 { font-size: 18pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; }
           h2 { font-size: 14pt; text-align: center; margin: 2px 0; text-decoration: underline; }
           .sub-info { font-size: 8pt; text-align: center; margin-bottom: 2px; color: #444; }
           
@@ -1525,8 +1416,8 @@ function ExportWordButton() {
           .text-right { text-align: right; }
           .font-bold { font-weight: bold; }
           
-          /* 4. 簽名欄高度與圖片控制 */
-          .sig-box { height: 45px; vertical-align: top; } 
+          /* 4. 簽名欄高度壓縮 */
+          .sig-box { height: 40px; vertical-align: top; } 
         </style>
       </head>
       <body>
@@ -1599,14 +1490,14 @@ function ExportWordButton() {
               </tr>` : ""}
             `).join("")}
             
-            <tr style="height: 20px;">
+            <tr style="height: 18px;">
               <td colspan="5" class="no-border"></td>
               <td class="text-center font-bold" style="background-color: #f0f0f0;">總計金額</td>
               <td class="text-right font-bold" style="background-color: #f0f0f0;">${formatMoney(totalAmount)}</td>
             </tr>
             
             ${showFinalPrice ? `
-            <tr style="height: 20px;">
+            <tr style="height: 18px;">
                <td colspan="5" class="no-border"></td>
                <td class="text-center font-bold" style="color: red; border-top: none;">最終報價</td>
                <td class="text-right font-bold" style="color: red; border-top: none;">${formatMoney(negotiatedAmount)}</td>
@@ -1616,7 +1507,7 @@ function ExportWordButton() {
         </table>
 
         ${hasLeakageParts ? `
-        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 4px 0 2px 0; font-size: 9pt;">
+        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 3px 0 2px 0; font-size: 9pt;">
           ※ 實支實付維修零件 <span style="font-size: 8pt; font-weight: normal;">(不計入總額)</span>
         </div>
         <table>
@@ -1645,11 +1536,11 @@ function ExportWordButton() {
           <tr>
              <td width="50%" valign="top">
                 <strong>備註：</strong><br/>
-                <div style="font-size: 8pt; margin-top: 2px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.notes || ""}</div>
+                <div style="font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.notes || ""}</div>
              </td>
              <td width="50%" valign="top">
                 <strong>付款條件：</strong><br/>
-                <div style="font-size: 8pt; margin-top: 2px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.payment || ""}</div>
+                <div style="font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.payment || ""}</div>
              </td>
           </tr>
         </table>
@@ -1658,7 +1549,7 @@ function ExportWordButton() {
           <tr>
             <td width="50%" class="sig-box">
                <strong>公司報價章</strong><br/>
-               ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="75" height="75" style="display:block; margin: 2px auto;" />` : ""}
+               ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="60" height="60" style="display:block; margin: 0 auto;" />` : ""}
             </td>
             <td width="50%" class="sig-box">
                <strong>客戶回簽</strong>
@@ -1687,7 +1578,7 @@ function ExportWordButton() {
 
   return (
     <button onClick={handleExportWord} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-      匯出 Word (極致緊湊版)
+      匯出 Word (極限版)
     </button>
   );
 }
