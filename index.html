@@ -1645,29 +1645,34 @@ function ExportPDFButton() {
       return;
     }
 
-    // 2. ⭐ 核心修正：強制讓元素在後台顯示，但用透明度隱藏，避免抓到空白
+    // 2. ⭐ 核心修正：讓元素在後台「可見」但「不被看見」 ⭐
+    // 先備份原始屬性
     const originalStyle = element.getAttribute('style');
+    
+    // 強制顯示並移到螢幕左邊極遠處 (-9999px)，避免畫面閃爍
     element.style.display = 'block';
     element.style.position = 'fixed';
-    element.style.left = '-9999px'; // 移出螢幕外
+    element.style.left = '-9999px';
     element.style.top = '0';
-    element.style.zIndex = '-1';
+    element.style.width = '210mm'; // 鎖定 A4 寬度
+    element.style.backgroundColor = 'white';
 
     const opt = {
-      margin:       [10, 10], // 上下左右邊界 10mm
+      margin:       [10, 10], // 上下左右邊界
       filename:     `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單.pdf`,
-      image:        { type: 'jpeg', quality: 1 }, // 最高品質
+      image:        { type: 'jpeg', quality: 1.0 }, // 最高清晰度
       html2canvas:  { 
-        scale: 3,        // 放大倍率提高到 3，讓字體跟印章非常清晰
-        useCORS: true,   // 允許跨網域圖片(印章)
-        letterRendering: true 
+        scale: 3,         // ⭐ 提高縮放倍率到 3，確保文字與印章不模糊
+        useCORS: true,    // 允許跨網域載入 GitHub 上的印章圖片
+        logging: false,
+        letterRendering: true
       },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     // 3. 執行轉換
-    html2pdf().set(opt).from(element).save().then(() => {
-      // 4. 恢復原狀
+    html2pdf().set(opt).from(element).toPdf().get('pdf').save().then(() => {
+      // 4. 完成後恢復原始隱藏狀態
       if (originalStyle) {
         element.setAttribute('style', originalStyle);
       } else {
@@ -1675,14 +1680,15 @@ function ExportPDFButton() {
       }
     }).catch(err => {
       console.error("PDF 轉換錯誤:", err);
-      alert("PDF 生成失敗，請再試一次");
+      alert("PDF 生成失敗，請檢查網路後再試一次。");
+      element.style.display = 'none'; // 發生錯誤也要藏起來
     });
   };
 
   return (
     <button 
       onClick={handleExportPDF} 
-      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2"
+      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2 transition-all active:scale-95"
     >
       <span style={{fontSize: '1.2rem'}}>📄</span> 一鍵轉 PDF
     </button>
@@ -1981,16 +1987,16 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
     <strong>公司報價章</strong>
     {companyInfo.stamp && (
         <img 
-            src={companyInfo.stamp} 
-            alt="公司印章" 
-            crossOrigin="anonymous" // ⭐ 加入這行
-            style={{ 
-                display: "block", 
-                margin: "5px auto", 
-                maxHeight: "75px", /* ⭐ 放大 1.2 倍 (60 -> 75) */
-                width: "auto"
-            }} 
-        />
+    src={companyInfo.stamp} 
+    alt="公司印章" 
+    crossOrigin="anonymous" /* ⭐ 這行一定要加，否則 PDF 裡的印章會變空白 ⭐ */
+    style={{ 
+        display: "block", 
+        margin: "5px auto", 
+        maxHeight: "75px", 
+        width: "auto"
+    }} 
+/>
     )}
 </td>
                     {/* 強制加上右邊框 */}
