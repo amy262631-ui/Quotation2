@@ -1031,6 +1031,10 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
  ***********************************************************/
 // 報價單編輯主元件
 function QuoteEditor() {
+  // ⭐ 請在 { 之後，貼上這三行，以避免找不到元件的錯誤 ⭐
+    const ExportButton = window.ExportButton;
+    const ExportWordButton = window.ExportWordButton;
+    const PrintButton = window.PrintButton;
     const { activeQuote, updateQuote } = React.useContext(AppContext);
     const componentRef = React.useRef(null);
 
