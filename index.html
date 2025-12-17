@@ -1600,7 +1600,7 @@ function ExportWordButton() {
           <tr>
             <td width="50%" class="sig-box">
                <strong>公司報價章</strong><br/>
-               ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="55" height="55" style="display:block; margin: 0 auto;" />` : ""}
+               ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="66" height="66" style="display:block; margin: 2px auto;" />` : ""}
             </td>
             <td width="50%" class="sig-box">
                <strong>客戶回簽</strong>
@@ -1745,7 +1745,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
 
       {/* ==========================================
-            Part 2: 主項目列表 - 修正警告與排版版
+            Part 2: 主項目列表 - 恢復 8 欄式排版
             ========================================== */}
         <table style={{ 
             width: "100%", 
@@ -1753,8 +1753,8 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             border: "2px solid black",
             tableLayout: "fixed" 
         }}>
-          {/* ⭐ 修正 1：緊湊寫法移除空白節點警告，並確保與標頭欄位數一致 (共 7 欄) ⭐ */}
-          <colgroup><col style={{ width: "8%" }}/><col style={{ width: "26%" }}/><col style={{ width: "30%" }}/><col style={{ width: "7%" }}/><col style={{ width: "7%" }}/><col style={{ width: "10%" }}/><col style={{ width: "12%" }}/></colgroup>
+          {/* ⭐ 寬度比例分配：5+22+22+6+6+9+13+15 = 100% */}
+          <colgroup><col style={{ width: "5%" }}/><col style={{ width: "22%" }}/><col style={{ width: "22%" }}/><col style={{ width: "6%" }}/><col style={{ width: "6%" }}/><col style={{ width: "9%" }}/><col style={{ width: "13%" }}/><col style={{ width: "15%" }}/></colgroup>
           <thead>
             <tr>
               <th style={TH}>項次</th>
@@ -1764,6 +1764,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
               <th style={TH}>數量</th>
               <th style={TH}>單價</th>
               <th style={TH}>小計</th>
+              <th style={TH}>備註</th>
             </tr>
           </thead>
           <tbody>
@@ -1772,11 +1773,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                 <tr>
                     <td style={TD_CENTER}>{index + 1}</td>
                     <td style={TH_TD}>{item.name}</td>
-                    {/* 將規格與原本的備註合併顯示，確保資訊不遺失 */}
-                    <td style={{ ...TH_TD, color: "#444" }}>
-                        <div>{item.specMain}</div>
-                        {item.remarks && <div style={{ fontSize: "10px", color: "#666", borderTop: "1px dotted #ccc", marginTop: "2px" }}>備註：{item.remarks}</div>}
-                    </td>
+                    <td style={{ ...TH_TD, color: "#444" }}>{item.specMain}</td>
                     <td style={TD_CENTER}>{item.unit}</td>
                     <td style={TD_CENTER}>{item.qty}</td>
                     <td style={TD_RIGHT}>
@@ -1785,13 +1782,14 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
                         {calcAmount(item) > 0 ? formatMoney(calcAmount(item)) : "-"}
                     </td>
+                    <td style={TH_TD}>{item.remarks}</td>
                 </tr>
                 
-                {/* 修正 2：colSpan 改為 6 (因為總共 7 欄，扣除項次那欄後為 6) */}
+                {/* 用料明細：扣除項次欄位後合併剩餘 7 欄 */}
                 {item.specMaterial && (
                   <tr>
                     <td style={{ ...TH_TD, borderTop: "none" }}></td>
-                    <td colSpan="6" style={{ ...TH_TD, color: "#444", fontSize: "11px", borderTop: "1px dashed #ccc" }}>
+                    <td colSpan="7" style={{ ...TH_TD, color: "#444", fontSize: "11px", borderTop: "1px dashed #ccc" }}>
                       <span style={{ fontWeight: "bold" }}>用料：</span>{item.specMaterial}
                     </td>
                   </tr>
@@ -1800,7 +1798,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                 {item.subItems && item.subItems.map(sub => (
                     <tr key={sub.id}>
                          <td style={{ ...TH_TD, borderTop: "none" }}></td>
-                         <td colSpan="6" style={{ ...TH_TD, color: "#666", fontSize: "11px", textAlign: sub.type === "image" ? "center" : "left" }}>
+                         <td colSpan="7" style={{ ...TH_TD, color: "#666", fontSize: "11px", textAlign: sub.type === "image" ? "center" : "left" }}>
                            {sub.type === "image" ? (
                              <img src={sub.imageData} alt="圖片" style={{ maxWidth: "50%", maxHeight: "150px", display: "block", margin: "0 auto" }} />
                            ) : (
@@ -1813,12 +1811,12 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             ))}
 
             {itemsToPrint.length === 0 && (
-                <tr><td colSpan={7} style={{...TD_CENTER, padding: 10, color: "#999"}}>無項目</td></tr>
+                <tr><td colSpan={8} style={{...TD_CENTER, padding: 10, color: "#999"}}>無項目</td></tr>
             )}
           </tbody>
         </table>
 
-{/* ==========================================
+          {/* ==========================================
             Part 3: 金額總結 (強制不換行) - 修正警告版
             ========================================== */}
         <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
@@ -1923,12 +1921,21 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                 <tbody>
                 <tr>
                     {/* 這裡加入 borderRight 確保中間那條線也在 */}
-                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
-                        <strong>公司報價章</strong>
-                        {companyInfo.stamp && (
-                            <img src={companyInfo.stamp} alt="公司印章" style={{ display: "block", margin: "2px auto", maxHeight: 60 }} />
-                        )}
-                    </td>
+                    <td style={{ ...TH_TD, width: "50%", height: 90, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
+    <strong>公司報價章</strong>
+    {companyInfo.stamp && (
+        <img 
+            src={companyInfo.stamp} 
+            alt="公司印章" 
+            style={{ 
+                display: "block", 
+                margin: "5px auto", 
+                maxHeight: "75px", /* ⭐ 放大 1.2 倍 (60 -> 75) */
+                width: "auto"
+            }} 
+        />
+    )}
+</td>
                     {/* 強制加上右邊框 */}
                     <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
                         <strong>客戶回簽</strong>
