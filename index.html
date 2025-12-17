@@ -1448,7 +1448,7 @@ function ExportButton() {
   );
 }
 // ===============================
-// Word 匯出 (極限版 v3：頂部無間距修正)
+// Word 匯出 (極限版 v4：清晰可讀，修正頂部留白)
 // ===============================
 function ExportWordButton() {
   const { activeQuote } = React.useContext(AppContext);
@@ -1471,18 +1471,18 @@ function ExportWordButton() {
     const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
     const hasLeakageParts = activeQuote.leakageParts && activeQuote.leakageParts.length > 0;
     
-    // 2. 產生 Word HTML (消除頂部留白 + 極限壓縮)
+    // 2. 產生 Word HTML (清晰可讀排版)
     const wordContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
         <meta charset="utf-8">
         <title>${activeQuote.title}</title>
         <style>
-          /* 1. ⭐ 關鍵修改：頂部邊界縮至 5mm (0.5cm) ⭐ */
+          /* 1. ⭐ 邊界設定：上下 5mm, 左右 8mm ⭐ */
           @page {
             mso-page-orientation: portrait;
             size: 210mm 297mm;
-            margin: 5mm 8mm 5mm 8mm; /* 上下 5mm, 左右 8mm */
+            margin: 5mm 8mm 5mm 8mm; 
             
             /* ⭐ 修正 Word 頁首/頁尾空間，強制貼頂 ⭐ */
             mso-header-margin: 0;
@@ -1490,11 +1490,11 @@ function ExportWordButton() {
             mso-margin-top-header: 0;
             mso-margin-bottom-footer: 0;
           }
-          /* 2. 消除 Body 預設邊距，字體基線微調 */
+          /* 2. 消除 Body 預設邊距，字體基線調整回 9pt */
           body {
             font-family: "Microsoft JhengHei", "PMingLiU", serif;
-            font-size: 8pt; 
-            line-height: 1.0; 
+            font-size: 9pt; /* 調整回 9pt，確保清晰度 */
+            line-height: 1.05; 
             margin: 0;
             padding: 0;
           }
@@ -1503,45 +1503,51 @@ function ExportWordButton() {
             width: 100%;
             border-collapse: collapse;
             border-spacing: 0;
-            margin-bottom: 0px; 
+            margin-bottom: 3px; 
           }
-          /* 儲存格內距縮到 1px */
+          /* 儲存格內距微調 */
           td, th {
             border: 1px solid black;
-            padding: 1px 3px; 
-            vertical-align: middle;
-            font-size: 8pt;
+            padding: 2px 3px; /* 上下 2px，保持可讀 */
+            vertical-align: top; /* 垂直向上對齊 */
+            font-size: 9pt;
           }
+          /* 數字欄位字體，確保清晰 */
           .num-cell {
-            font-size: 8pt; 
-            font-weight: normal; 
+            font-size: 9pt; 
+            font-weight: bold; 
           }
           
+          /* 備註/用料明細縮小到 8pt，可讀性尚可 */
           .detail-row td {
-             padding: 0px 3px !important; 
-             font-size: 7pt;
+             padding: 1px 3px !important; 
+             font-size: 8pt; 
              color: #444;
              border-top: 1px dashed #ccc;
           }
 
           .no-border, .no-border td { border: none !important; }
           
-          /* 3. 標題強制貼頂，字體再縮 */
-          h1 { font-size: 15pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; } 
-          h2 { font-size: 12pt; text-align: center; margin: 1px 0; text-decoration: underline; }
-          .sub-info { font-size: 7pt; text-align: center; margin-bottom: 1px; color: #444; }
+          /* 3. 標題強制貼頂，字體微調 */
+          h1 { font-size: 16pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; } 
+          h2 { font-size: 13pt; text-align: center; margin: 2px 0; text-decoration: underline; }
+          .sub-info { font-size: 8pt; text-align: center; margin-bottom: 2px; color: #444; } /* 公司資訊調整回 8pt */
           
           .text-center { text-align: center; }
           .text-right { text-align: right; }
           .font-bold { font-weight: bold; }
           
           /* 4. 簽名欄高度壓縮 */
-          .sig-box { height: 35px; vertical-align: top; } 
+          .sig-box { height: 40px; vertical-align: top; } 
+          
+          /* 備註/付款條件字體調整為 8pt */
+          .note-text { font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.2; }
+          
         </style>
       </head>
       <body>
         
-        <table class="no-border" style="margin-bottom: 0;"> 
+        <table class="no-border" style="margin-bottom: 0; mso-yfti-tbllook:1184;">
           <tr>
             <td class="text-center" style="padding: 0;">
               <h1>${companyInfo.name}</h1>
@@ -1554,23 +1560,23 @@ function ExportWordButton() {
           </tr>
         </table>
 
-        <table class="no-border" style="margin-bottom: 2px;">
+        <table class="no-border" style="margin-bottom: 3px;">
           <tr>
-            <td width="60%" valign="bottom" style="line-height: 1.1;">
+            <td width="60%" valign="top" style="line-height: 1.2;">
               <strong>客戶名稱：</strong>${activeQuote.customerName || ""}<br/>
               <strong>工程名稱：</strong>${activeQuote.title || ""}<br/>
               <strong>工程地點：</strong>${activeQuote.location || ""}<br/>
               <strong>聯絡電話：</strong>${activeQuote.phone || ""}
             </td>
-            <td width="40%" valign="bottom" class="text-right" style="line-height: 1.1;">
+            <td width="40%" valign="top" class="text-right" style="line-height: 1.2;">
               <strong>報價單號：</strong>${activeQuote.quoteNo}<br/>
               <strong>報價日期：</strong>${activeQuote.date}<br/>
-              <strong>聯絡人：</strong>${activeQuote.contact || ""}
+              <strong>聯絡人：：</strong>${activeQuote.contact || ""}
             </td>
           </tr>
         </table>
 
-        <table style="margin-bottom: 2px;">
+        <table style="margin-bottom: 3px;">
           <thead>
             <tr style="background-color: #f0f0f0;">
               <th width="5%">項次</th>
@@ -1609,25 +1615,25 @@ function ExportWordButton() {
               </tr>` : ""}
             `).join("")}
             
-            <tr style="height: 16px;">
+            <tr style="height: 18px;">
               <td colspan="5" class="no-border"></td>
-              <td class="text-center font-bold" style="background-color: #f0f0f0;">總計金額</td>
-              <td class="text-right font-bold" style="background-color: #f0f0f0;">${formatMoney(totalAmount)}</td>
+              <td class="text-center font-bold" style="background-color: #f0f0f0; font-size: 9pt;">總計金額</td>
+              <td class="text-right font-bold num-cell" style="background-color: #f0f0f0; font-size: 9pt;">${formatMoney(totalAmount)}</td>
             </tr>
             
             ${showFinalPrice ? `
-            <tr style="height: 16px;">
+            <tr style="height: 18px;">
                <td colspan="5" class="no-border"></td>
-               <td class="text-center font-bold" style="color: red; border-top: none;">最終報價</td>
-               <td class="text-right font-bold" style="color: red; border-top: none;">${formatMoney(negotiatedAmount)}</td>
+               <td class="text-center font-bold" style="color: red; border-top: none; font-size: 9pt;">最終報價</td>
+               <td class="text-right font-bold num-cell" style="color: red; border-top: none; font-size: 9pt;">${formatMoney(negotiatedAmount)}</td>
             </tr>
             ` : ""}
           </tbody>
         </table>
 
         ${hasLeakageParts ? `
-        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 1px 0; font-size: 8pt;">
-          ※ 實支實付維修零件 <span style="font-size: 7pt; font-weight: normal;">(不計入總額)</span>
+        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 2px 0 1px 0; font-size: 9pt;">
+          ※ 實支實付維修零件 <span style="font-size: 8pt; font-weight: normal;">(不計入總額)</span>
         </div>
         <table style="margin-bottom: 2px;">
           <thead>
@@ -1651,15 +1657,15 @@ function ExportWordButton() {
         </table>
         ` : ""}
 
-        <table style="margin-top: 2px;">
+        <table style="margin-top: 3px;">
           <tr>
-             <td width="50%" valign="top" class="note-cell">
+             <td width="50%" valign="top" style="padding: 2px 3px;">
                 <strong>備註：</strong><br/>
-                <div style="font-size: 7pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.notes || ""}</div>
+                <div class="note-text">${activeQuote.notes || ""}</div>
              </td>
-             <td width="50%" valign="top" class="note-cell">
+             <td width="50%" valign="top" style="padding: 2px 3px;">
                 <strong>付款條件：</strong><br/>
-                <div style="font-size: 7pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.1;">${activeQuote.payment || ""}</div>
+                <div class="note-text">${activeQuote.payment || ""}</div>
              </td>
           </tr>
         </table>
@@ -1675,8 +1681,8 @@ function ExportWordButton() {
             </td>
           </tr>
           <tr>
-             <td class="text-center" style="font-size: 7pt; border-top: none; padding-top: 0;">日期：</td>
-             <td class="text-center" style="font-size: 7pt; border-top: none; padding-top: 0;">日期：</td>
+             <td class="text-center" style="font-size: 8pt; border-top: none; padding-top: 0;">日期：</td>
+             <td class="text-center" style="font-size: 8pt; border-top: none; padding-top: 0;">日期：</td>
           </tr>
         </table>
 
@@ -1698,19 +1704,6 @@ function ExportWordButton() {
   return (
     <button onClick={handleExportWord} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
       匯出 Word (極限版 v3)
-    </button>
-  );
-}
-// ===============================
-// 2. 請把 PrintButton 貼在這裡 (這一段正下方) 
-// ===============================
-function PrintButton() {
-  return (
-    <button
-      onClick={() => window.print()}
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-    >
-      列印報價單
     </button>
   );
 }
