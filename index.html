@@ -136,16 +136,16 @@ const DEFAULT_PAYMENT = `訂金：40%
 安裝完成：20%
 完工驗收：10%`;
  
-/***********************************************************
- * 報價模式模板（QUOTE_MODES）— 已新增實支實付零件預設值
- ***********************************************************/
+// =========================================================
+// 報價模式設定 (已移除設備銷售，並更新漏漿模式所有細節)
+// =========================================================
 const QUOTE_MODES = [
   {
     id: "mode_leak_repair",
     name: "拌合機漏漿更換工程",
     description: "拌合機漏漿修復，包工包料項目另計，零件實支實付",
     
-    // 1. 主要工程項目 (維持原本設定)
+    // 1. 主要工程項目 (已加入預設用料明細)
     defaultItems: [
       {
         name: "更換 3m³ 拌合機【減速機側】漏漿（含工資及材料）",
@@ -171,16 +171,13 @@ const QUOTE_MODES = [
       }
     ],
 
-  // ... 在 QUOTE_MODES 裡面 ...
-
-    // ▼▼▼ 2. 修改後的：實支實付零件預設清單 (已合併台製/德製) ▼▼▼
+    // 2. 實支實付零件 (已包含下拉選單切換台製/德製)
     defaultLeakageParts: [
       { 
         name: "聯軸器", 
         spec: "台灣製造", 
         unit: "組", 
         price: 30000,
-        // ⭐ 新增：選項設定
         variants: [
           { label: "台製 (台灣製造)", spec: "台灣製造", price: 30000 },
           { label: "德製 (德國原裝)", spec: "德國原裝", price: 58000 }
@@ -191,7 +188,6 @@ const QUOTE_MODES = [
         spec: "台灣製造", 
         unit: "只", 
         price: 2000,
-        // ⭐ 新增：選項設定
         variants: [
           { label: "台製 (台灣製造)", spec: "台灣製造", price: 2000 },
           { label: "德製 (德國原裝)", spec: "德國原裝", price: 9500 }
@@ -206,30 +202,27 @@ const QUOTE_MODES = [
       { name: "O型環", spec: "3x120x126", unit: "只", price: 200 },
       { name: "假日施工加價", spec: "非工作日出勤費用", unit: "式", price: 15000 },
     ],
-    // ▲▲▲ 修改結束 ▲▲▲
 
     referenceItems: [],
+    
+    // 3. 備註 (已加入第7點假日施工說明)
     defaultNotes: DEFAULT_NOTES + "\n7. 本報價為平日施工費用，如需假日施工則需另外加價(參考實支實付明細表)",
+    
+    // 4. 付款條件 (已改成完工後 100%)
     defaultPayment: "完工後支付 100%"
   },
-  {
-    id: "modeB",
-    name: "設備銷售",
-    description: "適用備品、單機銷售與安裝。",
-    defaultItems: [],
-    defaultNotes: DEFAULT_NOTES,
-    defaultPayment: DEFAULT_PAYMENT
-  },
+  
+  // (原本的 modeB 設備銷售已刪除)
+
   {
     id: "modeC",
     name: "設備更換工程",
-    description: "適用整機更新、料件更換工程。",
+    description: "適用整機更新、單機銷售與安裝、料件更換工程。", // 描述稍微修改一下，涵蓋範圍更廣
     defaultItems: [],
     defaultNotes: DEFAULT_NOTES,
     defaultPayment: DEFAULT_PAYMENT
   }
 ];
-
 /***********************************************************
   * P2 — 工具函式
  ***********************************************************/
