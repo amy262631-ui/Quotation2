@@ -1452,115 +1452,161 @@ function QuoteEditor() {
     </div> 
     );
 }
-// ===============================
-// Excel 匯出
-// ===============================
+// ========================================================
+// ExportButton 元件：專門用於 Excel (XLSX) 輸出 (優化公式和總結)
+// ========================================================
 function ExportButton() {
-  const { activeQuote } = React.useContext(AppContext);
+    const { activeQuote } = React.useContext(AppContext);
 
-  const handleExport = () => {
-    if (!activeQuote || !activeQuote.items?.length) {
-      alert("請先新增報價項目");
-      return;
-    }
+    if (!activeQuote) return null;
 
-    const companyKey = activeQuote.company || "herhsin";
-    const company = COMPANY_DATA[companyKey];
-    const total = calcTotal(activeQuote.items);
-    const negotiated = calcNegotiated(total, activeQuote.discountPercent, activeQuote.negotiatedPrice);
-    
-    // 判斷是否顯示最終報價
-    const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
-
-    const rows = [];
-    let r = 0;
-
-    rows[r++] = [company.name];
-    rows[r++] = ["工程報價單"];
-    rows[r++] = [];
-
-    rows[r++] = ["報價單號", activeQuote.quoteNo, "", "", "報價日期", activeQuote.date];
-    rows[r++] = ["工程名稱", activeQuote.title];
-    rows[r++] = ["客戶名稱", activeQuote.customerName, "", "聯絡人", activeQuote.contact];
-    rows[r++] = ["工程地點", activeQuote.location];
-    rows[r++] = [];
-
-    rows[r++] = ["項次","品名","規格 / 補充內容","單位","數量","單價","金額(小計)","備註","用料明細"];
-
-    let index = 1;
-    activeQuote.items.forEach(item => {
-      rows[r++] = [
-        index++,
-        item.name || "",
-        item.specMain || "",
-        item.unit || "",
-        item.qty || "",
-        item.price || "",
-        calcAmount(item),
-        item.remarks || "",
-        item.specMaterial || ""
-      ];
-
-      if (item.specMaterial) {
-         rows[r++] = ["", `用料明細：${item.specMaterial}`, "", "", "", "", "", "", ""];
-      }
-
-      (item.subItems || []).forEach(sub => {
-        if (sub.type === "text") {
-          rows[r++] = ["", `補充：${sub.name || ""}`, sub.remarks || "", "", "", "", "", "", ""];
+    const exportToExcel = () => {
+        if (!activeQuote.title) {
+            alert("請先輸入工程名稱再匯出 Excel。");
+            return;
         }
-        if (sub.type === "image") {
-          rows[r++] = ["", "補充圖片", "（圖片請參考列印版）", "", "", "", "", "", ""];
+
+        const data = [];
+        
+        // --- 報價單基本資訊 ---
+        data.push([{ v: '報價單編號', s: { font: { bold: true } } }, activeQuote.quoteNo]);
+        data.push([{ v: '工程名稱', s: { font: { bold: true } } }, activeQuote.title]);
+        data.push([{ v: '客戶名稱', s: { font: { bold: true } } }, activeQuote.customerName]);
+        data.push([{ v: '工程地點', s: { font: { bold: true } } }, activeQuote.location]);
+        data.push([]); // 空行分隔
+        
+        // --- 報價項目表頭 ---
+        data.push([
+            { v: '項次', s: { font: { bold: true } } },
+            { v: '品名', s: { font: { bold: true } } },
+            { v: '規格 / 補充內容', s: { font: { bold: true } } },
+            { v: '單位', s: { font: { bold: true } } },
+            { v: '數量', s: { font: { bold: true } } },
+            { v: '單價', s: { font: { bold: true } } },
+            { v: '金額(小計)', s: { font: { bold: true } } },
+            { v: '備註', s: { font: { bold: true } } },
+        ]);
+
+        // --- 報價項目內容 (帶入公式) ---
+        const startRow = data.length + 1; // 記錄項目起始行數 (從 1 開始計算)
+        let currentRow = startRow;
+        
+        activeQuote.items.forEach((item, index) => {
+            // 主項目
+            data.push([
+                index + 1, // A
+                item.name, // B
+                item.specMain, // C
+                item.unit, // D
+                item.qty, // E
+                item.price, // F
+                // ⭐ 關鍵：金額小計欄位 (G欄)，使用公式
+                { f: `E${currentRow}*F${currentRow}` }, // G
+                item.remarks // H
+            ]);
+            currentRow++;
+
+            // 子項目 (規格明細)
+            item.subItems.filter(sub => sub.type === 'text').forEach(sub => {
+                data.push([
+                    '', 
+                    '└─ 規格明細:', 
+                    sub.name + ': ' + (sub.remarks || ''), 
+                    '', '', '', '', 
+                    ''
+                ]);
+                currentRow++;
+            });
+        });
+        
+        // --- 總計計算與稅額 ---
+        data.push([]); // 空行
+        const totalRow = currentRow + 1; // 總計行數
+        const taxRow = totalRow + 1; // 稅額行數
+        const totalTaxRow = taxRow + 1; // 總計(含稅)行數
+        
+        // 1. 計算總計金額 (未稅)
+        data.push([
+            { v: '總計金額 (未稅)', s: { font: { bold: true } } }, 
+            '', '', '', '', '', 
+            // ⭐ 關鍵：總和公式，總結所有小計金額 (G欄)
+            { f: `SUM(G${startRow}:G${currentRow})`, s: { font: { bold: true, sz: 14 } } }
+        ]);
+        
+        // 2. 稅額 (5%)
+        data.push([
+            { v: '稅額 (5%)', s: { font: { bold: true } } }, 
+            '', '', '', '', '', 
+            // ⭐ 關鍵：稅額公式
+            { f: `G${totalRow}*0.05` }
+        ]);
+
+        // 3. 合計金額 (含稅)
+        data.push([
+            { v: '合計金額 (含稅)', s: { font: { bold: true } } }, 
+            '', '', '', '', '', 
+            // ⭐ 關鍵：含稅總和公式
+            { f: `G${totalRow}+G${taxRow}`, s: { font: { bold: true, sz: 16 } } }
+        ]);
+
+        // --- 最終報價 (如果適用) ---
+        if (activeQuote.discountPercent > 0 || activeQuote.negotiatedPrice > 0) {
+            data.push([]); // 空行
+            const finalPriceRow = totalTaxRow + 2;
+
+            // 最終報價（未稅）
+            data.push([
+                { v: '最終報價金額 (未稅)', s: { font: { bold: true, color: { rgb: "FF0000" } } } }, 
+                '', '', '', '', '', 
+                // ⭐ 關鍵：使用自定義的價格作為最終金額
+                { v: activeQuote.negotiatedPrice || (calcTotal(activeQuote.items) * (1 - activeQuote.discountPercent / 100)), s: { font: { bold: true, sz: 18, color: { rgb: "FF0000" } } } }
+            ]);
+            
+            // 最終報價（含稅）
+            data.push([
+                { v: '最終報價金額 (含稅)', s: { font: { bold: true, color: { rgb: "FF0000" } } } }, 
+                '', '', '', '', '', 
+                // ⭐ 關鍵：最終價格含稅公式
+                { f: `G${finalPriceRow}*1.05`, s: { font: { bold: true, sz: 20, color: { rgb: "FF0000" } } } }
+            ]);
         }
-      });
-    });
+        
+        // --- 備註和付款條件 ---
+        data.push([]); 
+        data.push([{ v: '備註:', s: { font: { bold: true } } }]);
+        data.push([activeQuote.notes]);
+        data.push([]); 
+        data.push([{ v: '付款條件:', s: { font: { bold: true } } }]);
+        data.push([activeQuote.payment]);
 
-    rows[r++] = [];
-    rows[r++] = ["", "", "", "", "", "總計", total];
-    
-    // ⭐ 如果沒有折扣/自定義價格，就不輸出這兩行
-    if (showFinalPrice) {
-        rows[r++] = ["", "", "", "", "", "折扣(%)", activeQuote.discountPercent || 0];
-        rows[r++] = ["", "", "", "", "", "最終報價", negotiated];
-    }
-    
-    rows[r++] = [];
-    rows[r++] = ["備註"];
-    rows[r++] = [activeQuote.notes || ""];
-    rows[r++] = [];
-    rows[r++] = ["付款條件"];
-    rows[r++] = [activeQuote.payment || ""];
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
+        // 轉換為工作表
+        const ws = XLSX.utils.aoa_to_sheet(data);
 
-    ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
-      { s: { r: 4, c: 1 }, e: { r: 4, c: 8 } },
-      { s: { r: 5, c: 1 }, e: { r: 5, c: 8 } },
-    ];
-    
-    ws["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 42 }, { wch: 8 }, { wch: 8 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 32 }];
+        // 格式化為貨幣 (G欄)
+        const formatRange = `G${startRow}:G${totalTaxRow + 5}`;
+        for (let R = startRow - 1; R < data.length; R++) {
+            const cell = `G${R + 1}`;
+            if (ws[cell] && (ws[cell].t === 'n' || ws[cell].f)) {
+                 // 強制加上 NT$ 貨幣格式
+                ws[cell].z = 'NT$ #,##0'; 
+            }
+        }
+        
+        // 輸出檔案
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, activeQuote.title);
+        XLSX.writeFile(wb, `${activeQuote.title} - ${activeQuote.customerName} 報價單.xlsx`);
+    };
 
-    Object.keys(ws).forEach(key => {
-      if (ws[key]?.v && typeof ws[key].v === "number") ws[key].z = "#,##0";
-    });
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "報價單");
-
-    const filename = `${activeQuote.quoteNo}_${activeQuote.customerName || "未填客戶"}-${activeQuote.title || "未命名工程"} 報價單.xlsx`.replace(/[\\/:*?"<>|]/g,"");
-    XLSX.writeFile(wb, filename);
-  };
-
-  return (
-    <button
-      onClick={handleExport}
-      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-    >
-      匯出 Excel
-    </button>
-  );
+    return (
+        <button 
+            onClick={exportToExcel}
+            className="bg-green-700 text-white px-5 py-2 rounded-lg hover:bg-green-800 text-base shadow-lg"
+        >
+            匯出 Excel (數據版)
+        </button>
+    );
 }
 // ===============================
 // Word 匯出 (極限版 v4：清晰可讀，修正頂部留白)
