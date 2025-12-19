@@ -494,35 +494,37 @@ const deleteQuote = React.useCallback(async (id) => {
   /* ========================================================
     新增功能：複製報價單 (duplicateQuote) - ⭐ 防重複修復版
     ======================================================== */
-  const duplicateQuote = React.useCallback((id) => {
-    const sourceQuote = quotes.find(q => q.id === id);
-    if (!sourceQuote) return;
+const duplicateQuote = React.useCallback(async (id) => {
+  const source = quotes.find(q => q.id === id);
+  if (!source) return;
 
-    const newId = uuid();
-    const newQuote = {
-      ...JSON.parse(JSON.stringify(sourceQuote)), 
-      id: newId, 
-      quoteNo: generateQuoteNo(sourceQuote.company), 
-      title: `${sourceQuote.title} (副本)`, 
-      date: formatDate(), 
-      items: sourceQuote.items.map(item => ({ ...item, id: uuid() })),
-      leakageParts: (sourceQuote.leakageParts || []).map(part => ({ ...part, id: uuid() }))
-    };
+  // 1. 建立複製品，更換新的 ID 與 單號
+  const newQuote = {
+    ...JSON.parse(JSON.stringify(source)), // 深拷貝
+    id: uuid(),
+    quoteNo: `CP-${new Date().getTime().toString().slice(-6)}`, // 產生一個臨時新單號
+    title: `${source.title} (副本)`,
+    updatedAt: new Date().toISOString()
+  };
 
-    // ⭐ 加入防重複檢查
-    setQuotes(prev => {
-      if (prev.find(q => q.id === newId)) return prev;
-      return [newQuote, ...prev];
-    });
+  // 2. 先更新本地狀態 (讓使用者立刻看到)
+  setQuotes(prev => {
+    const updated = [newQuote, ...prev];
+    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(updated));
+    return updated;
+  });
 
-    setActiveQuoteId(newId);
+  // 3. 自動切換到該副本
+  setActiveQuoteId(newQuote.id);
 
-    // ⭐ 同步副本至雲端
-    if (typeof syncToCloud === "function") {
-      syncToCloud(newQuote);
-    }
-  }, [quotes, company, syncToCloud]);
-
+  // 4. ⭐ 關鍵：立刻強制同步到雲端 (避免被雲端舊資料覆蓋)
+  try {
+    await syncToCloud(newQuote); 
+    console.log("副本已成功同步至雲端");
+  } catch (err) {
+    console.error("副本同步失敗:", err);
+  }
+}, [quotes, syncToCloud]);
   /* ========================================================
     3. 更新報價單 (updateQuote) - 保持雲端同步
     ======================================================== */
