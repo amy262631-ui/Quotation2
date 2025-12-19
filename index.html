@@ -475,21 +475,43 @@ function AppProvider({ children }) {
     2. 刪除報價單 (deleteQuote) - ⭐ 雲端聯動修復版
     ======================================================== */
 const deleteQuote = React.useCallback(async (id) => {
-  // 1. 立即更新本地 UI 與 localStorage
+  if (!window.confirm("確定要永久刪除此報價單嗎？(雲端與本地將同步移除)")) return;
+
+  // 1. 【立即】更新本地狀態 (UI 先隱藏)
+  let updatedQuotes = [];
   setQuotes(prev => {
-    const updated = prev.filter(q => q.id !== id);
-    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(updated)); // 強制覆蓋舊快取
-    return updated;
+    updatedQuotes = prev.filter(q => q.id !== id);
+    // 2. 【立即】覆蓋 LocalStorage，確保重新整理也不會跑出來
+    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(updatedQuotes));
+    return updatedQuotes;
   });
+
   if (activeQuoteId === id) setActiveQuoteId(null);
 
-  // 2. 通知雲端刪除
-  fetch(GAS_URL, {
-    method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify({ action: "delete", id: id })
-  });
-}, [activeQuoteId]);
+  try {
+    // 3. 【立即】發送指令給 GAS 刪除雲端試算表那一行
+    // 注意：這裡使用 fetch 且確保 action 為 delete
+    await fetch(GAS_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        action: "delete", 
+        id: id 
+      })
+    });
+    
+    console.log("雲端刪除指令已發送");
+
+    // 4. ⭐ 關鍵：刪除後，「不要」立刻執行 loadFromCloud()
+    // 否則如果 GAS 端刪除太慢，抓回來又是舊的。
+    // 讓本地的 updatedQuotes 成為當前唯一的真理。
+
+  } catch (err) {
+    console.error("刪除失敗:", err);
+    alert("雲端同步失敗，請檢查網路連線");
+  }
+}, [activeQuoteId, GAS_URL]);
 
   /* ========================================================
     新增功能：複製報價單 (duplicateQuote) - ⭐ 防重複修復版
