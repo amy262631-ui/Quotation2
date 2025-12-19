@@ -48,72 +48,101 @@
     const AppContext = React.createContext();
 
    /***** AppContext 資料中心 (雲端同步修正版) *****/
-  /***** AppContext 資料中心 (雲端同步修正版) *****/
   function AppProvider({ children }) {
     const [quotes, setQuotes] = React.useState([]);
     const [activeQuoteId, setActiveQuoteId] = React.useState(null);
     const [company, setCompany] = React.useState("herhsin");
 
-    // 1. 雲端讀取函式 (修正 CORS 問題)
+    // ☁️ 雲端儲存
+    const syncToCloud = async (data) => {
+      if (!GAS_URL) return;
+      try {
+        await fetch(GAS_URL, {
+          method: "POST",
+          mode: "no-cors",
+          body: JSON.stringify({ action: "save", data })
+        });
+        console.log("✅ 雲端同步發送");
+      } catch (e) { console.error("❌ 同步失敗:", e); }
+    };
+
+    // ☁️ 雲端讀取
     const loadFromCloud = async () => {
       if (!GAS_URL) return;
       try {
-        const res = await fetch(GAS_URL, { 
-          method: "GET", 
-          mode: "cors" 
-        });
+        const res = await fetch(GAS_URL, { method: "GET", mode: "cors" });
         const cloudQuotes = await res.json();
         if (Array.isArray(cloudQuotes)) {
           setQuotes(cloudQuotes);
           if (cloudQuotes.length > 0) setActiveQuoteId(cloudQuotes[0].id);
           console.log("✅ 雲端同步成功");
         }
-      } catch (e) {
-        console.error("❌ 載入失敗:", e);
-        // 備案：雲端失敗時讀取本地
-        const saved = localStorage.getItem("HERHSIN_QUOTES");
-        if (saved) setQuotes(JSON.parse(saved));
-      }
+      } catch (e) { console.error("❌ 載入失敗:", e); }
     };
 
-    // 2. 雲端儲存函式 (修正 POST 403 問題)
-    const syncToCloud = async (data) => {
-      if (!GAS_URL) return;
-      try {
-        await fetch(GAS_URL, {
-          method: "POST",
-          mode: "no-cors", // ⭐ 關鍵：繞過瀏覽器安全性檢查，直接傳送資料
-          body: JSON.stringify({ action: "save", data })
-        });
-        console.log("☁️ 已同步至雲端試算表");
-      } catch (e) {
-        console.error("❌ 同步失敗:", e);
-      }
+    React.useEffect(() => { loadFromCloud(); }, []);
+
+    // 🟢 恢復：新建報價單 (修正您的 TypeError)
+    const createQuote = (modeId) => {
+      const mode = QUOTE_MODES.find(m => m.id === modeId) || QUOTE_MODES[0];
+      const newQ = { 
+        id: uuid(), 
+        company: company, 
+        quoteNo: generateQuoteNo(company), 
+        title: mode.name, 
+        customerName: "", 
+        date: new Date().toISOString().slice(0, 10), 
+        items: (mode.defaultItems || []).map(it => ({ ...it, id: uuid() })), 
+        leakageParts: (mode.defaultLeakageParts || []).map(p => ({ ...p, id: uuid() })),
+        notes: mode.defaultNotes, 
+        payment: mode.defaultPayment, 
+        discountPercent: 0, 
+        negotiatedPrice: 0 
+      };
+      const newState = [newQ, ...quotes];
+      setQuotes(newState);
+      setActiveQuoteId(newQ.id);
+      syncToCloud(newQ); // 同步新建
     };
 
-    // 初始啟動時讀取
-    React.useEffect(() => {
-      loadFromCloud();
-    }, []);
-
-    // 當資料改變時，除了存本地，也同步雲端
+    // 🟡 恢復：更新報價單
     const updateQuote = (id, data) => {
       setQuotes(prev => {
         const newState = prev.map(q => q.id === id ? { ...q, ...data } : q);
-        const updatedQuote = newState.find(q => q.id === id);
-        if (updatedQuote) syncToCloud(updatedQuote); 
-        localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(newState));
+        const updated = newState.find(q => q.id === id);
+        if (updated) syncToCloud(updated); // 同步修改
         return newState;
       });
     };
 
-    // ... 其餘 createQuote, duplicateQuote 也要記得呼叫 syncToCloud ...
+    // 🔴 恢復：刪除與複製 (補齊功能)
+    const deleteQuote = (id) => {
+      setQuotes(prev => prev.filter(q => q.id !== id));
+      if (activeQuoteId === id) setActiveQuoteId(null);
+      // 可選：發送 action: "delete" 給 GAS
+    };
 
+    const duplicateQuote = (id) => {
+      const source = quotes.find(q => q.id === id);
+      if (!source) return;
+      const newQ = { 
+        ...JSON.parse(JSON.stringify(source)), 
+        id: uuid(), 
+        quoteNo: generateQuoteNo(source.company), 
+        title: `${source.title} (副本)` 
+      };
+      setQuotes(prev => [newQ, ...prev]);
+      setActiveQuoteId(newQ.id);
+      syncToCloud(newQ);
+    };
+
+    // ⚠️ 關鍵：確保所有函式都在這
     const value = { 
       company, setCompany, 
       quotes, setQuotes, 
-      activeQuoteId, setActiveQuoteId, 
-      updateQuote, loadFromCloud 
+      activeQuoteId, setActiveQuoteId,
+      activeQuote: quotes.find(q => q.id === activeQuoteId), // 加上這個讓 Editor 直接拿
+      createQuote, updateQuote, deleteQuote, duplicateQuote, loadFromCloud 
     };
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -1710,30 +1739,33 @@ function LeakagePartsEditor({ parts, updateQuote }) {
 
 
     function App() {
-      const { quotes, activeQuoteId, setActiveQuoteId, createQuote, loadFromCloud } = React.useContext(AppContext);
-      return (
-        <div className="flex h-screen overflow-hidden">
-          <aside className="w-80 bg-white border-r p-4 no-print overflow-y-auto">
-            <h1 className="text-xl font-bold mb-4">工程報價系統</h1>
-            <div className="space-y-2 mb-4">
-              <button onClick={() => createQuote("mode_leak_repair")} className="w-full bg-blue-600 text-white p-2 rounded">＋ 新建漏漿單</button>
-              <button onClick={loadFromCloud} className="w-full border border-gray-300 p-1 rounded text-xs">🔄 重新整理雲端</button>
-            </div>
-            <div className="space-y-2">
-              {quotes.map(q => (
-                <div key={q.id} onClick={() => setActiveQuoteId(q.id)} className={`p-3 border rounded cursor-pointer ${activeQuoteId === q.id ? 'bg-blue-50 border-blue-500' : ''}`}>
-                  <div className="font-bold text-sm">{q.quoteNo}</div>
-                  <div className="text-xs text-gray-500">{q.customerName || "未填客戶"}</div>
-                </div>
-              ))}
-            </div>
-          </aside>
-          <main className="flex-grow overflow-y-auto p-8">
-             <QuoteEditor />
-          </main>
-        </div>
-      );
-    }
+  const { 
+    quotes, activeQuoteId, setActiveQuoteId, 
+    createQuote, deleteQuote, duplicateQuote, loadFromCloud 
+  } = React.useContext(AppContext);
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <aside className="w-80 bg-white border-r p-4 no-print overflow-y-auto">
+        <h1 className="text-xl font-bold mb-4">工程報價系統</h1>
+        {/* 這裡的按鈕會呼叫 createQuote */}
+        <button onClick={() => createQuote("mode_leak_repair")} className="w-full bg-blue-600 text-white p-2 rounded mb-2">＋ 新建漏漿單</button>
+        <button onClick={loadFromCloud} className="w-full border border-gray-300 p-1 rounded text-xs mb-4">🔄 重新整理雲端</button>
+        
+        <QuoteList 
+          quotes={quotes} 
+          activeId={activeQuoteId} 
+          selectQuote={setActiveQuoteId} 
+          deleteQuote={deleteQuote} 
+          duplicateQuote={duplicateQuote} 
+        />
+      </aside>
+      <main className="flex-grow overflow-y-auto p-8">
+         <QuoteEditor />
+      </main>
+    </div>
+  );
+}
 
     // ⭐ 此處補回 QuoteEditor、PrintLayout、Export 等所有詳細組件 (同您原本代碼) ⭐
 
