@@ -573,8 +573,8 @@ const duplicateQuote = React.useCallback(async (id) => {
     }
   }
 }, [GAS_URL]); // ⭐ 依賴項只留 GAS_URL
-  /* ========================================================
-    3. 更新報價單 (updateQuote) - 保持雲端同步
+/* ========================================================
+    3. 更新報價單 (updateQuote)
     ======================================================== */
   const updateQuote = React.useCallback((id, data) => {
     setQuotes(prev => {
@@ -585,39 +585,8 @@ const duplicateQuote = React.useCallback(async (id) => {
     });
   }, [syncToCloud]);
 
-  // 載入與儲存邏輯 (保持您的 useEffect 內容不變)
-  React.useEffect(() => {
-    const saved = localStorage.getItem("HERHSIN_QUOTES");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setQuotes(parsed);
-          if (parsed.length > 0) setActiveQuoteId(parsed[0].id);
-        }
-      } catch (e) { setQuotes([]); setActiveQuoteId(null); }
-    }
-  }, []);
-
-  React.useEffect(() => {
-    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
-  }, [quotes]);
-
- // ⭐ 修正版：只在啟動時載入一次，避免操作中途被雲端覆蓋
-  React.useEffect(() => {
-    loadSpecItems();
-    loadCustomers(); 
-    loadFromCloud(); // 只有這裡會觸發讀取
-  }, []); // 👈 這裡絕對要是空的 []
-    
-    // 只有在剛開網頁時抓一次雲端
-    if (typeof loadFromCloud === "function") {
-      loadFromCloud();
-    }
-  }, []); // 👈 關鍵：這裡必須是空的，代表只跑 Mount 這一次
-  const activeQuote = quotes.find(q => q.id === activeQuoteId);
-/* ========================================================
-    4. 套用模式 (applyMode) - 修正未定義錯誤
+  /* ========================================================
+    4. 套用模式 (applyMode) - 必須放在 value 之前定義
     ======================================================== */
   const applyMode = React.useCallback((modeId) => {
     if (!activeQuoteId) return;
@@ -626,13 +595,11 @@ const duplicateQuote = React.useCallback(async (id) => {
 
     if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
 
-    // 準備主項目資料
     const newItems = JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
         ...item,
         id: uuid() 
     }));
     
-    // 準備零件資料
     const newLeakageParts = (mode.defaultLeakageParts)
       ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
           ...part,
@@ -647,17 +614,48 @@ const duplicateQuote = React.useCallback(async (id) => {
         payment: mode.defaultPayment
     };
 
-    // 執行更新
     updateQuote(activeQuoteId, updateData);
     
-    // ⭐ 套用後同步至雲端
     const source = quotes.find(q => q.id === activeQuoteId);
     if (source && typeof syncToCloud === "function") {
       syncToCloud({ ...source, ...updateData });
     }
-
   }, [activeQuoteId, updateQuote, quotes, syncToCloud]);
-  // 4. ⭐ 匯出上下文值 (確保 duplicateQuote 與 sync 功能全部解鎖)
+
+  /* ========================================================
+    5. 副作用處理 (useEffect) - 啟動與自動儲存
+    ======================================================== */
+  // A. 啟動載入
+  React.useEffect(() => {
+    const saved = localStorage.getItem("HERHSIN_QUOTES");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setQuotes(parsed);
+          if (parsed.length > 0) setActiveQuoteId(parsed[0].id);
+        }
+      } catch (e) { setQuotes([]); setActiveQuoteId(null); }
+    }
+    
+    // 載入外部資料與雲端 (只在啟動執行一次)
+    loadSpecItems();
+    loadCustomers(); 
+    if (typeof loadFromCloud === "function") {
+      loadFromCloud();
+    }
+  }, []); 
+
+  // B. 自動存入本地 (同步更新 localStorage)
+  React.useEffect(() => {
+    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
+  }, [quotes]);
+
+  /* ========================================================
+    6. 最後匯出 Context Value
+    ======================================================== */
+  const activeQuote = quotes.find(q => q.id === activeQuoteId);
+
   const value = {
     company, setCompany, quotes, setQuotes,
     activeQuote, activeQuoteId, setActiveQuoteId,
@@ -673,7 +671,7 @@ const duplicateQuote = React.useCallback(async (id) => {
       {children}
     </AppContext.Provider>
   );
-}
+} // 👈 整個 AppProvider 唯一的結尾大括號
 /***********************************************************
  * P4-1 — 公司切換 / 模式選擇 / 報價單列表
  ***********************************************************/
