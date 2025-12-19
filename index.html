@@ -3,150 +3,605 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>工程報價系統（雲端同步完整版）</title>
+  <title>工程報價系統（Herhsin & SinChang）- V29 修正版</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
-    body { background: #f3f4f6; font-family: "Microsoft JhengHei", sans-serif; }
-    .print-only-layout { display: none; }
+    body {
+      background: #f3f4f6;
+      font-family: "Microsoft JhengHei", sans-serif;
+    }
+
+    /* 1. 修正：預設隱藏列印專用區塊，
+      解決「畫面跑出兩個預覽」的問題 
+    */
+    .print-only-layout {
+      display: none;
+    }
+
+   /* =================================================
+       ✅ 修正後的列印專用 CSS
+    ================================================= */
     @media print {
-      body, #root, .quote-editor-root-container, div { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; position: static !important; background: white; }
-      .no-print, .live-preview-box { display: none !important; }
-      .print-only-layout { display: block !important; width: 100% !important; }
-      table { width: 100% !important; border-collapse: collapse; table-layout: fixed; }
-      @page { size: A4; margin: 10mm; }
+      /* 1. 強制重置所有容器，取消 Flex 排版 */
+      body, 
+      #root, 
+      .quote-editor-root-container, 
+      div {
+        display: block !important; /* 關鍵：取消 flex，改為區塊 */
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        position: static !important;
+        background: white;
+      }
+
+      /* 2. 隱藏不需要列印的元素 */
+      .no-print,
+      .live-preview-box,
+      aside, /* 如果側邊欄是用 aside */
+      nav {
+        display: none !important;
+      }
+
+      /* 3. 設定列印區域滿版 */
+      .print-only-layout {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
+      }
+
+      /* 4. 表格設定 */
+      table {
+        width: 100% !important;
+        border-collapse: collapse;
+        table-layout: fixed; /* 讓欄位寬度依照設定的 % 跑，不要被內容撐開或壓縮 */
+      }
+
+      thead {
+        display: table-header-group;
+      }
+
+      tr {
+        page-break-inside: avoid;
+      }
+
+      /* 5. 確保文字不會因為太擠而變直向 */
+      td, th {
+        white-space: normal; /* 允許換行 */
+        word-wrap: break-word; /*長單字換行*/
+        vertical-align: middle; /* 垂直置中 */
+      }
+
+      .print-footer-block,
+      .print-signature-area {
+        page-break-inside: avoid;
+      }
+
+      @page {
+        size: A4;
+        margin: 10mm; /* 邊距設為 10mm，讓空間更大 */
+      }
     }
   </style>
 </head>
-<body>
+
+<body class="text-gray-900">
   <div id="root"></div>
 
   <script type="text/babel">
-    // ⭐ 雲端 API 網址 ⭐
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbx4GXTBxB4TLvTgezA34ZidB0ZiEo_czt4T_t7XL79z3NmSNATXncmyg7oY9tGtZfuMZA/exec"; 
+ /***********************************************************
+ * 雲端對接設定
+ ***********************************************************/
+const GAS_URL = "https://script.google.com/macros/s/AKfycbx4GXTBxB4TLvTgezA34ZidB0ZiEo_czt4T_t7XL79z3NmSNATXncmyg7oY9tGtZfuMZA/exec";   
 
-    // 原本所有 COMPANY_DATA、QUOTE_MODES 保持不變
-    const COMPANY_DATA = {
-      herhsin: { name: "何鑫實業股份有限公司", taxId: "76380260", tel: "07-6521927", fax: "07-6517994", email: "affairs@herhsin.com", address: "831高雄市大寮區鳳屏二路383-8號", stamp: "https://amy262631-ui.github.io/Quotation/herhsin_stamp.JPG", prefix: "QH" },
-      sinchang: { name: "薪昌股份有限公司", taxId: "53896738", tel: "07-6521927", fax: "07-6517994", email: "affairs@herhsin.com", address: "831高雄市大寮區鳳屏二路383-8號", stamp: "https://amy262631-ui.github.io/Quotation/sinchang_stamp.JPG", prefix: "QS" }
-    };
+/***********************************************************
+ * P1 — 公司資料 / 備註 / 付款條件 / 模式模板
+ ***********************************************************/
+const COMPANY_DATA = {
+  herhsin: {
+    name: "何鑫實業股份有限公司",
+    taxId: "76380260",  
+    tel: "07-6521927",
+    fax: "07-6517994",
+    email: "affairs@herhsin.com",
+    address: "831高雄市大寮區鳳屏二路383-8號",
+    stamp: "https://amy262631-ui.github.io/Quotation/herhsin_stamp.JPG",
+    prefix: "QH",
+  },
+  sinchang: {
+    name: "薪昌股份有限公司",
+    taxId: "53896738",
+    tel: "07-6521927",
+    fax: "07-6517994",
+    email: "affairs@herhsin.com",
+    address: "831高雄市大寮區鳳屏二路383-8號",
+    stamp: "https://amy262631-ui.github.io/Quotation/sinchang_stamp.JPG",
+    prefix: "QS",
+  },
+};
 
-    const QUOTE_MODES = [
-      { id: "mode_leak_repair", name: "拌合機漏漿更換工程", description: "零件實支實付模式", defaultItems: [{ id: "1", name: "更換 3m³ 拌合機【減速機側】漏漿", unit: "式", qty: 1, price: 0, specMain: "含拆裝測試", specMaterial: "1.A、B座各2只...", remarks: "", type: "main", subItems: [] }], defaultLeakageParts: [{ id: "p1", name: "聯軸器", spec: "台灣製造", unit: "組", price: 30000, variants: [{label:"台製", price:30000}, {label:"德製", price:58000}] }], defaultNotes: "1. 本報價未含稅...", defaultPayment: "完工後支付 100%" },
-      { id: "modeC", name: "設備更換工程", description: "一般工程模式", defaultItems: [], defaultNotes: "1. 本報價未含稅...", defaultPayment: "訂金 40%..." }
-    ];
+const DEFAULT_NOTES = `1. 本報價未含加值稅。
+2. 安裝施作時需注意現場作業環境。
+3. 報價單有效期限為 15 天。
+4. 若遇不可抗力因素造成延誤，工期順延。
+5. 料件須由本公司提供與安裝，否則不在保固範圍內。
+6. 付款條件依雙方合約內容為準。`;
 
-    /***** 工具函式 (uuid, formatMoney 等) 保持不變 *****/
-    function uuid() { return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => (c === "x" ? (Math.random() * 16) | 0 : ((Math.random() * 16) | 0 & 0x3 | 0x8)).toString(16)); }
-    function formatMoney(num) { return Number(num || 0).toLocaleString("zh-TW"); }
-    function generateQuoteNo(co) { const d = new Date(); const key = `${String(d.getFullYear()).slice(-2)}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`; return `${COMPANY_DATA[co].prefix}${key}${Math.floor(Math.random()*90+10)}`; }
+const DEFAULT_PAYMENT = `訂金：40%
+製作完成：30%
+安裝完成：20%
+完工驗收：10%`;
+ 
+// =========================================================
+// 報價模式設定 (已移除設備銷售，並更新漏漿模式所有細節)
+// =========================================================
+const QUOTE_MODES = [
+  {
+    id: "mode_leak_repair",
+    name: "拌合機漏漿更換工程",
+    description: "拌合機漏漿修復，包工包料項目另計，零件實支實付",
+    
+    // 1. 主要工程項目 (已加入預設用料明細)
+    defaultItems: [
+      {
+        name: "更換 3m³ 拌合機【減速機側】漏漿（含工資及材料）",
+        unit: "式",
+        qty: 1,
+        price: 0,
+        specMain: "含拆裝、調整、測試",
+        specMaterial: "1.A、B座各2只 2.平面浮動油封x2只 3.鋼環蓋、鋼環片各4片 4.攪拌臂螺絲x8組",
+        remarks: "",
+        type: "main",
+        subItems: []
+      },
+      {
+        name: "更換 3m³ 拌合機【非減速機側】漏漿（含工資及材料）",
+        unit: "式",
+        qty: 1,
+        price: 0,
+        specMain: "含拆裝、調整、測試",
+        specMaterial: "1.A、B座各2只 2.平面浮動油封x2只 3.鋼環蓋、鋼環片各4片 4.攪拌臂螺絲x8組",
+        remarks: "",
+        type: "main",
+        subItems: []
+      }
+    ],
 
-    /***** AppContext 資料中心 (加入雲端邏輯) *****/
-    const AppContext = React.createContext();
+    // 2. 實支實付零件 (已包含下拉選單切換台製/德製)
+    defaultLeakageParts: [
+      { 
+        name: "聯軸器", 
+        spec: "台灣製造", 
+        unit: "組", 
+        price: 30000,
+        variants: [
+          { label: "台製 (台灣製造)", spec: "台灣製造", price: 30000 },
+          { label: "德製 (德國原裝)", spec: "德國原裝", price: 58000 }
+        ]
+      },
+      { 
+        name: "聯軸器橡膠墊圈", 
+        spec: "台灣製造", 
+        unit: "只", 
+        price: 2000,
+        variants: [
+          { label: "台製 (台灣製造)", spec: "台灣製造", price: 2000 },
+          { label: "德製 (德國原裝)", spec: "德國原裝", price: 9500 }
+        ]
+      },
+      { name: "減速機鬆緊器", spec: "絞接螺栓及插銷", unit: "式", price: 5000 },
+      { name: "減速機支撐調整器", spec: "吊眼螺絲", unit: "式", price: 3150 },
+      { name: "油封", spec: "TC 140x180x14", unit: "只", price: 350 },
+      { name: "軸承", spec: "型號：23124", unit: "只", price: 8000 },
+      { name: "主軸套筒", spec: "120x140x120", unit: "式", price: 2600 },
+      { name: "鍵槽組", spec: "平鍵 32x18x315L 及斜鍵 10x7x50", unit: "式", price: 1800 },
+      { name: "O型環", spec: "3x120x126", unit: "只", price: 200 },
+      { name: "假日施工加價", spec: "非工作日出勤費用", unit: "式", price: 15000 },
+    ],
 
-   /***** AppContext 資料中心 (雲端同步修正版) *****/
-  function AppProvider({ children }) {
-    const [quotes, setQuotes] = React.useState([]);
-    const [activeQuoteId, setActiveQuoteId] = React.useState(null);
-    const [company, setCompany] = React.useState("herhsin");
+    referenceItems: [],
+    
+    // 3. 備註 (已加入第7點假日施工說明)
+    defaultNotes: DEFAULT_NOTES + "\n7. 本報價為平日施工費用，如需假日施工則需另外加價(參考實支實付明細表)",
+    
+    // 4. 付款條件 (已改成完工後 100%)
+    defaultPayment: "完工後支付 100%"
+  },
+  
+  // (原本的 modeB 設備銷售已刪除)
 
-    // ☁️ 雲端儲存
-    const syncToCloud = async (data) => {
-      if (!GAS_URL) return;
-      try {
-        await fetch(GAS_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({ action: "save", data })
-        });
-        console.log("✅ 雲端同步發送");
-      } catch (e) { console.error("❌ 同步失敗:", e); }
-    };
-
-    // ☁️ 雲端讀取
-    const loadFromCloud = async () => {
-      if (!GAS_URL) return;
-      try {
-        const res = await fetch(GAS_URL, { method: "GET", mode: "cors" });
-        const cloudQuotes = await res.json();
-        if (Array.isArray(cloudQuotes)) {
-          setQuotes(cloudQuotes);
-          if (cloudQuotes.length > 0) setActiveQuoteId(cloudQuotes[0].id);
-          console.log("✅ 雲端同步成功");
-        }
-      } catch (e) { console.error("❌ 載入失敗:", e); }
-    };
-
-    React.useEffect(() => { loadFromCloud(); }, []);
-
-    // 🟢 恢復：新建報價單 (修正您的 TypeError)
-    const createQuote = (modeId) => {
-      const mode = QUOTE_MODES.find(m => m.id === modeId) || QUOTE_MODES[0];
-      const newQ = { 
-        id: uuid(), 
-        company: company, 
-        quoteNo: generateQuoteNo(company), 
-        title: mode.name, 
-        customerName: "", 
-        date: new Date().toISOString().slice(0, 10), 
-        items: (mode.defaultItems || []).map(it => ({ ...it, id: uuid() })), 
-        leakageParts: (mode.defaultLeakageParts || []).map(p => ({ ...p, id: uuid() })),
-        notes: mode.defaultNotes, 
-        payment: mode.defaultPayment, 
-        discountPercent: 0, 
-        negotiatedPrice: 0 
-      };
-      const newState = [newQ, ...quotes];
-      setQuotes(newState);
-      setActiveQuoteId(newQ.id);
-      syncToCloud(newQ); // 同步新建
-    };
-
-    // 🟡 恢復：更新報價單
-    const updateQuote = (id, data) => {
-      setQuotes(prev => {
-        const newState = prev.map(q => q.id === id ? { ...q, ...data } : q);
-        const updated = newState.find(q => q.id === id);
-        if (updated) syncToCloud(updated); // 同步修改
-        return newState;
-      });
-    };
-
-    // 🔴 恢復：刪除與複製 (補齊功能)
-    const deleteQuote = (id) => {
-      setQuotes(prev => prev.filter(q => q.id !== id));
-      if (activeQuoteId === id) setActiveQuoteId(null);
-      // 可選：發送 action: "delete" 給 GAS
-    };
-
-    const duplicateQuote = (id) => {
-      const source = quotes.find(q => q.id === id);
-      if (!source) return;
-      const newQ = { 
-        ...JSON.parse(JSON.stringify(source)), 
-        id: uuid(), 
-        quoteNo: generateQuoteNo(source.company), 
-        title: `${source.title} (副本)` 
-      };
-      setQuotes(prev => [newQ, ...prev]);
-      setActiveQuoteId(newQ.id);
-      syncToCloud(newQ);
-    };
-
-    // ⚠️ 關鍵：確保所有函式都在這
-    const value = { 
-      company, setCompany, 
-      quotes, setQuotes, 
-      activeQuoteId, setActiveQuoteId,
-      activeQuote: quotes.find(q => q.id === activeQuoteId), // 加上這個讓 Editor 直接拿
-      createQuote, updateQuote, deleteQuote, duplicateQuote, loadFromCloud 
-    };
-
-    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  {
+    id: "modeC",
+    name: "設備更換工程",
+    description: "適用整機更新、單機銷售與安裝、料件更換工程。", // 描述稍微修改一下，涵蓋範圍更廣
+    defaultItems: [],
+    defaultNotes: DEFAULT_NOTES,
+    defaultPayment: DEFAULT_PAYMENT
   }
+];
+/***********************************************************
+  * P2 — 工具函式
+ ***********************************************************/
+function uuid() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
+function formatDate(dateStr = new Date()) {
+    const d = dateStr instanceof Date ? dateStr : new Date(dateStr);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function formatMoney(num) {
+    if (num === "" || num === null || num === undefined || isNaN(Number(num))) return "0"; 
+    return Number(num).toLocaleString("zh-TW", { maximumFractionDigits: 0 });
+}
+
+function calcAmount(item) {
+    const qty = Number(item.qty || 0);
+    const price = Number(item.price || 0);
+    return qty * price;
+}
+
+function calcTotal(items) {
+    return items.reduce((sum, it) => {
+        if (it.type === "reference") return sum;
+
+        let mainAmt = calcAmount(it);
+        let subs = 0;
+
+        if (it.subItems && it.subItems.length > 0) {
+            subs = it.subItems.reduce(
+                (s, sub) => (sub.type === "item" ? s + calcAmount(sub) : s),
+                0
+            );
+        }
+
+        return sum + mainAmt + subs;
+    }, 0);
+}
+
+function calcNegotiated(total, discountPercent, customPrice) {
+    const cp = Number(customPrice || 0);
+    const dp = Number(discountPercent || 0);
+    
+    if (cp > 0) return cp;
+    
+    if (dp > 0 && dp <= 100) {
+        return Math.round(total * (1 - dp / 100));
+    }
+    
+    return total;
+}
+
+function generateQuoteNo(companyKey = "sinchang") {
+  const prefix = COMPANY_DATA[companyKey]?.prefix || "QS";
+
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+
+  const dateKey = `${yy}${mm}${dd}`;
+  const storageKey = `quote_seq_${companyKey}_${dateKey}`;
+
+  let seq = Number(localStorage.getItem(storageKey) || "0") + 1;
+
+  if (seq > 99) {
+    alert("今日報價單已超過 99 張，請確認");
+    seq = 99;
+  }
+
+  localStorage.setItem(storageKey, seq);
+
+  const nn = String(seq).padStart(2, "0");
+  return `${prefix}${dateKey}${nn}`;
+}
+
+
+// ========================================================
+// 工具函式：載入 CSV 檔案 (修正中文亂碼問題)
+// ========================================================
+function loadCSV(url) {
+  return new Promise((resolve, reject) => {
+    fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        // ⭐ 關鍵修正 1: 請求時，指定讀取為 ArrayBuffer (原始二進制)
+        return response.arrayBuffer(); 
+      })
+      .then(arrayBuffer => {
+        // ⭐ 關鍵修正 2: 使用 TextDecoder 處理 UTF-8 編碼
+        // 將 ArrayBuffer 轉換為文字，確保使用 UTF-8 編碼解析
+        const decoder = new TextDecoder('utf-8');
+        const csvText = decoder.decode(arrayBuffer);
+
+        // 使用 XLSX.read 處理 CSV 內容
+        // 由於我們已經處理了編碼，這裡可以將類型設為 'binary' 或 'text' 讓它解析
+        const workbook = XLSX.read(csvText, { type: 'string' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        
+        // 將 Sheet 轉換為 JSON 陣列 (包含標題列)
+        const data = XLSX.utils.sheet_to_json(sheet); 
+        resolve(data);
+      })
+      .catch(error => {
+        console.error("Error loading CSV and fixing encoding:", error);
+        alert(`載入資料失敗。請檢查 Google Sheet 網址及發布權限。錯誤: ${error.message}`);
+        reject(error);
+      });
+  });
+}
+/***********************************************************
+ * P3 — AppContext（資料中心）
+ ***********************************************************/
+const AppContext = React.createContext();
+// ========================================================
+// ⭐ 全局設定：客戶資料 CSV 網址 (此處保持不變) ⭐
+// ========================================================
+const CUSTOMER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQHQN_nMBB7l72PSD8omOO55UYRlIClUGEDgtzYzTKK-5fvRWIZowcdnMHvkkwJbdz7krhIiRc00sye/pub?gid=312161947&single=true&output=csv";
+// 規格 CSV 網址
+const SPEC_CSV_URL = "https://docs.google.com/spreadsheets/d/1wjoNesgvgmkVoG4bI9ppl_1EktH88WZ6bxT9IeyX4YM/export?format=csv";
+
+
+function AppProvider({ children }) {
+  const [company, setCompany] = React.useState("herhsin");
+  const [quotes, setQuotes] = React.useState([]);
+  const [activeQuoteId, setActiveQuoteId] = React.useState(null);
+  const [specItems, setSpecItems] = React.useState([]);
+  // ⭐ 1. 新增：客戶資料狀態
+  const [customers, setCustomers] = React.useState([]); 
+  /***** ☁️ 新增：雲端同步功能 (插入點) *****/
+  
+  // 1. 同步儲存至 Google Sheets (POST)
+  const syncToCloud = async (data) => {
+    if (!GAS_URL || GAS_URL.includes("您的")) return;
+    try {
+      await fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors", // ⭐ 關鍵：繞過瀏覽器 CORS 限制，讓資料能存進試算表
+        cache: "no-cache",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save", data: data })
+      });
+      console.log("☁️ 雲端同步請求已發送");
+    } catch (e) {
+      console.error("❌ 同步失敗:", e);
+    }
+  };
+
+  // 2. 從雲端載入最新報價 (GET)
+  const loadFromCloud = async () => {
+    if (!GAS_URL || GAS_URL.includes("您的")) return;
+    try {
+      const res = await fetch(GAS_URL, { method: "GET", mode: "cors" });
+      if (!res.ok) throw new Error("網路請求失敗");
+      const cloudQuotes = await res.json();
+      if (Array.isArray(cloudQuotes) && cloudQuotes.length > 0) {
+        setQuotes(cloudQuotes);
+        // 如果原本沒選中報價單，則預設選中雲端第一張
+        setActiveQuoteId(prev => prev || cloudQuotes[0].id);
+        console.log("✅ 雲端載入成功，共", cloudQuotes.length, "筆資料");
+      }
+    } catch (e) {
+      console.error("❌ 雲端載入失敗:", e);
+    }
+  };
+
+  // 載入規格 (保持不變)
+  const loadSpecItems = React.useCallback(() => {
+    loadCSV(SPEC_CSV_URL).then(data => setSpecItems(data));
+  }, []);
+
+  // ⭐ 2. 新增：載入客戶資料的函式
+  const loadCustomers = React.useCallback(() => {
+    if (CUSTOMER_CSV_URL && CUSTOMER_CSV_URL.includes("http")) {
+        loadCSV(CUSTOMER_CSV_URL).then(data => {
+            console.log("Customer data loaded successfully. Count:", data.length);
+            setCustomers(data);
+        }).catch(error => {
+            console.error("Failed to load customer data:", error);
+            setCustomers([]);
+        });
+    }
+  }, []); 
+
+  /* ========================================================
+    1. 建立新報價單 (createQuote) - 保持不變
+    ======================================================== */
+  const createQuote = React.useCallback((modeId) => {
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    
+    // 1. 處理主項目 (給予全新 ID)
+    const defaultItems = mode 
+      ? JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
+          ...item,
+          id: uuid() 
+        }))
+      : [];
+
+    // 2. 處理實支實付零件 (如果有設定的話) 
+    const defaultLeakageParts = (mode && mode.defaultLeakageParts)
+      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
+          ...part,
+          id: uuid() // 一樣給予全新 ID
+        }))
+      : [];
+
+    const newQuote = {
+        id: uuid(),
+        company: company,
+        quoteNo: generateQuoteNo(company),
+        title: "",
+        customerName: "",
+        contact: "",
+        phone: "",
+        location: "",
+        date: formatDate(),
+        items: defaultItems,
+        leakageParts: defaultLeakageParts, 
+        notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
+        payment: mode ? mode.defaultPayment : DEFAULT_PAYMENT,
+        discountPercent: 0,
+        negotiatedPrice: 0
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [company]);
+
+  /* ========================================================
+    2. 刪除報價單 (deleteQuote) - 保持不變
+    ======================================================== */
+  const deleteQuote = React.useCallback((id) => {
+    setQuotes(prev => prev.filter(q => q.id !== id));
+    if (activeQuoteId === id) setActiveQuoteId(null);
+  }, [activeQuoteId]);
+
+  /* ========================================================
+    新增功能：複製報價單 (duplicateQuote) - 保持不變
+    ======================================================== */
+  const duplicateQuote = React.useCallback((id) => {
+    const sourceQuote = quotes.find(q => q.id === id);
+    if (!sourceQuote) return;
+
+    const newQuote = {
+      ...JSON.parse(JSON.stringify(sourceQuote)), 
+      id: uuid(), 
+      quoteNo: generateQuoteNo(sourceQuote.company), 
+      title: `${sourceQuote.title} (副本)`, 
+      date: formatDate(), 
+      items: sourceQuote.items.map(item => ({ ...item, id: uuid() })),
+      leakageParts: (sourceQuote.leakageParts || []).map(part => ({ ...part, id: uuid() }))
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [quotes]);
+
+  /* ========================================================
+    3. 更新報價單 (updateQuote) - 保持不變
+    ======================================================== */
+  const updateQuote = React.useCallback((id, data) => {
+    setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
+  }, []);
+const updateQuote = React.useCallback((id, data) => {
+    setQuotes(prev => {
+      const newState = prev.map(q => q.id === id ? { ...q, ...data } : q);
+      const updatedItem = newState.find(q => q.id === id);
+      if (updatedItem) syncToCloud(updatedItem); // ⭐ 加入這一行
+      return newState;
+    });
+  }, []);
+  /* ========================================================
+    4. 套用模式 (applyMode) - 保持不變
+    ======================================================== */
+  const applyMode = React.useCallback((modeId) => {
+    if (!activeQuoteId) return;
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    if (!mode) return;
+
+    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
+
+    // 主項目
+    const newItems = JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
+        ...item,
+        id: uuid() 
+    }));
+    
+    // 套用零件
+    const newLeakageParts = (mode.defaultLeakageParts)
+      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
+          ...part,
+          id: uuid()
+        }))
+      : [];
+
+    updateQuote(activeQuoteId, {
+        items: newItems,
+        leakageParts: newLeakageParts,
+        notes: mode.defaultNotes,
+        payment: mode.defaultPayment
+    });
+  }, [activeQuoteId, updateQuote]);
+
+  // 載入 localStorage (保持不變)
+  React.useEffect(() => {
+    const saved = localStorage.getItem("HERHSIN_QUOTES");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setQuotes(parsed);
+          if (parsed.length > 0) setActiveQuoteId(parsed[0].id);
+        }
+      } catch (e) {
+        setQuotes([]);
+        setActiveQuoteId(null);
+      }
+    }
+  }, []);
+
+  // 儲存到 localStorage (保持不變)
+  React.useEffect(() => {
+    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(quotes));
+  }, [quotes]);
+
+  // ⭐ 3. 新增：啟動時載入規格和客戶資料
+  React.useEffect(() => {
+    loadSpecItems();
+    loadCustomers(); 
+    loadFromCloud(); // ⭐ 加入這一行，讓網頁一打開就抓雲端資料
+  }, [loadSpecItems, loadCustomers]); // 加入 loadCustomers 依賴
+
+  const activeQuote = quotes.find(q => q.id === activeQuoteId);
+
+  // 4. 匯出上下文值
+  const value = {
+    company,
+    setCompany,
+    quotes,
+    setQuotes,
+    activeQuote,
+    activeQuoteId,
+    setActiveQuoteId,
+    specItems,
+    customers, // ⭐ 必須將 customers 傳遞出去
+    loadSpecItems,
+    createQuote,
+    deleteQuote,
+    updateQuote,
+    applyMode,
+    duplicateQuote
+    loadFromCloud, // ⭐ 加入這一行
+  };
+
+  window.__APP_CONTEXT__ = value;
+
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+
 /***********************************************************
  * P4-1 — 公司切換 / 模式選擇 / 報價單列表
  ***********************************************************/
@@ -1737,40 +2192,112 @@ function LeakagePartsEditor({ parts, updateQuote }) {
   );
 }
 
-
-    function App() {
+/***********************************************************
+  // P5 — App 根元件 (完整修復版)
+ ***********************************************************/
+function App() {
   const { 
-    quotes, activeQuoteId, setActiveQuoteId, 
-    createQuote, deleteQuote, duplicateQuote, loadFromCloud 
+    quotes, setQuotes, 
+    activeQuoteId, setActiveQuoteId,
+    company 
   } = React.useContext(AppContext);
 
+  // (1) 新建報價單
+  const createQuote = React.useCallback((modeId = null) => {
+    const mode = MODE_CONFIG.find(m => m.id === modeId) || MODE_CONFIG[0];
+    const newQuote = {
+      id: uuid(),
+      company: company, 
+      quoteNo: generateQuoteNo(company),
+      title: mode.defaultTitle,
+      customerName: "",
+      date: formatDate(),
+      items: mode.defaultItems.map(item => ({ ...item, id: uuid() })), 
+      leakageParts: [], 
+      notes: mode.defaultNotes,
+      payment: mode.defaultPayment,
+      discountPercent: 0,
+      negotiatedPrice: 0
+    };
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [company, setQuotes, setActiveQuoteId]);
+
+  // (2) 刪除報價單
+  const deleteQuote = React.useCallback((id) => {
+    setQuotes(prev => prev.filter(q => q.id !== id));
+    if (activeQuoteId === id) setActiveQuoteId(null);
+  }, [activeQuoteId, setQuotes, setActiveQuoteId]);
+
+  // (3) 更新報價單
+  const updateQuote = React.useCallback((id, data) => {
+    setQuotes(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
+  }, [setQuotes]);
+
+  // (4) 複製報價單
+  const duplicateQuote = React.useCallback((id) => {
+    const sourceQuote = quotes.find(q => q.id === id);
+    if (!sourceQuote) return;
+
+    const newQuote = {
+      ...JSON.parse(JSON.stringify(sourceQuote)), 
+      id: uuid(),                                
+      quoteNo: generateQuoteNo(sourceQuote.company), 
+      title: `${sourceQuote.title} (副本)`,       
+      date: formatDate(),                        
+      items: sourceQuote.items.map(item => ({ ...item, id: uuid() })),
+      leakageParts: (sourceQuote.leakageParts || []).map(part => ({ ...part, id: uuid() }))
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+  }, [quotes, setQuotes, setActiveQuoteId]);
+
+  // (5) 套用模式
+  const applyMode = React.useCallback((modeId) => {
+    if (!activeQuoteId) return;
+    const mode = MODE_CONFIG.find(m => m.id === modeId);
+    if (!mode) return;
+    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
+    const newItems = mode.defaultItems.map(item => ({ ...item, id: uuid() }));
+    updateQuote(activeQuoteId, {
+      items: newItems,
+      leakageParts: [],
+      notes: mode.defaultNotes,
+      payment: mode.defaultPayment
+    });
+  }, [activeQuoteId, updateQuote]);
+
+  // UI 介面
   return (
-    <div className="flex h-screen overflow-hidden">
-      <aside className="w-80 bg-white border-r p-4 no-print overflow-y-auto">
-        <h1 className="text-xl font-bold mb-4">工程報價系統</h1>
-        {/* 這裡的按鈕會呼叫 createQuote */}
-        <button onClick={() => createQuote("mode_leak_repair")} className="w-full bg-blue-600 text-white p-2 rounded mb-2">＋ 新建漏漿單</button>
-        <button onClick={loadFromCloud} className="w-full border border-gray-300 p-1 rounded text-xs mb-4">🔄 重新整理雲端</button>
-        
-        <QuoteList 
-          quotes={quotes} 
-          activeId={activeQuoteId} 
-          selectQuote={setActiveQuoteId} 
-          deleteQuote={deleteQuote} 
-          duplicateQuote={duplicateQuote} 
-        />
-      </aside>
-      <main className="flex-grow overflow-y-auto p-8">
-         <QuoteEditor />
-      </main>
+    <div className="min-h-screen bg-gray-50 flex print:block print:bg-white">
+        {/* 側邊欄 */}
+        <div className="w-96 bg-white p-6 shadow-lg flex-shrink-0 text-lg sticky top-0 h-screen overflow-y-auto no-print">
+            <h1 className="text-2xl font-extrabold mb-6 text-center text-blue-700">工程報價系統</h1>
+            <CompanySelector />
+            <ModeSelector applyMode={applyMode} />
+            <QuoteList 
+                quotes={quotes} 
+                activeId={activeQuoteId} 
+                selectQuote={setActiveQuoteId} 
+                deleteQuote={deleteQuote} 
+                duplicateQuote={duplicateQuote} 
+            />
+        </div>
+        {/* 主編輯區 */}
+        <div className="flex-grow p-8 text-base print:p-0">
+            <QuoteEditor updateQuote={updateQuote} />
+        </div>
     </div>
   );
 }
 
-    // ⭐ 此處補回 QuoteEditor、PrintLayout、Export 等所有詳細組件 (同您原本代碼) ⭐
-
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<AppProvider><App /></AppProvider>);
-  </script>
-</body>
-</html>
+/***********************************************************
+ * P6 — React 18 啟動
+ ***********************************************************/
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <AppProvider>
+    <App />
+  </AppProvider>
+);
