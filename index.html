@@ -480,89 +480,99 @@ function AppProvider({ children }) {
     2. 刪除報價單 (deleteQuote) - ⭐ 雲端聯動修復版
     ======================================================== */
 const deleteQuote = React.useCallback(async (id) => {
-  if (!window.confirm("確定要永久刪除此報價單嗎？(雲端與本地將同步移除)")) return;
+  if (!window.confirm("確定要永久刪除此報價單嗎？")) return;
 
-  // 1. 【立即】更新本地狀態 (UI 先隱藏)
-  let updatedQuotes = [];
+  // 1. 【立即】更新本地狀態與 LocalStorage
+  // 使用函數式更新 (prev => ...) 確保拿到的永遠是最新的列表
   setQuotes(prev => {
-    updatedQuotes = prev.filter(q => q.id !== id);
-    // 2. 【立即】覆蓋 LocalStorage，確保重新整理也不會跑出來
-    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(updatedQuotes));
-    return updatedQuotes;
+    const filtered = prev.filter(q => q.id !== id);
+    localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(filtered));
+    return filtered;
   });
 
-  if (activeQuoteId === id) setActiveQuoteId(null);
+  // 2. 如果刪除的是目前選中的，立即清空
+  // 注意：我們改用傳入的 id 來判斷，不再依賴外部的 activeQuoteId 變數
+  setActiveQuoteId(prevId => (prevId === id ? null : prevId));
 
-  try {
-    // 3. 【立即】發送指令給 GAS 刪除雲端試算表那一行
-    // 注意：這裡使用 fetch 且確保 action 為 delete
-    await fetch(GAS_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        action: "delete", 
-        id: id 
-      })
-    });
-    
-    console.log("雲端刪除指令已發送");
+  // 3. 【靜默同步】發送刪除指令給雲端
+  if (GAS_URL && !GAS_URL.includes("您的")) {
+    try {
+      // 不使用 await 阻塞 UI，讓它在背景慢慢跑
+      fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors", // GAS 必須使用 no-cors
+        cache: "no-cache",
+        body: JSON.stringify({ 
+          action: "delete", 
+          id: id 
+        })
+      }).then(() => {
+        console.log("☁️ 雲端數據已成功移除");
+      });
 
-    // 4. ⭐ 關鍵：刪除後，「不要」立刻執行 loadFromCloud()
-    // 否則如果 GAS 端刪除太慢，抓回來又是舊的。
-    // 讓本地的 updatedQuotes 成為當前唯一的真理。
-
-  } catch (err) {
-    console.error("刪除失敗:", err);
-    alert("雲端同步失敗，請檢查網路連線");
+      // 🛑 重點：絕對不要在這裡呼叫 loadFromCloud()！
+      // 只要不呼叫 loadFromCloud，舊資料就永遠沒機會跑回來覆蓋本地。
+      
+    } catch (err) {
+      console.error("❌ 雲端刪除失敗:", err);
+    }
   }
-}, [activeQuoteId, GAS_URL]);
+}, [GAS_URL]); // ⭐ 依賴項只留 GAS_URL，移除 activeQuoteId
 
   /* ========================================================
     新增功能：複製報價單 (duplicateQuote) - ⭐ 防重複修復版
     ======================================================== */
 const duplicateQuote = React.useCallback(async (id) => {
-  const source = quotes.find(q => q.id === id);
-  if (!source) return;
+  // 1. 使用函數式更新來尋找來源，避免依賴 [quotes]
+  let newQuote;
+  let newId = uuid();
 
-  // 1. 產生新的資料 (深拷貝)
-  const newId = uuid(); // 確保你有引入 uuid 函式
-  const newQuote = {
-    ...JSON.parse(JSON.stringify(source)),
-    id: newId,
-    quoteNo: `CP-${new Date().getTime().toString().slice(-6)}`,
-    title: `${source.title} (副本)`,
-    updatedAt: new Date().toISOString()
-  };
-
-  // 2. ⭐ 先更新本地 (讓 UI 立刻顯示)
-  // 使用函數式更新確保拿到最新的 prev
   setQuotes(prev => {
+    const source = prev.find(q => q.id === id);
+    if (!source) return prev;
+
+    // 產生副本資料
+    newQuote = {
+      ...JSON.parse(JSON.stringify(source)),
+      id: newId,
+      // 使用您原本的單號生成邏輯，或是這個時間戳版
+      quoteNo: generateQuoteNo(source.company), 
+      title: `${source.title} (副本)`,
+      date: formatDate(), // 確保日期更新為今天
+      items: source.items.map(item => ({ ...item, id: uuid() })),
+      leakageParts: (source.leakageParts || []).map(p => ({ ...p, id: uuid() }))
+    };
+
     const updated = [newQuote, ...prev];
+    // 立即寫入本地，確保重新整理也不會丟失
     localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(updated));
     return updated;
   });
-  
-  // 切換到新副本
-  setActiveQuoteId(newId);
 
-  // 3. ⭐ 強制發送到雲端並「等待」完成
-  try {
-    // 這裡直接調用 GAS，而不是調用可能會觸發 loadFromCloud 的 syncToCloud
-    await fetch(GAS_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        action: "save", // 或是你的儲存動作名稱
-        data: newQuote 
-      })
-    });
-    console.log("副本雲端備份成功");
-  } catch (err) {
-    console.error("副本雲端備份失敗:", err);
+  // 2. 立即切換選取，這會觸發畫面更新顯示新副本
+  if (newId) {
+    setActiveQuoteId(newId);
   }
-}, [quotes, GAS_URL]);
+
+  // 3. 靜默同步到雲端 (後台執行，不影響 UI)
+  if (newQuote && GAS_URL && !GAS_URL.includes("您的")) {
+    try {
+      await fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        cache: "no-cache",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          action: "save", 
+          data: newQuote 
+        })
+      });
+      console.log("☁️ 副本已成功備份至雲端");
+    } catch (err) {
+      console.error("❌ 副本雲端備份失敗:", err);
+    }
+  }
+}, [GAS_URL]); // ⭐ 依賴項只留 GAS_URL
   /* ========================================================
     3. 更新報價單 (updateQuote) - 保持雲端同步
     ======================================================== */
@@ -597,6 +607,8 @@ const duplicateQuote = React.useCallback(async (id) => {
   React.useEffect(() => {
     loadSpecItems();
     loadCustomers(); 
+    loadFromCloud(); // 只有這裡會觸發讀取
+  }, []); // 👈 這裡絕對要是空的 []
     
     // 只有在剛開網頁時抓一次雲端
     if (typeof loadFromCloud === "function") {
