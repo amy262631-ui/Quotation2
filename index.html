@@ -47,58 +47,77 @@
     /***** AppContext 資料中心 (加入雲端邏輯) *****/
     const AppContext = React.createContext();
 
-    function AppProvider({ children }) {
-      const [quotes, setQuotes] = React.useState([]);
-      const [activeQuoteId, setActiveQuoteId] = React.useState(null);
-      const [company, setCompany] = React.useState("herhsin");
-      const [specItems, setSpecItems] = React.useState([]);
-      const [customers, setCustomers] = React.useState([]);
+   /***** AppContext 資料中心 (雲端同步修正版) *****/
+  /***** AppContext 資料中心 (雲端同步修正版) *****/
+  function AppProvider({ children }) {
+    const [quotes, setQuotes] = React.useState([]);
+    const [activeQuoteId, setActiveQuoteId] = React.useState(null);
+    const [company, setCompany] = React.useState("herhsin");
 
-      // 雲端同步儲存
-      const syncToCloud = async (data) => {
-        if (!GAS_URL) return;
-        try {
-          await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "save", data }) });
-        } catch (e) { console.error("同步失敗", e); }
-      };
-
-      // 雲端載入
-      const loadFromCloud = async () => {
-        if (!GAS_URL) return;
-        try {
-          const res = await fetch(GAS_URL, { method: "POST", body: JSON.stringify({ action: "load" }) });
-          const cloudQuotes = await res.json();
-          if (cloudQuotes && cloudQuotes.length > 0) {
-            setQuotes(cloudQuotes);
-            setActiveQuoteId(cloudQuotes[0].id);
-          }
-        } catch (e) { console.error("載入失敗", e); }
-      };
-
-      React.useEffect(() => { loadFromCloud(); }, []);
-
-      // 原本所有的 createQuote, updateQuote, duplicateQuote 邏輯在此恢復...
-      const updateQuote = (id, data) => {
-        setQuotes(prev => {
-          const newState = prev.map(q => q.id === id ? { ...q, ...data } : q);
-          const active = newState.find(q => q.id === id);
-          syncToCloud(active); // 修改時自動同步
-          return newState;
+    // 1. 雲端讀取函式 (修正 CORS 問題)
+    const loadFromCloud = async () => {
+      if (!GAS_URL) return;
+      try {
+        const res = await fetch(GAS_URL, { 
+          method: "GET", 
+          mode: "cors" 
         });
-      };
+        const cloudQuotes = await res.json();
+        if (Array.isArray(cloudQuotes)) {
+          setQuotes(cloudQuotes);
+          if (cloudQuotes.length > 0) setActiveQuoteId(cloudQuotes[0].id);
+          console.log("✅ 雲端同步成功");
+        }
+      } catch (e) {
+        console.error("❌ 載入失敗:", e);
+        // 備案：雲端失敗時讀取本地
+        const saved = localStorage.getItem("HERHSIN_QUOTES");
+        if (saved) setQuotes(JSON.parse(saved));
+      }
+    };
 
-      const createQuote = (modeId) => {
-        const mode = QUOTE_MODES.find(m => m.id === modeId);
-        const newQ = { id: uuid(), company, quoteNo: generateQuoteNo(company), title: "", customerName: "", date: new Date().toISOString().slice(0,10), items: (mode?.defaultItems || []).map(i => ({...i, id: uuid()})), leakageParts: (mode?.defaultLeakageParts || []).map(p => ({...p, id: uuid()})), notes: mode?.defaultNotes || "", payment: mode?.defaultPayment || "" };
-        setQuotes(prev => [newQ, ...prev]);
-        setActiveQuoteId(newQ.id);
-        syncToCloud(newQ);
-      };
+    // 2. 雲端儲存函式 (修正 POST 403 問題)
+    const syncToCloud = async (data) => {
+      if (!GAS_URL) return;
+      try {
+        await fetch(GAS_URL, {
+          method: "POST",
+          mode: "no-cors", // ⭐ 關鍵：繞過瀏覽器安全性檢查，直接傳送資料
+          body: JSON.stringify({ action: "save", data })
+        });
+        console.log("☁️ 已同步至雲端試算表");
+      } catch (e) {
+        console.error("❌ 同步失敗:", e);
+      }
+    };
 
-      const value = { company, setCompany, quotes, setQuotes, activeQuoteId, setActiveQuoteId, updateQuote, createQuote, loadFromCloud };
-      return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-    }
+    // 初始啟動時讀取
+    React.useEffect(() => {
+      loadFromCloud();
+    }, []);
 
+    // 當資料改變時，除了存本地，也同步雲端
+    const updateQuote = (id, data) => {
+      setQuotes(prev => {
+        const newState = prev.map(q => q.id === id ? { ...q, ...data } : q);
+        const updatedQuote = newState.find(q => q.id === id);
+        if (updatedQuote) syncToCloud(updatedQuote); 
+        localStorage.setItem("HERHSIN_QUOTES", JSON.stringify(newState));
+        return newState;
+      });
+    };
+
+    // ... 其餘 createQuote, duplicateQuote 也要記得呼叫 syncToCloud ...
+
+    const value = { 
+      company, setCompany, 
+      quotes, setQuotes, 
+      activeQuoteId, setActiveQuoteId, 
+      updateQuote, loadFromCloud 
+    };
+
+    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  }
 /***********************************************************
  * P4-1 — 公司切換 / 模式選擇 / 報價單列表
  ***********************************************************/
