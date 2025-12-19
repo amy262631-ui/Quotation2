@@ -2217,25 +2217,62 @@ function App() {
   } = React.useContext(AppContext);
 
   // (1) 新建報價單
-  const createQuote = React.useCallback((modeId = null) => {
-    // 注意：此處需確保 QUOTE_MODES 已經定義（原版使用的是 QUOTE_MODES 而非 MODE_CONFIG）
-    const mode = QUOTE_MODES.find(m => m.id === modeId) || QUOTE_MODES[0];
-    const newQuote = {
-      id: uuid(),
-      company: company, 
-      quoteNo: generateQuoteNo(company),
-      title: mode.name, // 原版欄位名為 name
-      customerName: "",
-      date: formatDate(),
-      items: mode.defaultItems.map(item => ({ ...item, id: uuid() })), 
-      leakageParts: (mode.defaultLeakageParts || []).map(p => ({ ...p, id: uuid() })), 
-      notes: mode.defaultNotes,
-      payment: mode.defaultPayment,
-      discountPercent: 0,
-      negotiatedPrice: 0
-    };
-    setQuotes(prev => [newQuote, ...prev]);
-    setActiveQuoteId(newQuote.id);
+ // (1) 新建報價單 - 修正零件完整載入
+  const createQuote = React.useCallback((modeId = null) => {
+    const mode = QUOTE_MODES.find(m => m.id === modeId) || QUOTE_MODES[0];
+    
+    // ⭐ 確保從 mode 裡面提取所有預設零件，並賦予新的唯一 ID
+    const initialLeakageParts = (mode.defaultLeakageParts || []).map(p => ({
+      ...p,
+      id: uuid(),
+      // 確保帶入預設的規格與單價
+      spec: p.spec || "",
+      price: p.price || 0
+    }));
+
+    const newQuote = {
+      id: uuid(),
+      company: company, 
+      quoteNo: generateQuoteNo(company),
+      title: mode.name,
+      customerName: "",
+      date: formatDate(),
+      items: mode.defaultItems.map(item => ({ ...item, id: uuid() })), 
+      leakageParts: initialLeakageParts, // ⭐ 這裡帶入完整的零件清單
+      notes: mode.defaultNotes,
+      payment: mode.defaultPayment,
+      discountPercent: 0,
+      negotiatedPrice: 0
+    };
+
+    setQuotes(prev => [newQuote, ...prev]);
+    setActiveQuoteId(newQuote.id);
+    
+    if (typeof syncToCloud === "function") syncToCloud(newQuote);
+  }, [company, setQuotes, setActiveQuoteId, syncToCloud]);
+
+  // (5) 套用模式 - 修正零件覆蓋邏輯
+  const applyMode = React.useCallback((modeId) => {
+    if (!activeQuoteId) return;
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    if (!mode) return;
+    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
+    
+    // ⭐ 套用時同樣要完整抓取零件
+    const newLeakageParts = (mode.defaultLeakageParts || []).map(p => ({
+      ...p,
+      id: uuid()
+    }));
+
+    const updateData = {
+      items: mode.defaultItems.map(item => ({ ...item, id: uuid() })),
+      leakageParts: newLeakageParts, // ⭐ 確保覆蓋為完整的零件清單
+      notes: mode.defaultNotes,
+      payment: mode.defaultPayment
+    };
+    
+    updateQuote(activeQuoteId, updateData);
+  }, [activeQuoteId, updateQuote]);
     
     // ⭐ 雲端儲存
     if (typeof syncToCloud === "function") syncToCloud(newQuote);
