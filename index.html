@@ -560,7 +560,47 @@ const deleteQuote = React.useCallback(async (id) => {
   }, [loadSpecItems, loadCustomers, loadFromCloud]);
 
   const activeQuote = quotes.find(q => q.id === activeQuoteId);
+/* ========================================================
+    4. 套用模式 (applyMode) - 修正未定義錯誤
+    ======================================================== */
+  const applyMode = React.useCallback((modeId) => {
+    if (!activeQuoteId) return;
+    const mode = QUOTE_MODES.find(m => m.id === modeId);
+    if (!mode) return;
 
+    if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
+
+    // 準備主項目資料
+    const newItems = JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
+        ...item,
+        id: uuid() 
+    }));
+    
+    // 準備零件資料
+    const newLeakageParts = (mode.defaultLeakageParts)
+      ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
+          ...part,
+          id: uuid()
+        }))
+      : [];
+
+    const updateData = {
+        items: newItems,
+        leakageParts: newLeakageParts,
+        notes: mode.defaultNotes,
+        payment: mode.defaultPayment
+    };
+
+    // 執行更新
+    updateQuote(activeQuoteId, updateData);
+    
+    // ⭐ 套用後同步至雲端
+    const source = quotes.find(q => q.id === activeQuoteId);
+    if (source && typeof syncToCloud === "function") {
+      syncToCloud({ ...source, ...updateData });
+    }
+
+  }, [activeQuoteId, updateQuote, quotes, syncToCloud]);
   // 4. ⭐ 匯出上下文值 (確保 duplicateQuote 與 sync 功能全部解鎖)
   const value = {
     company, setCompany, quotes, setQuotes,
