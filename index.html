@@ -434,7 +434,6 @@ function AppProvider({ children }) {
   const createQuote = React.useCallback((modeId) => {
     const mode = QUOTE_MODES.find(m => m.id === modeId);
     
-    // 1. 處理主項目 (給予全新 ID)
     const defaultItems = mode 
       ? JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
           ...item,
@@ -442,11 +441,10 @@ function AppProvider({ children }) {
         }))
       : [];
 
-    // 2. 處理實支實付零件 (如果有設定的話) 
     const defaultLeakageParts = (mode && mode.defaultLeakageParts)
       ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
           ...part,
-          id: uuid() // 一樣給予全新 ID
+          id: uuid() 
         }))
       : [];
 
@@ -468,9 +466,9 @@ function AppProvider({ children }) {
         negotiatedPrice: 0
     };
 
-   setQuotes(prev => [newQuote, ...prev]);
+    setQuotes(prev => [newQuote, ...prev]);
     setActiveQuoteId(newQuote.id);
-    syncToCloud(newQuote); // ☁️ 新建即同步
+    if (typeof syncToCloud === "function") syncToCloud(newQuote); // ☁️ 新建即同步
   }, [company, syncToCloud]);
 
   /* ========================================================
@@ -482,15 +480,17 @@ function AppProvider({ children }) {
   }, [activeQuoteId]);
 
   /* ========================================================
-    新增功能：複製報價單 (duplicateQuote) - 保持不變
+    新增功能：複製報價單 (duplicateQuote) - 修正重複問題
     ======================================================== */
   const duplicateQuote = React.useCallback((id) => {
     const sourceQuote = quotes.find(q => q.id === id);
     if (!sourceQuote) return;
 
+    // 1. 建立全新 ID 以防重複
+    const newId = uuid();
     const newQuote = {
       ...JSON.parse(JSON.stringify(sourceQuote)), 
-      id: uuid(), 
+      id: newId, 
       quoteNo: generateQuoteNo(sourceQuote.company), 
       title: `${sourceQuote.title} (副本)`, 
       date: formatDate(), 
@@ -498,9 +498,19 @@ function AppProvider({ children }) {
       leakageParts: (sourceQuote.leakageParts || []).map(part => ({ ...part, id: uuid() }))
     };
 
-    setQuotes(prev => [newQuote, ...prev]);
-    setActiveQuoteId(newQuote.id);
-  }, [quotes]);
+    // 2. ⭐ 加入防重複檢查
+    setQuotes(prev => {
+      if (prev.find(q => q.id === newId)) return prev;
+      return [newQuote, ...prev];
+    });
+
+    setActiveQuoteId(newId);
+
+    // 3. ⭐ 補上雲端同步 (原本漏掉這行)
+    if (typeof syncToCloud === "function") {
+      syncToCloud(newQuote);
+    }
+  }, [quotes, company, syncToCloud]);
 
   /* ========================================================
     3. 更新報價單 (updateQuote) - 保持不變
@@ -517,20 +527,18 @@ function AppProvider({ children }) {
   /* ========================================================
     4. 套用模式 (applyMode) - 保持不變
     ======================================================== */
- const applyMode = React.useCallback((modeId) => {
+  const applyMode = React.useCallback((modeId) => {
     if (!activeQuoteId) return;
     const mode = QUOTE_MODES.find(m => m.id === modeId);
     if (!mode) return;
 
     if (!window.confirm("確定要覆蓋當前報價單內容嗎？此動作無法復原。")) return;
 
-    // 主項目
     const newItems = JSON.parse(JSON.stringify(mode.defaultItems)).map(item => ({
         ...item,
         id: uuid() 
     }));
     
-    // 套用零件
     const newLeakageParts = (mode.defaultLeakageParts)
       ? JSON.parse(JSON.stringify(mode.defaultLeakageParts)).map(part => ({
           ...part,
@@ -547,9 +555,11 @@ function AppProvider({ children }) {
 
     updateQuote(activeQuoteId, updateData);
     
-    // ⭐ 套用後立刻同步至雲端
-    const finalQuote = { ...quotes.find(q => q.id === activeQuoteId), ...updateData };
-    if (typeof syncToCloud === "function") syncToCloud(finalQuote);
+    // ⭐ 套用後同步
+    const source = quotes.find(q => q.id === activeQuoteId);
+    if (source && typeof syncToCloud === "function") {
+      syncToCloud({ ...source, ...updateData });
+    }
 
   }, [activeQuoteId, updateQuote, quotes, syncToCloud]);
 
@@ -584,7 +594,7 @@ function AppProvider({ children }) {
 
   const activeQuote = quotes.find(q => q.id === activeQuoteId);
 
-  // 4. 匯出上下文值 (確保逗號完整，功能全開)
+  // 4. 匯出上下文值
   const value = {
     company,
     setCompany,
@@ -601,8 +611,8 @@ function AppProvider({ children }) {
     updateQuote,
     applyMode,
     duplicateQuote,
-    loadFromCloud, // ⭐ 雲端讀取函式
-    syncToCloud    // ⭐ 雲端寫入函式
+    loadFromCloud, 
+    syncToCloud 
   };
 
   window.__APP_CONTEXT__ = value;
@@ -613,7 +623,6 @@ function AppProvider({ children }) {
     </AppContext.Provider>
   );
 }
-
 /***********************************************************
  * P4-1 — 公司切換 / 模式選擇 / 報價單列表
  ***********************************************************/
@@ -2205,22 +2214,21 @@ function LeakagePartsEditor({ parts, updateQuote }) {
 }
 
 /***********************************************************
- * P5 — App 根元件 (完整修復版)
+ * P5 — App 根元件 (雲端防重複 & 邏輯強化版)
  ***********************************************************/
 function App() {
   const { 
     quotes, setQuotes, 
     activeQuoteId, setActiveQuoteId,
     company,
-    loadFromCloud, // 從 Context 取得
-    syncToCloud    // 從 Context 取得
+    loadFromCloud, 
+    syncToCloud 
   } = React.useContext(AppContext);
 
-  // (1) 新建報價單 - ⭐ 修正：確保零件清單完整載入
+  // (1) 新建報價單
   const createQuote = React.useCallback((modeId = null) => {
     const mode = QUOTE_MODES.find(m => m.id === modeId) || QUOTE_MODES[0];
     
-    // 確保從 mode 提取所有預設零件
     const initialLeakageParts = (mode.defaultLeakageParts || []).map(p => ({
       ...p,
       id: uuid(),
@@ -2229,24 +2237,24 @@ function App() {
     }));
 
     const newQuote = {
-      id: uuid(),
+      id: uuid(), // 生成唯一 ID
       company: company, 
       quoteNo: generateQuoteNo(company),
       title: mode.name || "新報價單",
       customerName: "",
       date: formatDate(),
       items: (mode.defaultItems || []).map(item => ({ ...item, id: uuid() })), 
-      leakageParts: initialLeakageParts, // ⭐ 帶入完整零件清單
+      leakageParts: initialLeakageParts,
       notes: mode.defaultNotes || DEFAULT_NOTES,
       payment: mode.defaultPayment || DEFAULT_PAYMENT,
       discountPercent: 0,
       negotiatedPrice: 0
     };
 
+    // 使用函數式更新，確保只加入一次
     setQuotes(prev => [newQuote, ...prev]);
     setActiveQuoteId(newQuote.id);
     
-    // ☁️ 同步雲端
     if (typeof syncToCloud === "function") syncToCloud(newQuote);
   }, [company, setQuotes, setActiveQuoteId, syncToCloud]);
 
@@ -2256,7 +2264,7 @@ function App() {
     if (activeQuoteId === id) setActiveQuoteId(null);
   }, [activeQuoteId, setQuotes, setActiveQuoteId]);
 
-  // (3) 更新報價單 - ⭐ 修正：確保修改即時同步雲端
+  // (3) 更新報價單
   const updateQuote = React.useCallback((id, data) => {
     setQuotes(prev => {
       const newState = prev.map(q => q.id === id ? { ...q, ...data } : q);
@@ -2268,29 +2276,42 @@ function App() {
     });
   }, [setQuotes, syncToCloud]);
 
-  // (4) 複製報價單
+  // (4) 複製報價單 - ⭐ 修正防重複邏輯
   const duplicateQuote = React.useCallback((id) => {
+    // 1. 找到來源
     const sourceQuote = quotes.find(q => q.id === id);
     if (!sourceQuote) return;
 
+    // 2. 建立新 ID 並進行深拷貝
+    const newId = uuid();
+    const clonedData = JSON.parse(JSON.stringify(sourceQuote));
+    
     const newQuote = {
-      ...JSON.parse(JSON.stringify(sourceQuote)), 
-      id: uuid(), 
-      quoteNo: generateQuoteNo(sourceQuote.company), 
-      title: `${sourceQuote.title} (副本)`, 
+      ...clonedData, 
+      id: newId, // 給予全新 ID
+      quoteNo: generateQuoteNo(clonedData.company), 
+      title: `${clonedData.title} (副本)`, 
       date: formatDate(), 
-      items: sourceQuote.items.map(item => ({ ...item, id: uuid() })),
-      leakageParts: (sourceQuote.leakageParts || []).map(part => ({ ...part, id: uuid() }))
+      items: clonedData.items.map(item => ({ ...item, id: uuid() })),
+      leakageParts: (clonedData.leakageParts || []).map(part => ({ ...part, id: uuid() }))
     };
 
-    setQuotes(prev => [newQuote, ...prev]);
-    setActiveQuoteId(newQuote.id);
-    
-    // ☁️ 同步雲端
-    if (typeof syncToCloud === "function") syncToCloud(newQuote);
-  }, [quotes, setQuotes, setActiveQuoteId, syncToCloud]);
+    // 3. ⭐ 防重複：檢查狀態中是否已存在此新 ID
+    setQuotes(prev => {
+      if (prev.some(q => q.id === newId)) return prev; // 已存在則不動作
+      return [newQuote, ...prev];
+    });
 
-  // (5) 套用模式 - ⭐ 修正：確保覆蓋時零件也完整更新
+    // 4. 切換選取
+    setActiveQuoteId(newId);
+    
+    // 5. ☁️ 同步雲端
+    if (typeof syncToCloud === "function") {
+      syncToCloud(newQuote);
+    }
+  }, [quotes, company, setActiveQuoteId, setQuotes, syncToCloud]);
+
+  // (5) 套用模式
   const applyMode = React.useCallback((modeId) => {
     if (!activeQuoteId) return;
     const mode = QUOTE_MODES.find(m => m.id === modeId);
@@ -2307,17 +2328,14 @@ function App() {
     updateQuote(activeQuoteId, updateData);
   }, [activeQuoteId, updateQuote]);
 
-  // UI 介面
   return (
     <div className="min-h-screen bg-gray-50 flex print:block print:bg-white">
-        {/* 側邊欄 */}
-        <div className="w-96 bg-white p-6 shadow-lg flex-shrink-0 text-lg sticky top-0 h-screen overflow-y-auto no-print">
+        <aside className="w-96 bg-white p-6 shadow-lg flex-shrink-0 text-lg sticky top-0 h-screen overflow-y-auto no-print">
             <h1 className="text-2xl font-extrabold mb-6 text-center text-blue-700 italic border-b-2 pb-2">工程報價系統</h1>
             
             <CompanySelector />
             <ModeSelector applyMode={applyMode} />
             
-            {/* ☁️ 同步按鈕 */}
             <button 
               onClick={loadFromCloud} 
               className="w-full mb-6 py-2 border-2 border-blue-500 text-blue-600 rounded-md font-bold hover:bg-blue-50 transition-colors text-sm shadow-sm"
@@ -2332,9 +2350,8 @@ function App() {
                 deleteQuote={deleteQuote} 
                 duplicateQuote={duplicateQuote} 
             />
-        </div>
+        </aside>
         
-        {/* 主編輯區 */}
         <div className="flex-grow p-8 text-base print:p-0">
             <QuoteEditor /> 
         </div>
