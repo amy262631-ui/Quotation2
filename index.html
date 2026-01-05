@@ -24,8 +24,8 @@
       display: none;
     }
 
-   /* =================================================
-       ✅ 修正後的列印專用 CSS
+  /* ================================================= 
+       ✅ 修正後的列印專用 CSS (加大版)
     ================================================= */
     @media print {
       /* 1. 強制重置所有容器，取消 Flex 排版 */
@@ -33,18 +33,20 @@
       #root, 
       .quote-editor-root-container, 
       div {
-        display: block !important; /* 關鍵：取消 flex，改為區塊 */
+        display: block !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         position: static !important;
         background: white;
+        /* ⭐ 新增：設定基礎字體大小 */
+        font-size: 14px !important; 
       }
 
       /* 2. 隱藏不需要列印的元素 */
       .no-print,
       .live-preview-box,
-      aside, /* 如果側邊欄是用 aside */
+      aside, 
       nav {
         display: none !important;
       }
@@ -55,14 +57,16 @@
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
-        box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
+        box-sizing: border-box;
       }
 
-      /* 4. 表格設定 */
+      /* 4. 表格設定 (關鍵：加大格子與字體) */
       table {
         width: 100% !important;
         border-collapse: collapse;
-        table-layout: fixed; /* 讓欄位寬度依照設定的 % 跑，不要被內容撐開或壓縮 */
+        table-layout: fixed;
+        /* ⭐ 新增：確保表格內的字體也加大 */
+        font-size: 15px !important; 
       }
 
       thead {
@@ -71,23 +75,37 @@
 
       tr {
         page-break-inside: avoid;
+        /* ⭐ 新增：增加行高，看起來不擁擠 */
+        line-height: 1.5 !important; 
       }
 
-      /* 5. 確保文字不會因為太擠而變直向 */
+      /* 5. 確保文字清晰並加大間距 */
       td, th {
-        white-space: normal; /* 允許換行 */
-        word-wrap: break-word; /*長單字換行*/
-        vertical-align: middle; /* 垂直置中 */
+        white-space: normal;
+        word-wrap: break-word;
+        vertical-align: middle;
+        /* ⭐ 修正：加大內距 (Padding)，這會讓格子變寬、變高 */
+        padding: 8px 6px !important; 
+        border: 1px solid black !important;
       }
 
+      th {
+        /* ⭐ 新增：標題背景稍微深一點，列印較清晰 */
+        background-color: #f2f2f2 !important; 
+        font-weight: bold !important;
+      }
+
+      /* 6. 頁尾與簽名區域 */
       .print-footer-block,
       .print-signature-area {
         page-break-inside: avoid;
+        margin-top: 15px !important;
       }
 
       @page {
         size: A4;
-        margin: 10mm; /* 邊距設為 10mm，讓空間更大 */
+        /* ⭐ 修正：邊距如果設太小，有些印表機會切到標題，建議 15mm */
+        margin: 15mm 10mm; 
       }
     }
   </style>
@@ -1856,9 +1874,25 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
   const calcAmount = (item) => item.price * item.qty;
 
-  // 3. 樣式定義
-  const TH_TD = { border: "1px solid #000", padding: "3px 4px", fontSize: "12px", verticalAlign: "middle", lineHeight: "1.2" };
-  const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", padding: "4px" };
+  // 3. 樣式定義 (加大版)
+  // 將 fontSize 從 12px 提升至 14px，padding 從 3px 提升至 8px
+  const TH_TD = { 
+    border: "1px solid #000", 
+    padding: "8px 6px", // 增加上下內距，格子會變高，文字不擁擠
+    fontSize: "14px",    // 基礎文字放大
+    verticalAlign: "middle", 
+    lineHeight: "1.4"    // 增加行高
+  };
+  
+  const TH = { 
+    ...TH_TD, 
+    background: "#f0f0f0", 
+    fontWeight: "bold", 
+    textAlign: "center", 
+    padding: "10px 6px", // 標題欄位再加厚一點
+    fontSize: "15px"     // 標題字體再大一點
+  };
+
   const TD_RIGHT = { ...TH_TD, textAlign: "right" };
   const TD_CENTER = { ...TH_TD, textAlign: "center" };
 
@@ -1986,18 +2020,16 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
           <colgroup><col style={{ width: "75%" }} /><col style={{ width: "20%" }} /><col style={{ width: "5%" }} /></colgroup>
           <tbody>
             <tr>
-              <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
-                總計金額（未稅）
-              </td>
-              <td style={{ 
-                ...TD_RIGHT, 
-                fontWeight: "bold", 
-                whiteSpace: "nowrap", 
-                borderBottom: "1px solid #000",
-                fontSize: 14 
-              }}>
-                {formatMoney(totalAmount)}
-              </td>
+              {/* 將總計金額的 fontSize 從 14 提升至 16，最終報價從 16 提升至 20 */}
+  <td style={{ 
+    ...TD_RIGHT, 
+    fontWeight: "bold", 
+    whiteSpace: "nowrap", 
+    borderBottom: "1px solid #000",
+    fontSize: 16 // 加大總計文字
+  }}>
+    {formatMoney(totalAmount)}
+  </td>
               <td style={{ ...TH_TD, border: "none" }}></td>
             </tr>
             {showFinalPrice && (
