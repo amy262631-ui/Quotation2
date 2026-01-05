@@ -2092,52 +2092,58 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
 
 
        {/* ==========================================
-            Part 5: 頁尾 & 簽名 (暴力修復版：寬度 98% + 置中)
+            Part 5: 頁尾 & 簽名 (加大清晰版)
             ========================================== */}
-        <div className="print-footer-block">
-            <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 5 }}>
+        <div className="print-footer-block" style={{ marginTop: "10px" }}>
+            {/* 1. 備註與付款條件區：放大字體並增加行高 */}
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "10px" }}>
                 <tbody>
                 <tr>
-                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "11px" }}>
-                        <strong>備註：</strong>
-                        <div style={{ whiteSpace: "pre-wrap", marginTop: 2 }}>{quote.notes}</div>
+                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "14px", padding: "10px", lineHeight: "1.6" }}>
+                        <strong style={{ fontSize: "15px" }}>備註：</strong>
+                        <div style={{ whiteSpace: "pre-wrap", marginTop: "5px" }}>{quote.notes}</div>
                     </td>
-                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "11px" }}>
-                        <strong>付款條件：</strong>
-                        <div style={{ whiteSpace: "pre-wrap", marginTop: 2 }}>{quote.payment}</div>
+                    <td style={{ ...TH_TD, width: "50%", verticalAlign: "top", fontSize: "14px", padding: "10px", lineHeight: "1.6" }}>
+                        <strong style={{ fontSize: "15px" }}>付款條件：</strong>
+                        <div style={{ whiteSpace: "pre-wrap", marginTop: "5px" }}>{quote.payment}</div>
                     </td>
                 </tr>
                 </tbody>
             </table>
             
-            {/* ▼▼▼ 修改重點：寬度改 98%，加入 margin: "10px auto" 讓它置中 ▼▼▼ */}
-            <table className="print-signature-area" style={{ width: "98%", margin: "10px auto", borderCollapse: "collapse", borderRight: "1px solid #000" }}>
+            {/* 2. 簽名區域：高度增加，字體同步放大 */}
+            <table className="print-signature-area" style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000" }}>
                 <tbody>
                 <tr>
-                    {/* 這裡加入 borderRight 確保中間那條線也在 */}
-                    <td style={{ ...TH_TD, width: "50%", height: 90, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
-    <strong>公司報價章</strong>
-    {companyInfo.stamp && (
-      <img 
-    src={companyInfo.stamp} 
-    alt="公司印章" 
-    style={{ 
-        display: "block", 
-        margin: "5px auto", 
-        maxHeight: "75px", // 放大 1.2 倍後的尺寸
-        width: "auto"
-    }} 
-/>
-    )}
-</td>
-                    {/* 強制加上右邊框 */}
-                    <td style={{ ...TH_TD, width: "50%", height: 80, verticalAlign: "top", padding: "5px", borderRight: "1px solid #000" }}>
-                        <strong>客戶回簽</strong>
+                    {/* 公司報價章欄位：高度從 90 增加到 120 */}
+                    <td style={{ ...TH_TD, width: "50%", height: "120px", verticalAlign: "top", padding: "10px", borderRight: "1px solid #000" }}>
+                        <strong style={{ fontSize: "15px" }}>公司報價章</strong>
+                        {companyInfo.stamp && (
+                            <img 
+                                src={companyInfo.stamp} 
+                                alt="公司印章" 
+                                style={{ 
+                                    display: "block", 
+                                    margin: "10px auto", 
+                                    maxHeight: "90px", // 稍微調大印章顯示
+                                    width: "auto"
+                                }} 
+                            />
+                        )}
+                    </td>
+                    {/* 客戶回簽欄位 */}
+                    <td style={{ ...TH_TD, width: "50%", height: "120px", verticalAlign: "top", padding: "10px" }}>
+                        <strong style={{ fontSize: "15px" }}>客戶回簽</strong>
                     </td>
                 </tr>
+                {/* 日期欄位：放大字體 */}
                 <tr>
-                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px", borderRight: "1px solid #000"}}>日期：</td>
-                    <td style={{...TH_TD, borderTop: "none", fontSize: "11px", borderRight: "1px solid #000"}}>日期：</td>
+                    <td style={{ ...TH_TD, borderTop: "none", fontSize: "14px", padding: "5px 10px", borderRight: "1px solid #000", textAlign: "center" }}>
+                        日期：
+                    </td>
+                    <td style={{ ...TH_TD, borderTop: "none", fontSize: "14px", padding: "5px 10px", textAlign: "center" }}>
+                        日期：
+                    </td>
                 </tr>
                 </tbody>
             </table>
