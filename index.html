@@ -1640,16 +1640,18 @@ function ExportWordButton() {
           </tr>
         </table>
 
-        <table style="margin-bottom: 3px;">
+        {/* 1. 修改表格寬度分配：對應列印版的比例 */}
+        <table style="margin-bottom: 3px; table-layout: fixed; width: 100%;">
           <thead>
             <tr style="background-color: #f0f0f0;">
               <th width="5%">項次</th>
-              <th width="30%">品名</th>
-              <th width="30%">規格</th>
-              <th width="6%">單位</th>
-              <th width="6%">數量</th>
-              <th width="10%">單價</th>
-              <th width="13%">小計</th>
+              <th width="20%">品名</th>
+              <th width="18%">規格</th>
+              <th width="7%">單位</th>
+              <th width="7%">數量</th>
+              <th width="12%">單價</th>
+              <th width="15%">小計</th>
+              <th width="16%">備註</th>
             </tr>
           </thead>
           <tbody>
@@ -1662,34 +1664,36 @@ function ExportWordButton() {
                 <td class="text-center num-cell">${item.qty}</td>
                 <td class="text-right num-cell">${item.price ? formatMoney(item.price) : "-"}</td>
                 <td class="text-right num-cell font-bold">${calcAmount(item) ? formatMoney(calcAmount(item)) : "-"}</td>
+                <td>${item.remarks || ""}</td>
               </tr>
               ${item.specMaterial ? `
               <tr class="detail-row">
                 <td style="border-top: none;"></td>
-                <td colspan="6">
+                <td colspan="7" style="font-size: 8pt; color: #444;">
                   <strong>用料：</strong>${item.specMaterial}
                 </td>
               </tr>` : ""}
-              ${item.remarks ? `
-              <tr class="detail-row">
-                <td style="border-top: none;"></td>
-                <td colspan="6">
-                  備註：${item.remarks}
-                </td>
-              </tr>` : ""}
             `).join("")}
-            
-            <tr style="height: 18px;">
-              <td colspan="5" class="no-border"></td>
-              <td class="text-center font-bold" style="background-color: #f0f0f0; font-size: 9pt;">總計金額</td>
-              <td class="text-right font-bold num-cell" style="background-color: #f0f0f0; font-size: 9pt;">${formatMoney(totalAmount)}</td>
+
+            <tr>
+              <td colspan="6" class="text-right font-bold" style="background-color: #f0f0f0; border-top: 2px solid black; padding: 5px;">
+                總計金額（未稅）
+              </td>
+              <td class="text-right font-bold num-cell" style="background-color: #f0f0f0; border-top: 2px solid black; padding: 5px;">
+                ${formatMoney(totalAmount)}
+              </td>
+              <td style="border-top: 2px solid black;"></td>
             </tr>
             
             ${showFinalPrice ? `
-            <tr style="height: 18px;">
-               <td colspan="5" class="no-border"></td>
-               <td class="text-center font-bold" style="color: red; border-top: none; font-size: 9pt;">最終報價</td>
-               <td class="text-right font-bold num-cell" style="color: red; border-top: none; font-size: 9pt;">${formatMoney(negotiatedAmount)}</td>
+            <tr>
+               <td colspan="6" class="text-right font-bold" style="color: red; padding: 5px;">
+                 最終報價金額（未稅）
+               </td>
+               <td class="text-right font-bold num-cell" style="color: red; padding: 5px; border-bottom: 3px double red;">
+                 ${formatMoney(negotiatedAmount)}
+               </td>
+               <td></td>
             </tr>
             ` : ""}
           </tbody>
@@ -1949,8 +1953,18 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             border: "2px solid black",
             tableLayout: "fixed" 
         }}>
-          {/* ⭐ 寬度比例分配：5+22+22+6+6+9+13+15 = 100% */}
-          <colgroup><col style={{ width: "5%" }}/><col style={{ width: "22%" }}/><col style={{ width: "22%" }}/><col style={{ width: "6%" }}/><col style={{ width: "6%" }}/><col style={{ width: "9%" }}/><col style={{ width: "13%" }}/><col style={{ width: "15%" }}/></colgroup>
+          {/* ⭐ 重新分配寬度：增加單價(12%)與小計(15%)的空間，避免數字溢出 */}
+          <colgroup>
+            <col style={{ width: "5%" }}/>   {/* 項次 */}
+            <col style={{ width: "20%" }}/>  {/* 品名 */}
+            <col style={{ width: "18%" }}/>  {/* 規格 */}
+            <col style={{ width: "7%" }}/>   {/* 單位 */}
+            <col style={{ width: "7%" }}/>   {/* 數量 */}
+            <col style={{ width: "12%" }}/>  {/* 單價 (原9% -> 12%) */}
+            <col style={{ width: "15%" }}/>  {/* 小計 (原13% -> 15%) */}
+            <col style={{ width: "16%" }}/>  {/* 備註 */}
+          </colgroup>
+          
           <thead>
             <tr>
               <th style={TH}>項次</th>
@@ -1963,7 +1977,9 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
               <th style={TH}>備註</th>
             </tr>
           </thead>
+          
           <tbody>
+            {/* 報價項目迴圈 */}
             {itemsToPrint.map((item, index) => (
               <React.Fragment key={item.id || index}>
                 <tr>
@@ -1972,9 +1988,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     <td style={{ ...TH_TD, color: "#444" }}>{item.specMain}</td>
                     <td style={TD_CENTER}>{item.unit}</td>
                     <td style={TD_CENTER}>{item.qty}</td>
-                    <td style={TD_RIGHT}>
-                        {item.price > 0 ? formatMoney(item.price) : "-"}
-                    </td>
+                    <td style={TD_RIGHT}>{item.price > 0 ? formatMoney(item.price) : "-"}</td>
                     <td style={{ ...TD_RIGHT, fontWeight: "bold" }}>
                         {calcAmount(item) > 0 ? formatMoney(calcAmount(item)) : "-"}
                     </td>
@@ -2032,23 +2046,23 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   </td>
               <td style={{ ...TH_TD, border: "none" }}></td>
             </tr>
-            {showFinalPrice && (
-                <tr>
-                  <td style={{ ...TD_RIGHT, fontWeight: "bold", border: "none" }}>
-                    最終報價金額（未稅）
-                  </td>
-                  <td style={{ 
-                    ...TD_RIGHT, 
-                    fontWeight: "bold", 
-                    color: "red", 
-                    whiteSpace: "nowrap", 
-                    borderBottom: "1px solid #000",
-                    fontSize: 16 
-                  }}>
-                    {formatMoney(negotiatedAmount)}
-                  </td>
-                  <td style={{ ...TH_TD, border: "none" }}></td>
-                </tr>
+           {showFinalPrice && (
+              <tr>
+                <td colSpan="6" style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", padding: "10px" }}>
+                  最終報價金額（未稅）
+                </td>
+                <td style={{ 
+                  ...TD_RIGHT, 
+                  fontWeight: "bold", 
+                  color: "red", 
+                  fontSize: "20px",
+                  padding: "10px 5px",
+                  borderBottom: "3px double red" 
+                }}>
+                  {formatMoney(negotiatedAmount)}
+                </td>
+                <td style={TH_TD}></td>
+              </tr>
             )}
           </tbody>
         </table>
