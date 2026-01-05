@@ -409,29 +409,28 @@ function AppProvider({ children }) {
     }
   }, []);
 
-  // 2. 從雲端載入資料 (啟動時呼叫)
+ // 2. 從雲端載入資料 (修正重複 Key 問題)
   const loadFromCloud = React.useCallback(async () => {
     if (!GAS_URL || GAS_URL.includes("您的")) return;
     try {
       const res = await fetch(GAS_URL, { method: "GET", mode: "cors" });
       if (!res.ok) throw new Error("網路請求失敗");
       const cloudQuotes = await res.json();
-      
+            
       if (Array.isArray(cloudQuotes)) {
         setQuotes(prev => {
-          // ⭐ 關鍵：保留「本地端有、但雲端還沒出現」的資料 (例如剛複製出來的)
-          const localNew = prev.filter(lp => !cloudQuotes.some(cp => cp.id === lp.id));
-          return [...localNew, ...cloudQuotes];
+          // ⭐ 修正點：使用 Map 確保 ID 唯一，後來的資料 (雲端) 會覆蓋舊的
+          const combined = [...prev, ...cloudQuotes];
+          const uniqueMap = new Map();
+          combined.forEach(q => uniqueMap.set(q.id, q));
+          return Array.from(uniqueMap.values());
         });
-        
-        // 若當前無選取，則預設選取第一張
-        setActiveQuoteId(prev => prev || (cloudQuotes[0]?.id));
-        console.log("✅ 雲端載入完成");
+        console.log("✅ 雲端載入完成（已自動去重）");
       }
     } catch (e) {
       console.error("❌ 雲端載入失敗:", e);
     }
-  }, [GAS_URL]); // 移除了 activeQuoteId 依賴，避免重複觸發
+  }, [GAS_URL]);
 
   // 載入規格 (保持不變)
   const loadSpecItems = React.useCallback(() => {
@@ -1512,7 +1511,7 @@ function ExportButton() {
   );
 }
 // ===============================
-// Word 匯出 (極限版 v4：清晰可讀，修正頂部留白)
+// Word 匯出 (極限版 v5：修正結構警告與對齊)
 // ===============================
 function ExportWordButton() {
   const { activeQuote } = React.useContext(AppContext);
@@ -1535,83 +1534,66 @@ function ExportWordButton() {
     const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
     const hasLeakageParts = activeQuote.leakageParts && activeQuote.leakageParts.length > 0;
     
-    // 2. 產生 Word HTML (清晰可讀排版)
+    // 2. 產生 Word HTML
     const wordContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
         <meta charset="utf-8">
         <title>${activeQuote.title}</title>
         <style>
-          /* 1. ⭐ 邊界設定：上下 5mm, 左右 8mm ⭐ */
           @page {
             mso-page-orientation: portrait;
             size: 210mm 297mm;
             margin: 5mm 8mm 5mm 8mm; 
-            
-            /* ⭐ 修正 Word 頁首/頁尾空間，強制貼頂 ⭐ */
             mso-header-margin: 0;
             mso-footer-margin: 0;
             mso-margin-top-header: 0;
             mso-margin-bottom-footer: 0;
           }
-          /* 2. 消除 Body 預設邊距，字體基線調整回 9pt */
           body {
             font-family: "Microsoft JhengHei", "PMingLiU", serif;
-            font-size: 9pt; /* 調整回 9pt，確保清晰度 */
+            font-size: 9pt;
             line-height: 1.05; 
             margin: 0;
             padding: 0;
           }
-          /* 表格設定 */
           table {
             width: 100%;
             border-collapse: collapse;
             border-spacing: 0;
             margin-bottom: 3px; 
+            table-layout: fixed;
           }
-          /* 儲存格內距微調 */
           td, th {
             border: 1px solid black;
-            padding: 2px 3px; /* 上下 2px，保持可讀 */
-            vertical-align: top; /* 垂直向上對齊 */
+            padding: 2px 3px;
+            vertical-align: middle;
             font-size: 9pt;
           }
-          /* 數字欄位字體，確保清晰 */
           .num-cell {
             font-size: 9pt; 
             font-weight: bold; 
           }
-          
-          /* 備註/用料明細縮小到 8pt，可讀性尚可 */
           .detail-row td {
              padding: 1px 3px !important; 
              font-size: 8pt; 
              color: #444;
              border-top: 1px dashed #ccc;
           }
-
           .no-border, .no-border td { border: none !important; }
-          
-          /* 3. 標題強制貼頂，字體微調 */
           h1 { font-size: 16pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; } 
           h2 { font-size: 13pt; text-align: center; margin: 2px 0; text-decoration: underline; }
-          .sub-info { font-size: 8pt; text-align: center; margin-bottom: 2px; color: #444; } /* 公司資訊調整回 8pt */
-          
+          .sub-info { font-size: 8pt; text-align: center; margin-bottom: 2px; color: #444; }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
           .font-bold { font-weight: bold; }
-          
-          /* 4. 簽名欄高度壓縮 */
           .sig-box { height: 40px; vertical-align: top; } 
-          
-          /* 備註/付款條件字體調整為 8pt */
           .note-text { font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.2; }
-          
         </style>
       </head>
       <body>
         
-        <table class="no-border" style="margin-bottom: 0; mso-yfti-tbllook:1184;">
+        <table class="no-border" style="margin-bottom: 0;">
           <tr>
             <td class="text-center" style="padding: 0;">
               <h1>${companyInfo.name}</h1>
@@ -1635,23 +1617,16 @@ function ExportWordButton() {
             <td width="40%" valign="top" class="text-right" style="line-height: 1.2;">
               <strong>報價單號：</strong>${activeQuote.quoteNo}<br/>
               <strong>報價日期：</strong>${activeQuote.date}<br/>
-              <strong>聯絡人：：</strong>${activeQuote.contact || ""}
+              <strong>聯絡人：</strong>${activeQuote.contact || ""}
             </td>
           </tr>
         </table>
 
-        {/* 1. 修改表格寬度分配：對應列印版的比例 */}
-        <table style="margin-bottom: 3px; table-layout: fixed; width: 100%;">
+        <table>
+          <colgroup><col width="5%"><col width="20%"><col width="18%"><col width="7%"><col width="7%"><col width="12%"><col width="15%"><col width="16%"></colgroup>
           <thead>
             <tr style="background-color: #f0f0f0;">
-              <th width="5%">項次</th>
-              <th width="20%">品名</th>
-              <th width="18%">規格</th>
-              <th width="7%">單位</th>
-              <th width="7%">數量</th>
-              <th width="12%">單價</th>
-              <th width="15%">小計</th>
-              <th width="16%">備註</th>
+              <th>項次</th><th>品名</th><th>規格</th><th>單位</th><th>數量</th><th>單價</th><th>小計</th><th>備註</th>
             </tr>
           </thead>
           <tbody>
@@ -1669,17 +1644,17 @@ function ExportWordButton() {
               ${item.specMaterial ? `
               <tr class="detail-row">
                 <td style="border-top: none;"></td>
-                <td colspan="7" style="font-size: 8pt; color: #444;">
+                <td colspan="7">
                   <strong>用料：</strong>${item.specMaterial}
                 </td>
               </tr>` : ""}
             `).join("")}
 
             <tr>
-              <td colspan="6" class="text-right font-bold" style="background-color: #f0f0f0; border-top: 2px solid black; padding: 5px;">
+              <td colspan="6" class="text-right font-bold" style="background-color: #f0f0f0; border-top: 2px solid black;">
                 總計金額（未稅）
               </td>
-              <td class="text-right font-bold num-cell" style="background-color: #f0f0f0; border-top: 2px solid black; padding: 5px;">
+              <td class="text-right font-bold num-cell" style="background-color: #f0f0f0; border-top: 2px solid black;">
                 ${formatMoney(totalAmount)}
               </td>
               <td style="border-top: 2px solid black;"></td>
@@ -1687,10 +1662,10 @@ function ExportWordButton() {
             
             ${showFinalPrice ? `
             <tr>
-               <td colspan="6" class="text-right font-bold" style="color: red; padding: 5px;">
+               <td colspan="6" class="text-right font-bold" style="color: red;">
                  最終報價金額（未稅）
                </td>
-               <td class="text-right font-bold num-cell" style="color: red; padding: 5px; border-bottom: 3px double red;">
+               <td class="text-right font-bold num-cell" style="color: red; border-bottom: 3px double red;">
                  ${formatMoney(negotiatedAmount)}
                </td>
                <td></td>
@@ -1700,10 +1675,10 @@ function ExportWordButton() {
         </table>
 
         ${hasLeakageParts ? `
-        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 2px 0 1px 0; font-size: 9pt;">
+        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 4px 0 2px 0; font-size: 9pt;">
           ※ 實支實付維修零件 <span style="font-size: 8pt; font-weight: normal;">(不計入總額)</span>
         </div>
-        <table style="margin-bottom: 2px;">
+        <table>
           <thead>
             <tr style="background-color: #f0f0f0;">
               <th width="40%">品名</th>
@@ -1727,11 +1702,11 @@ function ExportWordButton() {
 
         <table style="margin-top: 3px;">
           <tr>
-             <td width="50%" valign="top" style="padding: 2px 3px;">
+             <td width="50%" valign="top">
                 <strong>備註：</strong><br/>
                 <div class="note-text">${activeQuote.notes || ""}</div>
              </td>
-             <td width="50%" valign="top" style="padding: 2px 3px;">
+             <td width="50%" valign="top">
                 <strong>付款條件：</strong><br/>
                 <div class="note-text">${activeQuote.payment || ""}</div>
              </td>
@@ -1758,7 +1733,6 @@ function ExportWordButton() {
       </html>
     `;
 
-    // 3. 下載
     const filename = `${activeQuote.quoteNo}_${activeQuote.customerName || "客戶"}_報價單.doc`;
     const blob = new Blob(["\ufeff", wordContent], { type: "application/msword;charset=utf-8" });
     const link = document.createElement("a");
@@ -1771,7 +1745,7 @@ function ExportWordButton() {
 
   return (
     <button onClick={handleExportWord} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-      匯出 Word (極限版 v3)
+      匯出 Word (修正對齊版)
     </button>
   );
 }
@@ -1948,35 +1922,26 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
             Part 2: 主項目列表 - 恢復 8 欄式排版
             ========================================== */}
         <table style={{ 
-            width: "100%", 
-            borderCollapse: "collapse", 
-            border: "2px solid black",
-            tableLayout: "fixed" 
-        }}>
-          {/* ⭐ 重新分配寬度：增加單價(12%)與小計(15%)的空間，避免數字溢出 */}
-          <colgroup>
-            <col style={{ width: "5%" }}/>   {/* 項次 */}
-            <col style={{ width: "20%" }}/>  {/* 品名 */}
-            <col style={{ width: "18%" }}/>  {/* 規格 */}
-            <col style={{ width: "7%" }}/>   {/* 單位 */}
-            <col style={{ width: "7%" }}/>   {/* 數量 */}
-            <col style={{ width: "12%" }}/>  {/* 單價 (原9% -> 12%) */}
-            <col style={{ width: "15%" }}/>  {/* 小計 (原13% -> 15%) */}
-            <col style={{ width: "16%" }}/>  {/* 備註 */}
-          </colgroup>
-          
-          <thead>
-            <tr>
-              <th style={TH}>項次</th>
-              <th style={TH}>品名</th>
-              <th style={TH}>規格</th>
-              <th style={TH}>單位</th>
-              <th style={TH}>數量</th>
-              <th style={TH}>單價</th>
-              <th style={TH}>小計</th>
-              <th style={TH}>備註</th>
-            </tr>
-          </thead>
+    width: "100%", 
+    borderCollapse: "collapse", 
+    border: "2px solid black",
+    tableLayout: "fixed" 
+}}>
+  {/* ⭐ 修正點：移除所有標籤間的空格與換行 */}
+  <colgroup><col style={{width:"5%"}}/><col style={{width:"20%"}}/><col style={{width:"18%"}}/><col style={{width:"7%"}}/><col style={{width:"7%"}}/><col style={{width:"12%"}}/><col style={{width:"15%"}}/><col style={{width:"16%"}}/></colgroup>
+  
+  <thead>
+    <tr>
+      <th style={TH}>項次</th>
+      <th style={TH}>品名</th>
+      <th style={TH}>規格</th>
+      <th style={TH}>單位</th>
+      <th style={TH}>數量</th>
+      <th style={TH}>單價</th>
+      <th style={TH}>小計</th>
+      <th style={TH}>備註</th>
+    </tr>
+  </thead>
           
           <tbody>
             {/* 報價項目迴圈 */}
