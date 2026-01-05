@@ -480,6 +480,7 @@ function AppProvider({ children }) {
         phone: "",
         location: "",
         date: formatDate(),
+        stampDate: formatDate(), // ⭐ 新增：專門給印章下方的日期
         items: defaultItems,
         leakageParts: defaultLeakageParts, 
         notes: mode ? mode.defaultNotes : DEFAULT_NOTES,
@@ -1263,15 +1264,13 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
   );
 }
 /***********************************************************
- * P4-3 — QuoteEditor / ExportButton / PrintButton / PrintLayout
+ * P4-3 — QuoteEditor (整合印章日期選取功能)
  ***********************************************************/
-// 報價單編輯主元件
-// 報價單編輯主元件 - 整合修復版
 function QuoteEditor() {
     const { activeQuote, updateQuote, customers } = React.useContext(AppContext);
     const componentRef = React.useRef(null);
 
-    // 1. 防呆檢查：若無單據則回傳空畫面
+    // 1. 防呆檢查
     if (!activeQuote) {
         return (
             <div className="p-8 text-center text-gray-500 text-xl">
@@ -1317,28 +1316,24 @@ function QuoteEditor() {
     const negotiatedAmount = calcNegotiated(totalAmount, activeQuote.discountPercent, activeQuote.negotiatedPrice);
     const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
 
-    // 4. 最終回傳 HTML 結構 (僅有一個 return)
+    // 4. 最終回傳 HTML 結構
     return (
         <div className="quote-editor-root-container">
-            {/* A. 編輯介面區 (包含即時預覽，都在 .no-print 內) */}
+            {/* A. 編輯介面區 */}
             <div className="p-8 bg-gray-100 rounded-xl shadow-xl no-print">
                 <h1 className="text-3xl font-bold mb-6 border-b pb-3">
                     編輯報價單：{activeQuote.title || "未命名"}
                 </h1>
 
-                {/* --- 這裡保留您原本編輯區的所有內容：客戶資料、項目清單、備註區、匯出按鈕等 --- */}
-                {/* 由於您原本程式碼很長，建議直接對照並貼入此處，或是使用下方整合好的結構 */}
-                
-                {/* (簡略示意原本內容開始) */}
+                {/* 客戶資料區 */}
                 <div className="bg-white p-4 rounded-lg mb-6 border border-gray-300 shadow-sm text-sm">
                     <div className="grid grid-cols-4 gap-3">
-                        {/* 報價單號、日期、標題、客戶名稱等欄位 */}
                         <div className="col-span-1">
                             <label className="block text-xs font-bold text-gray-500 mb-1">報價單編號</label>
                             <div className="font-mono font-bold text-blue-700 text-base">{activeQuote.quoteNo}</div>
                         </div>
                         <div className="col-span-1">
-                            <label className="block text-xs font-bold text-gray-500 mb-1">報價日期</label>
+                            <label className="block text-xs font-bold text-gray-500 mb-1">報價日期 (單據日)</label>
                             <input type="date" value={activeQuote.date} onChange={(e) => handleChange("date", e.target.value)} className="w-full border rounded px-2 py-1 text-sm outline-none" />
                         </div>
                         <div className="col-span-2">
@@ -1369,18 +1364,38 @@ function QuoteEditor() {
 
                 {activeQuote.leakageParts && <LeakagePartsEditor parts={activeQuote.leakageParts} updateQuote={(data) => updateQuote(activeQuote.id, data)} />}
 
+                {/* 備註與付款條件 */}
                 <div className="mt-10 grid grid-cols-2 gap-8">
                     <div><h3 className="font-bold text-lg mb-2">備註（不含稅）</h3><textarea value={activeQuote.notes} onChange={(e) => handleChange("notes", e.target.value)} rows="8" className="w-full border rounded-lg px-3 py-2" /></div>
                     <div><h3 className="font-bold text-lg mb-2">付款條件</h3><textarea value={activeQuote.payment} onChange={(e) => handleChange("payment", e.target.value)} rows="8" className="w-full border rounded-lg px-3 py-2" /></div>
                 </div>
 
+                {/* ⭐ 新增：報價印章日期選取區 ⭐ */}
+                <div className="mt-8 p-6 bg-blue-50 rounded-xl border-2 border-blue-200 shadow-inner">
+                    <label className="block text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
+                        📅 設定【公司報價章】顯示日期
+                    </label>
+                    <div className="flex items-center gap-4">
+                        <input 
+                            type="date" 
+                            className="border-2 border-blue-300 p-3 rounded-lg focus:ring-4 focus:ring-blue-200 outline-none text-xl font-bold text-blue-700 shadow-sm"
+                            value={activeQuote.stampDate || activeQuote.date} 
+                            onChange={(e) => handleChange("stampDate", e.target.value)}
+                        />
+                        <div className="text-blue-600">
+                            <p className="font-bold">此日期將會單獨印在列印頁的報價印章下方。</p>
+                            <p className="text-sm">預設與報價日期相同，您可以自由點擊日曆更改（例如押後日期）。</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 功能按鈕區 */}
                 <div className="mt-10 pt-6 border-t flex gap-4 justify-end">
                     <ExportButton />
                     <ExportWordButton />
-                   <ExportPDFButton /> {/* ⭐ 新增的按鈕 */}
+                    <ExportPDFButton />
                     <PrintButton />
                 </div>
-                {/* (簡略示意原本內容結束) */}
 
                 {/* 即時預覽區 */}
                 <div className="live-preview-box mt-12">
@@ -1393,7 +1408,7 @@ function QuoteEditor() {
                 </div>
             </div>
 
-            {/* B. 列印專用隱藏版面 - 確保它在編輯介面的外層 */}
+            {/* B. 列印專用隱藏版面 */}
             <div className="print-only-layout" style={{ display: "none" }}>
                 <PrintLayout quote={activeQuote} totalAmount={totalAmount} negotiatedAmount={negotiatedAmount} isPreview={false} />
             </div>
@@ -1971,7 +1986,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
           </tbody>
         </table>
 
-        {/* Part 5: 頁尾簽署區 */}
+       {/* Part 5: 頁尾簽署區 - 支援日曆日期顯示 */}
         <div style={{ marginTop: "40px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
             <tbody>
@@ -1994,19 +2009,31 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                   <strong style={{ fontSize: "18px" }}>公司報價章：</strong>
                   {companyInfo.stamp && <img src={companyInfo.stamp} style={{ maxHeight: "110px", display: "block", margin: "10px auto" }} />}
                 </td>
-                <td style={{ ...TH_TD, width: "50%", height: "160px", verticalAlign: "top" }}><strong style={{ fontSize: "18px" }}>客戶回簽：</strong></td>
+                <td style={{ ...TH_TD, width: "50%", height: "160px", verticalAlign: "top" }}>
+                  <strong style={{ fontSize: "18px" }}>客戶回簽：</strong>
+                </td>
               </tr>
               <tr>
-                <td style={{ ...TD_CENTER, borderTop: "none", height: "45px", fontSize: "16px" }}>日期：</td>
-                <td style={{ ...TD_CENTER, borderTop: "none", height: "45px", fontSize: "16px" }}>日期：</td>
+                {/* ⭐ 修正點：公司章下方顯示你在編輯器選取的日曆日期 ⭐ */}
+                <td style={{ ...TD_CENTER, borderTop: "none", height: "45px", fontSize: "18px", fontWeight: "bold" }}>
+                  日期：
+                  <span style={{ 
+                    borderBottom: "1.5px solid black", 
+                    padding: "0 15px", 
+                    minWidth: "150px", 
+                    display: "inline-block" 
+                  }}>
+                    {quote.stampDate || quote.date}
+                  </span>
+                </td>
+                {/* 右側客戶端日期通常保持留白供手寫 */}
+                <td style={{ ...TD_CENTER, borderTop: "none", height: "45px", fontSize: "18px" }}>
+                  日期：
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
-  );
-}
 /* ========================================================
    ★ 重新補回被刪除的組件：實支實付零件編輯器 (LeakagePartsEditor)
    ======================================================== */
