@@ -1844,7 +1844,7 @@ function PrintButton() {
   );
 }
 /***********************************************************
- * 列印排版組件（PrintLayout）— 最終豪華加大對齊版
+ * 列印排版組件（PrintLayout）— 修正圖片遺失與對齊版
  ***********************************************************/
 function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   if (!quote || !COMPANY_DATA[quote.company]) return null;
@@ -1853,14 +1853,8 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const itemsToPrint = quote.items || [];
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
 
-  // 1. 強制加大樣式定義
-  const TH_TD = { 
-    border: "1px solid #000", 
-    padding: "12px 8px", 
-    fontSize: "16px", 
-    verticalAlign: "middle", 
-    lineHeight: "1.4" 
-  };
+  // 1. 強制加大樣式
+  const TH_TD = { border: "1px solid #000", padding: "12px 8px", fontSize: "16px", verticalAlign: "middle", lineHeight: "1.4" };
   const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", fontSize: "17px" };
   const TD_RIGHT = { ...TH_TD, textAlign: "right", whiteSpace: "nowrap", paddingRight: "10px" };
   const TD_CENTER = { ...TH_TD, textAlign: "center" };
@@ -1870,8 +1864,8 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
       <style>{`
         @media print {
           @page { margin: 15mm 10mm !important; size: auto; }
-          body { margin: 0 !important; -webkit-print-color-adjust: exact; }
-          .print-content { width: 100%; }
+          body { margin: 0 !important; }
+          td, th { border: 1px solid black !important; }
         }
       `}</style>
 
@@ -1879,18 +1873,14 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
         {/* Part 1: 公司抬頭 */}
         <div style={{ textAlign: "center", marginBottom: "25px" }}>
           <h1 style={{ margin: "0 0 8px 0", fontSize: "36px", fontWeight: "bold" }}>{companyInfo.name}</h1>
-          <div style={{ fontSize: "15px", marginBottom: "5px" }}>
-            統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}
-          </div>
+          <div style={{ fontSize: "15px" }}>統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}</div>
           <div style={{ fontSize: "15px" }}>{companyInfo.address}</div>
           <div style={{ marginTop: "15px" }}>
-             <span style={{ fontSize: "26px", borderBottom: "3px solid #000", padding: "0 50px 5px 50px", fontWeight: "bold", display: "inline-block" }}>
-                工程報價單
-             </span>
+             <span style={{ fontSize: "26px", borderBottom: "3px solid #000", padding: "0 50px 5px 50px", fontWeight: "bold", display: "inline-block" }}>工程報價單</span>
           </div>
         </div>
 
-        {/* Part 2: 資訊區 (解決高度不對齊與重疊) */}
+        {/* Part 2: 資訊區 (使用 Table 結構防止重疊) */}
         <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid black", marginBottom: "15px" }}>
           <tbody>
             <tr>
@@ -1900,7 +1890,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                 <div><strong>工程地點：</strong>{quote.location}</div>
                 <div><strong>聯絡電話：</strong>{quote.phone}</div>
               </td>
-              <td style={{ width: "40%", padding: "15px", verticalAlign: "middle", fontSize: "16px", lineHeight: "2.2", textAlign: "left" }}>
+              <td style={{ width: "40%", padding: "15px", verticalAlign: "middle", fontSize: "16px", lineHeight: "2.2" }}>
                 <div><strong>報價單號：</strong>{quote.quoteNo}</div>
                 <div><strong>報價日期：</strong>{quote.date}</div>
                 <div><strong>聯絡人：</strong>{quote.contact}</div>
@@ -1930,6 +1920,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                   <td style={{ ...TD_RIGHT, fontWeight: "bold", fontSize: "18px" }}>{formatMoney(item.price * item.qty)}</td>
                   <td style={TH_TD}>{item.remarks}</td>
                 </tr>
+                {/* 用料明細 */}
                 {item.specMaterial && (
                   <tr>
                     <td style={{ border: "1px solid black", borderTop: "none" }}></td>
@@ -1938,10 +1929,32 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                     </td>
                   </tr>
                 )}
+                {/* ⭐ 修正：補回補充圖片與文字顯示邏輯 ⭐ */}
+                {item.subItems && item.subItems.map(sub => (
+                    <tr key={sub.id}>
+                         <td style={{ border: "1px solid black", borderTop: "none" }}></td>
+                         <td colSpan="7" style={{ ...TH_TD, color: "#444", fontSize: "14px", borderTop: "1px dashed #eee" }}>
+                           {sub.type === "image" ? (
+                             <div style={{ padding: "10px 0" }}>
+                               <div style={{ fontWeight: "bold", marginBottom: "5px", color: "#2563eb" }}>補充照片：</div>
+                               <img 
+                                 src={sub.imageData} 
+                                 alt="補充圖片" 
+                                 style={{ maxWidth: "70%", maxHeight: "300px", display: "block", borderRadius: "4px", border: "1px solid #ddd" }} 
+                               />
+                             </div>
+                           ) : (
+                             <div style={{ padding: "5px 0" }}>
+                               <strong>補充：{sub.name}</strong> — {sub.remarks}
+                             </div>
+                           )}
+                         </td>
+                    </tr>
+                ))}
               </React.Fragment>
             ))}
 
-            {/* 總計金額對齊小計下方 */}
+            {/* 總計行 */}
             <tr style={{ backgroundColor: "#f9f9f9", height: "60px" }}>
               <td colSpan="6" style={{ ...TD_RIGHT, fontWeight: "bold", borderTop: "2px solid black", fontSize: "18px" }}>總計金額（未稅）</td>
               <td style={{ ...TD_RIGHT, fontWeight: "bold", borderTop: "2px solid black", fontSize: "20px" }}>{formatMoney(totalAmount)}</td>
@@ -1958,24 +1971,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
           </tbody>
         </table>
 
-        {/* 實支實付零件表 */}
-        {quote.leakageParts && quote.leakageParts.length > 0 && (
-            <div style={{ marginTop: "25px" }}>
-                <div style={{ fontWeight: "bold", fontSize: "18px", marginBottom: "8px", borderLeft: "5px solid blue", paddingLeft: "10px" }}>※ 實支實付維修零件價目表</div>
-                <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid black" }}>
-                    <thead style={{ backgroundColor: "#eee" }}>
-                        <tr><th style={TH}>品名</th><th style={TH}>規格</th><th style={TH}>單位</th><th style={TH}>單價</th></tr>
-                    </thead>
-                    <tbody>
-                        {quote.leakageParts.map((p, i) => (
-                            <tr key={i}><td style={TH_TD}>{p.name}</td><td style={TH_TD}>{p.spec}</td><td style={TD_CENTER}>{p.unit}</td><td style={TD_RIGHT}>{formatMoney(p.price)}</td></tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        )}
-
-        {/* Part 5: 頁尾簽署區 (標題加大) */}
+        {/* Part 5: 頁尾簽署區 */}
         <div style={{ marginTop: "40px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
             <tbody>
@@ -2011,7 +2007,6 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
     </div>
   );
 }
-
 /* ========================================================
    ★ 重新補回被刪除的組件：實支實付零件編輯器 (LeakagePartsEditor)
    ======================================================== */
