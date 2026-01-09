@@ -1526,7 +1526,7 @@ function ExportButton() {
   );
 }
 // ===============================
-// Word 匯出 (極限版 v5：修正結構警告與對齊)
+// Word 匯出 (豪華加大對齊版：同步實支實付)
 // ===============================
 function ExportWordButton() {
   const { activeQuote } = React.useContext(AppContext);
@@ -1537,99 +1537,43 @@ function ExportWordButton() {
       return;
     }
 
-    // 1. 準備資料
     const companyKey = activeQuote.company || "herhsin";
     const companyInfo = COMPANY_DATA[companyKey];
     const totalAmount = calcTotal(activeQuote.items);
-    const negotiatedAmount = calcNegotiated(
-        totalAmount, 
-        activeQuote.discountPercent, 
-        activeQuote.negotiatedPrice
-    );
+    const negotiatedAmount = calcNegotiated(totalAmount, activeQuote.discountPercent, activeQuote.negotiatedPrice);
     const showFinalPrice = (activeQuote.discountPercent > 0) || (activeQuote.negotiatedPrice > 0);
     const hasLeakageParts = activeQuote.leakageParts && activeQuote.leakageParts.length > 0;
-    
-    // 2. 產生 Word HTML
+
     const wordContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
         <meta charset="utf-8">
-        <title>${activeQuote.title}</title>
         <style>
-          @page {
-            mso-page-orientation: portrait;
-            size: 210mm 297mm;
-            margin: 5mm 8mm 5mm 8mm; 
-            mso-header-margin: 0;
-            mso-footer-margin: 0;
-            mso-margin-top-header: 0;
-            mso-margin-bottom-footer: 0;
-          }
-          body {
-            font-family: "Microsoft JhengHei", "PMingLiU", serif;
-            font-size: 9pt;
-            line-height: 1.05; 
-            margin: 0;
-            padding: 0;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            border-spacing: 0;
-            margin-bottom: 3px; 
-            table-layout: fixed;
-          }
-          td, th {
-            border: 1px solid black;
-            padding: 2px 3px;
-            vertical-align: middle;
-            font-size: 9pt;
-          }
-          .num-cell {
-            font-size: 9pt; 
-            font-weight: bold; 
-          }
-          .detail-row td {
-             padding: 1px 3px !important; 
-             font-size: 8pt; 
-             color: #444;
-             border-top: 1px dashed #ccc;
-          }
-          .no-border, .no-border td { border: none !important; }
-          h1 { font-size: 16pt; text-align: center; margin: 0; padding-top: 0; line-height: 1.1; } 
-          h2 { font-size: 13pt; text-align: center; margin: 2px 0; text-decoration: underline; }
-          .sub-info { font-size: 8pt; text-align: center; margin-bottom: 2px; color: #444; }
+          @page { size: 210mm 297mm; margin: 15mm 10mm; }
+          body { font-family: "Microsoft JhengHei", serif; color: #000; }
+          table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+          td, th { border: 1px solid black; padding: 10px 5px; vertical-align: middle; font-size: 11pt; }
           .text-center { text-align: center; }
           .text-right { text-align: right; }
           .font-bold { font-weight: bold; }
-          .sig-box { height: 40px; vertical-align: top; } 
-          .note-text { font-size: 8pt; margin-top: 1px; white-space: pre-wrap; line-height: 1.2; }
         </style>
       </head>
       <body>
-        
-        <table class="no-border" style="margin-bottom: 0;">
-          <tr>
-            <td class="text-center" style="padding: 0;">
-              <h1>${companyInfo.name}</h1>
-              <div class="sub-info">
-                統編：${companyInfo.taxId} ｜ 電話：${companyInfo.tel} ｜ 傳真：${companyInfo.fax} <br/>
-                ${companyInfo.address}
-              </div>
-              <h2>工程報價單</h2>
-            </td>
-          </tr>
-        </table>
+        <div class="text-center" style="margin-bottom: 25px;">
+          <h1 style="font-size: 26pt; margin: 0;">${companyInfo.name}</h1>
+          <p style="font-size: 10pt; margin: 5px 0;">統編：${companyInfo.taxId} | 電話：${companyInfo.tel} | 傳真：${companyInfo.fax} <br/> ${companyInfo.address}</p>
+          <h2 style="font-size: 20pt; margin: 15px 0; border-bottom: 2px solid black; display: inline-block; padding-bottom: 5px;">工程報價單</h2>
+        </div>
 
-        <table class="no-border" style="margin-bottom: 3px;">
+        <table style="width: 100%; border: 2px solid black; margin-bottom: 15px;">
           <tr>
-            <td width="60%" valign="top" style="line-height: 1.2;">
+            <td style="width: 60%; border: none; border-right: 2px solid black; font-size: 13pt; line-height: 1.8; padding: 15px;">
               <strong>客戶名稱：</strong>${activeQuote.customerName || ""}<br/>
               <strong>工程名稱：</strong>${activeQuote.title || ""}<br/>
               <strong>工程地點：</strong>${activeQuote.location || ""}<br/>
               <strong>聯絡電話：</strong>${activeQuote.phone || ""}
             </td>
-            <td width="40%" valign="top" class="text-right" style="line-height: 1.2;">
+            <td style="width: 40%; border: none; font-size: 11pt; line-height: 2.2; padding: 15px;">
               <strong>報價單號：</strong>${activeQuote.quoteNo}<br/>
               <strong>報價日期：</strong>${activeQuote.date}<br/>
               <strong>聯絡人：</strong>${activeQuote.contact || ""}
@@ -1637,229 +1581,137 @@ function ExportWordButton() {
           </tr>
         </table>
 
-        <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 3px;">
-          {/* ⭐ 修正點 1：微調寬度比例，給「小計」更多空間 (5+20+18+6+6+13+16+16 = 100%) */}
-          <colgroup><col width="5%"><col width="20%"><col width="18%"><col width="6%"><col width="6%"><col width="13%"><col width="16%"><col width="16%"></colgroup>
+        <table style="width: 100%; border: 2px solid black;">
+          <colgroup><col width="5%"><col width="20%"><col width="18%"><col width="7%"><col width="7%"><col width="13%"><col width="15%"><col width="15%"></colgroup>
           <thead>
             <tr style="background-color: #f0f0f0;">
-              <th class="text-center">項次</th>
-              <th class="text-center">品名</th>
-              <th class="text-center">規格</th>
-              <th class="text-center">單位</th>
-              <th class="text-center">數量</th>
-              <th class="text-center">單價</th>
-              <th class="text-center">小計</th>
-              <th class="text-center">備註</th>
+              <th class="text-center">項次</th><th>品名</th><th>規格</th><th class="text-center">單位</th><th class="text-center">數量</th><th class="text-right">單價</th><th class="text-right">小計</th><th>備註</th>
             </tr>
           </thead>
           <tbody>
             ${activeQuote.items.map((item, index) => `
               <tr>
                 <td class="text-center">${index + 1}</td>
-                <td>${item.name || ""}</td>
-                <td>${item.specMain || ""}</td>
+                <td class="font-bold">${item.name || ""}</td>
+                <td style="font-size: 10pt;">${item.specMain || ""}</td>
                 <td class="text-center">${item.unit || ""}</td>
-                <td class="text-center num-cell">${item.qty}</td>
-                {/* ⭐ 修正點 2：加入 white-space: nowrap 確保數字不換行，padding-right 增加呼吸空間 */}
-                <td class="text-right num-cell" style="padding-right: 5px; white-space: nowrap;">${item.price ? formatMoney(item.price) : "-"}</td>
-                <td class="text-right num-cell font-bold" style="padding-right: 5px; white-space: nowrap;">${calcAmount(item) ? formatMoney(calcAmount(item)) : "-"}</td>
+                <td class="text-center">${item.qty}</td>
+                <td class="text-right">${formatMoney(item.price)}</td>
+                <td class="text-right font-bold">${formatMoney(item.price * item.qty)}</td>
                 <td>${item.remarks || ""}</td>
               </tr>
               ${item.specMaterial ? `
-              <tr class="detail-row">
+              <tr>
                 <td style="border-top: none;"></td>
-                <td colspan="7" style="font-size: 8pt; color: #444;">
-                  <strong>用料：</strong>${item.specMaterial}
+                <td colspan="7" style="font-size: 10pt; color: #444; border-top: 1px dashed #ccc; background-color: #fcfcfc;">
+                  <strong>【用料明細】</strong>${item.specMaterial}
                 </td>
               </tr>` : ""}
             `).join("")}
-
-            {/* ⭐ 修正點 3：總計行對齊優化 */}
-            <tr>
-              {/* colspan="6" 將標籤推到「小計」欄位的左側（對齊單價下方） */}
-              <td colspan="6" class="text-right font-bold" style="background-color: #f9f9f9; border-top: 2px solid black; padding: 5px 10px;">
-                總計金額（未稅）
-              </td>
-              <td class="text-right font-bold num-cell" style="background-color: #f9f9f9; border-top: 2px solid black; padding: 5px; white-space: nowrap;">
-                ${formatMoney(totalAmount)}
-              </td>
+            <tr style="background-color: #f9f9f9;">
+              <td colspan="6" class="text-right font-bold" style="border-top: 2px solid black; font-size: 13pt;">總計金額（未稅）</td>
+              <td class="text-right font-bold" style="border-top: 2px solid black; font-size: 14pt;">${formatMoney(totalAmount)}</td>
               <td style="border-top: 2px solid black;"></td>
             </tr>
-            
             ${showFinalPrice ? `
             <tr>
-               <td colspan="6" class="text-right font-bold" style="color: red; padding: 5px 10px;">
-                 最終報價金額（未稅）
-               </td>
-               <td class="text-right font-bold num-cell" style="color: red; padding: 5px; white-space: nowrap; border-bottom: 3px double red;">
-                 ${formatMoney(negotiatedAmount)}
-               </td>
-               <td></td>
-            </tr>
-            ` : ""}
+              <td colspan="6" class="text-right font-bold" style="color: red; font-size: 14pt;">最終報價金額（未稅）</td>
+              <td class="text-right font-bold" style="color: red; font-size: 18pt; border-bottom: 3.5px double red;">${formatMoney(negotiatedAmount)}</td>
+              <td></td>
+            </tr>` : ""}
           </tbody>
         </table>
 
         ${hasLeakageParts ? `
-        <div style="border-left: 3px solid #000; padding-left: 5px; font-weight: bold; margin: 4px 0 2px 0; font-size: 9pt;">
-          ※ 實支實付維修零件 <span style="font-size: 8pt; font-weight: normal;">(不計入總額)</span>
-        </div>
-        <table>
-          <thead>
-            <tr style="background-color: #f0f0f0;">
-              <th width="40%">品名</th>
-              <th width="35%">規格</th>
-              <th width="10%">單位</th>
-              <th width="15%">單價</th>
+        <div style="margin-top: 25px; border-left: 5px solid #2563eb; padding-left: 10px; font-weight: bold; font-size: 13pt;">※ 實支實付維修零件價目表</div>
+        <table style="margin-top: 10px; width: 100%; border: 1px solid black;">
+          <tr style="background-color: #f0f0f0;">
+            <th width="40%">品名</th><th width="35%">規格</th><th width="10%">單位</th><th width="15%">單價</th>
+          </tr>
+          ${activeQuote.leakageParts.map(p => `
+            <tr>
+              <td>${p.name || ""}</td><td>${p.spec || ""}</td><td class="text-center">${p.unit || ""}</td><td class="text-right font-bold">${formatMoney(p.price)}</td>
             </tr>
-          </thead>
-          <tbody>
-            ${activeQuote.leakageParts.map(part => `
-              <tr>
-                <td>${part.name || ""}</td>
-                <td>${part.spec || ""}</td>
-                <td class="text-center">${part.unit || ""}</td>
-                <td class="text-right num-cell font-bold">${part.price ? formatMoney(part.price) : "-"}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-        ` : ""}
+          `).join("")}
+        </table>` : ""}
 
-        <table style="margin-top: 3px;">
+        <table style="width: 100%; border: none; margin-top: 35px;">
           <tr>
-             <td width="50%" valign="top">
-                <strong>備註：</strong><br/>
-                <div class="note-text">${activeQuote.notes || ""}</div>
-             </td>
-             <td width="50%" valign="top">
-                <strong>付款條件：</strong><br/>
-                <div class="note-text">${activeQuote.payment || ""}</div>
-             </td>
-          </tr>
-        </table>
-
-        <table style="margin-top: 1px;">
-          <tr>
-            <td width="50%" class="sig-box">
-               <strong>公司報價章</strong><br/>
-               ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="66" height="66" style="display:block; margin: 2px auto;" />` : ""}
+            <td style="width: 50%; vertical-align: top; border: 1px solid black; height: 120px; padding: 10px;">
+              <strong style="font-size: 15pt;">備註：</strong><br/>
+              <div style="font-size: 11pt; white-space: pre-wrap;">${activeQuote.notes || ""}</div>
             </td>
-            <td width="50%" class="sig-box">
-               <strong>客戶回簽</strong>
+            <td style="width: 50%; vertical-align: top; border: 1px solid black; height: 120px; padding: 10px;">
+              <strong style="font-size: 15pt;">付款條件：</strong><br/>
+              <div style="font-size: 11pt; white-space: pre-wrap;">${activeQuote.payment || ""}</div>
             </td>
           </tr>
-          <tr>
-             <td class="text-center" style="font-size: 8pt; border-top: none; padding-top: 0;">日期：</td>
-             <td class="text-center" style="font-size: 8pt; border-top: none; padding-top: 0;">日期：</td>
-          </tr>
         </table>
 
+        <table style="width: 100%; border: 2px solid black; margin-top: 10px;">
+          <tr>
+            <td style="width: 50%; height: 150px; vertical-align: top; border-right: 1px solid black; padding: 10px;">
+              <strong style="font-size: 12pt;">公司報價章：</strong><br/>
+              ${companyInfo.stamp ? `<img src="${companyInfo.stamp}" width="100" style="display:block; margin: 10px auto;" />` : ""}
+            </td>
+            <td style="width: 50%; height: 150px; vertical-align: top; padding: 10px;"><strong style="font-size: 12pt;">客戶回簽：</strong></td>
+          </tr>
+          <tr>
+            <td class="text-center" style="border-top: none; font-size: 13pt; font-weight: bold;">
+              日期：<span style="text-decoration: underline;">&nbsp;&nbsp;${activeQuote.stampDate || activeQuote.date}&nbsp;&nbsp;</span>
+            </td>
+            <td class="text-center" style="border-top: none; font-size: 12pt;">日期：</td>
+          </tr>
+        </table>
       </body>
       </html>
     `;
-
     const filename = `${activeQuote.quoteNo}_${activeQuote.customerName || "客戶"}_報價單.doc`;
     const blob = new Blob(["\ufeff", wordContent], { type: "application/msword;charset=utf-8" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename; link.click();
   };
 
   return (
-    <button onClick={handleExportWord} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-      匯出 Word (修正對齊版)
-    </button>
+    <button onClick={handleExportWord} className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 shadow-md">匯出 Word (PDF 同步版)</button>
   );
 }
+
 function ExportPDFButton() {
   const { activeQuote } = React.useContext(AppContext);
-
   const handleExportPDF = () => {
-    // 1. 取得編輯器與列印版面的 DOM
-    // 請確認您的編輯器主體有 no-print class，或是直接用 div 定位
-    const editorUI = document.querySelector('.no-print'); 
     const printOnlyLayout = document.querySelector('.print-only-layout');
-
-    if (!printOnlyLayout) {
-      alert("找不到列印內容，請確認報價單已選取");
-      return;
-    }
-
-    // 2. ⭐ 自動設定預設檔名 (這是轉 PDF 的關鍵便利點)
+    if (!printOnlyLayout) { alert("找不到列印內容"); return; }
     const originalTitle = document.title;
     document.title = `${activeQuote.quoteNo}_${activeQuote.customerName}_報價單`;
-
-    // 3. 暫時強制顯示列印版面 (不使用 fixed 推走，直接原位顯示以利截取)
     const originalDisplay = printOnlyLayout.style.display;
     printOnlyLayout.style.display = 'block';
-
-    // 4. 觸發系統列印
-    // 在列印視窗中，請將「目的地」選擇為「另存為 PDF」
     window.print();
-
-    // 5. 恢復原狀
-    setTimeout(() => {
-      printOnlyLayout.style.display = originalDisplay;
-      document.title = originalTitle;
-    }, 500);
+    setTimeout(() => { printOnlyLayout.style.display = originalDisplay; document.title = originalTitle; }, 500);
   };
-
   return (
-    <button 
-      onClick={handleExportPDF} 
-      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2"
-    >
-      <span style={{fontSize: '1.1rem'}}>📄</span> 轉存 PDF 檔案
-    </button>
+    <button onClick={handleExportPDF} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-lg flex items-center gap-2">📄 轉存 PDF 檔案</button>
   );
 }
-// ===============================
-// PrintButton (列印按鈕)
+
 function PrintButton() {
   const handlePrint = () => {
-    // 1. 取得需要切換的元素
-    const editorRoot = document.querySelector('.p-8.bg-gray-100.rounded-xl'); // 編輯器主體
-    const printOnlyLayout = document.querySelector('.print-only-layout');    // 隱藏的列印版面
-
-    if (!editorRoot || !printOnlyLayout) {
-      // 如果找不到元素，退而求其次直接呼叫 window.print()
-      window.print();
-      return;
-    }
-
-    // 2. 暫時隱藏編輯器，顯示列印專用版面
-    // 這樣 window.print() 抓到的就會是那個「漂亮的預覽畫面」
+    const editorRoot = document.querySelector('.p-8.bg-gray-100.rounded-xl');
+    const printOnlyLayout = document.querySelector('.print-only-layout');
+    if (!editorRoot || !printOnlyLayout) { window.print(); return; }
     const originalEditorDisplay = editorRoot.style.display;
     const originalPrintDisplay = printOnlyLayout.style.display;
-
     editorRoot.style.display = 'none';
     printOnlyLayout.style.display = 'block';
-
-    // 3. 觸發列印
     window.print();
-
-    // 4. 列印完後（或取消後）恢復原狀
-    setTimeout(() => {
-      editorRoot.style.display = originalEditorDisplay;
-      printOnlyLayout.style.display = originalPrintDisplay;
-    }, 500);
+    setTimeout(() => { editorRoot.style.display = originalEditorDisplay; printOnlyLayout.style.display = originalPrintDisplay; }, 500);
   };
-
   return (
-    <button 
-      onClick={handlePrint} 
-      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-lg"
-    >
-      列印報價單
-    </button>
+    <button onClick={handlePrint} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow-lg">列印報價單</button>
   );
 }
+
 /***********************************************************
- * 列印排版組件（PrintLayout）— 豪華加大版 (修正日期與語法)
+ * 列印排版組件（PrintLayout）— 修正實支實付遺失版
  ***********************************************************/
 function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   if (!quote || !COMPANY_DATA[quote.company]) return null;
@@ -1868,14 +1720,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   const itemsToPrint = quote.items || [];
   const showFinalPrice = (quote.discountPercent > 0) || (quote.negotiatedPrice > 0);
 
-  // 1. 強制加大樣式定義
-  const TH_TD = { 
-    border: "1px solid #000", 
-    padding: "12px 8px", 
-    fontSize: "16px", 
-    verticalAlign: "middle", 
-    lineHeight: "1.4" 
-  };
+  const TH_TD = { border: "1px solid #000", padding: "12px 8px", fontSize: "16px", verticalAlign: "middle", lineHeight: "1.4" };
   const TH = { ...TH_TD, background: "#f0f0f0", fontWeight: "bold", textAlign: "center", fontSize: "17px" };
   const TD_RIGHT = { ...TH_TD, textAlign: "right", whiteSpace: "nowrap", paddingRight: "10px" };
   const TD_CENTER = { ...TH_TD, textAlign: "center" };
@@ -1891,21 +1736,15 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
       `}</style>
 
       <div className="print-content">
-        {/* Part 1: 公司抬頭 */}
         <div style={{ textAlign: "center", marginBottom: "25px" }}>
           <h1 style={{ margin: "0 0 8px 0", fontSize: "36px", fontWeight: "bold" }}>{companyInfo.name}</h1>
-          <div style={{ fontSize: "15px", marginBottom: "5px" }}>
-            統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}
-          </div>
+          <div style={{ fontSize: "15px", marginBottom: "5px" }}>統編：{companyInfo.taxId} ｜ 電話：{companyInfo.tel} ｜ 傳真：{companyInfo.fax}</div>
           <div style={{ fontSize: "15px" }}>{companyInfo.address}</div>
           <div style={{ marginTop: "15px" }}>
-             <span style={{ fontSize: "26px", borderBottom: "3px solid #000", padding: "0 50px 5px 50px", fontWeight: "bold", display: "inline-block" }}>
-                工程報價單
-             </span>
+             <span style={{ fontSize: "26px", borderBottom: "3px solid #000", padding: "0 50px 5px 50px", fontWeight: "bold", display: "inline-block" }}>工程報價單</span>
           </div>
         </div>
 
-        {/* Part 2: 資訊區 (使用 Table 結構防止重疊) */}
         <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid black", marginBottom: "15px" }}>
           <tbody>
             <tr>
@@ -1915,7 +1754,7 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                 <div><strong>工程地點：</strong>{quote.location}</div>
                 <div><strong>聯絡電話：</strong>{quote.phone}</div>
               </td>
-              <td style={{ width: "40%", padding: "15px", verticalAlign: "middle", fontSize: "16px", lineHeight: "2.2", textAlign: "left" }}>
+              <td style={{ width: "40%", padding: "15px", verticalAlign: "middle", fontSize: "16px", lineHeight: "2.2" }}>
                 <div><strong>報價單號：</strong>{quote.quoteNo}</div>
                 <div><strong>報價日期：</strong>{quote.date}</div>
                 <div><strong>聯絡人：</strong>{quote.contact}</div>
@@ -1924,14 +1763,9 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
           </tbody>
         </table>
 
-        {/* Part 3: 主項目表格 */}
         <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid black", tableLayout: "fixed" }}>
           <colgroup><col style={{width:"5%"}}/><col style={{width:"20%"}}/><col style={{width:"18%"}}/><col style={{width:"6%"}}/><col style={{width:"6%"}}/><col style={{width:"13%"}}/><col style={{width:"16%"}}/><col style={{width:"16%"}}/></colgroup>
-          <thead>
-            <tr>
-              <th style={TH}>項次</th><th style={TH}>品名</th><th style={TH}>規格</th><th style={TH}>單位</th><th style={TH}>數量</th><th style={TH}>單價</th><th style={TH}>小計</th><th style={TH}>備註</th>
-            </tr>
-          </thead>
+          <thead><tr><th style={TH}>項次</th><th style={TH}>品名</th><th style={TH}>規格</th><th style={TH}>單位</th><th style={TH}>數量</th><th style={TH}>單價</th><th style={TH}>小計</th><th style={TH}>備註</th></tr></thead>
           <tbody>
             {itemsToPrint.map((item, index) => (
               <React.Fragment key={item.id || index}>
@@ -1970,40 +1804,49 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                 ))}
               </React.Fragment>
             ))}
-
             <tr style={{ backgroundColor: "#f9f9f9", height: "60px" }}>
               <td colSpan="6" style={{ ...TD_RIGHT, fontWeight: "bold", borderTop: "2px solid black", fontSize: "18px" }}>總計金額（未稅）</td>
               <td style={{ ...TD_RIGHT, fontWeight: "bold", borderTop: "2px solid black", fontSize: "20px" }}>{formatMoney(totalAmount)}</td>
               <td style={{ border: "1px solid black", borderTop: "2px solid black" }}></td>
             </tr>
-
             {showFinalPrice && (
-              <tr style={{ height: "60px" }}>
-                <td colSpan="6" style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", fontSize: "20px" }}>最終報價金額（未稅）</td>
-                <td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", fontSize: "24px", borderBottom: "4px double red" }}>{formatMoney(negotiatedAmount)}</td>
-                <td style={{ border: "1px solid black" }}></td>
-              </tr>
+              <tr style={{ height: "60px" }}><td colSpan="6" style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", fontSize: "20px" }}>最終報價金額（未稅）</td><td style={{ ...TD_RIGHT, fontWeight: "bold", color: "red", fontSize: "24px", borderBottom: "4px double red" }}>{formatMoney(negotiatedAmount)}</td><td style={{ border: "1px solid black" }}></td></tr>
             )}
           </tbody>
         </table>
 
-        {/* Part 5: 頁尾簽署區 (標題字體加大) */}
+        {/* ⭐⭐⭐ 重要：補回實支實付零件表區塊 ⭐⭐⭐ */}
+        {quote.leakageParts && quote.leakageParts.length > 0 && (
+          <div style={{ marginTop: "25px", pageBreakInside: "avoid" }}>
+              <div style={{ fontWeight: "bold", fontSize: "18px", marginBottom: "8px", borderLeft: "5px solid blue", paddingLeft: "10px" }}>※ 實支實付維修零件價目表</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid black" }}>
+                  <thead style={{ backgroundColor: "#eee" }}>
+                      <tr><th style={TH}>品名</th><th style={TH}>規格</th><th style={TH}>單位</th><th style={TH}>單價</th></tr>
+                  </thead>
+                  <tbody>
+                      {quote.leakageParts.map((p, i) => (
+                          <tr key={i}><td style={TH_TD}>{p.name}</td><td style={TH_TD}>{p.spec}</td><td style={TD_CENTER}>{p.unit}</td><td style={TD_RIGHT}>{formatMoney(p.price)}</td></tr>
+                      ))}
+                  </tbody>
+              </table>
+          </div>
+        )}
+
         <div style={{ marginTop: "40px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "20px" }}>
             <tbody>
               <tr>
                 <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
-                  <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px", color: "#000" }}>備註：</strong>
+                  <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px" }}>備註：</strong>
                   <div style={{ fontSize: "16px", whiteSpace: "pre-wrap" }}>{quote.notes}</div>
                 </td>
                 <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
-                  <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px", color: "#000" }}>付款條件：</strong>
+                  <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px" }}>付款條件：</strong>
                   <div style={{ fontSize: "16px", whiteSpace: "pre-wrap" }}>{quote.payment}</div>
                 </td>
               </tr>
             </tbody>
           </table>
-
           <table style={{ width: "100%", borderCollapse: "collapse", border: "2px solid black" }}>
             <tbody>
               <tr>
@@ -2011,17 +1854,11 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
                   <strong style={{ fontSize: "18px" }}>公司報價章：</strong>
                   {companyInfo.stamp && <img src={companyInfo.stamp} style={{ maxHeight: "110px", display: "block", margin: "10px auto" }} />}
                 </td>
-                <td style={{ ...TH_TD, width: "50%", height: "160px", verticalAlign: "top" }}>
-                  <strong style={{ fontSize: "18px" }}>客戶回簽：</strong>
-                </td>
+                <td style={{ ...TH_TD, width: "50%", height: "160px", verticalAlign: "top" }}><strong style={{ fontSize: "18px" }}>客戶回簽：</strong></td>
               </tr>
               <tr>
-                {/* ⭐ 修正點：公司章下方顯示日曆選取的日期 ⭐ */}
                 <td style={{ ...TD_CENTER, borderTop: "none", height: "45px", fontSize: "18px", fontWeight: "bold" }}>
-                  日期：
-                  <span style={{ borderBottom: "1.5px solid black", padding: "0 15px", minWidth: "150px", display: "inline-block" }}>
-                    {quote.stampDate || quote.date}
-                  </span>
+                  日期：<span style={{ borderBottom: "1.5px solid black", padding: "0 15px", minWidth: "150px", display: "inline-block" }}>{quote.stampDate || quote.date}</span>
                 </td>
                 <td style={{ ...TD_CENTER, borderTop: "none", height: "45px", fontSize: "18px" }}>日期：</td>
               </tr>
@@ -2033,66 +1870,23 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
   );
 }
 
-/***********************************************************
- * ★ 補回組件：實支實付零件編輯器 (LeakagePartsEditor)
- ***********************************************************/
 function LeakagePartsEditor({ parts, updateQuote }) {
-  const handleChange = (id, field, value) => {
-    const newParts = (parts || []).map(p => p.id === id ? { ...p, [field]: value } : p);
-    updateQuote({ leakageParts: newParts });
-  };
-
-  const handleVariantChange = (id, variantLabel) => {
-    const targetPart = parts.find(p => p.id === id);
-    if (!targetPart || !targetPart.variants) return;
-    const selectedVariant = targetPart.variants.find(v => v.label === variantLabel);
-    if (selectedVariant) {
-      const newParts = parts.map(p => p.id === id ? { 
-        ...p, 
-        spec: selectedVariant.spec, 
-        price: selectedVariant.price,
-        selectedVariantLabel: variantLabel 
-      } : p);
-      updateQuote({ leakageParts: newParts });
-    }
-  };
-
-  const handleDelete = (id) => {
-    if(!window.confirm("確定刪除此零件嗎？")) return;
-    const newParts = (parts || []).filter(p => p.id !== id);
-    updateQuote({ leakageParts: newParts });
-  };
-
-  const handleAdd = () => {
-    const newPart = { id: uuid(), name: "", spec: "", unit: "式", price: 0 };
-    updateQuote({ leakageParts: [...(parts || []), newPart] });
-  };
-
+  const handleChange = (id, field, value) => { const newParts = (parts || []).map(p => p.id === id ? { ...p, [field]: value } : p); updateQuote({ leakageParts: newParts }); };
+  const handleVariantChange = (id, variantLabel) => { const targetPart = parts.find(p => p.id === id); if (!targetPart || !targetPart.variants) return; const selectedVariant = targetPart.variants.find(v => v.label === variantLabel); if (selectedVariant) { const newParts = parts.map(p => p.id === id ? { ...p, spec: selectedVariant.spec, price: selectedVariant.price, selectedVariantLabel: variantLabel } : p); updateQuote({ leakageParts: newParts }); } };
+  const handleDelete = (id) => { if(!window.confirm("確定刪除此零件嗎？")) return; const newParts = (parts || []).filter(p => p.id !== id); updateQuote({ leakageParts: newParts }); };
+  const handleAdd = () => { const newPart = { id: uuid(), name: "", spec: "", unit: "式", price: 0 }; updateQuote({ leakageParts: [...(parts || []), newPart] }); };
   return (
     <div className="mt-8 mb-6 border-t pt-6 no-print">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold text-gray-700 border-l-4 border-blue-500 pl-2">※ 實支實付維修零件編輯 (此區不計入總額)</h3>
-        <button onClick={handleAdd} className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 shadow flex items-center gap-1">
-          <span>＋</span> 新增零件
-        </button>
-      </div>
+      <div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-gray-700 border-l-4 border-blue-500 pl-2">※ 實支實付維修零件編輯 (此區不計入總額)</h3><button onClick={handleAdd} className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 shadow flex items-center gap-1"><span>＋</span> 新增零件</button></div>
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <div className="grid grid-cols-12 gap-2 text-sm text-gray-500 mb-2 px-2">
-           <div className="col-span-4">品名</div><div className="col-span-4">規格說明 (可切換)</div><div className="col-span-1 text-center">單位</div><div className="col-span-2 text-right">單價</div><div className="col-span-1"></div>
-        </div>
+        <div className="grid grid-cols-12 gap-2 text-sm text-gray-500 mb-2 px-2"><div className="col-span-4">品名</div><div className="col-span-4">規格說明 (可切換)</div><div className="col-span-1 text-center">單位</div><div className="col-span-2 text-right">單價</div><div className="col-span-1"></div></div>
         {(parts || []).map((part) => (
           <div key={part.id} className="grid grid-cols-12 gap-2 mb-2 items-center">
-             <div className="col-span-4">
-                <input className="w-full border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-300" value={part.name || ""} onChange={(e) => handleChange(part.id, "name", e.target.value)}/>
-             </div>
+             <div className="col-span-4"><input className="w-full border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-300" value={part.name || ""} onChange={(e) => handleChange(part.id, "name", e.target.value)}/></div>
              <div className="col-span-4">
                 {part.variants ? (
-                  <select className="w-full border p-2 rounded text-sm text-blue-700 font-bold bg-white" value={part.selectedVariantLabel || ""} onChange={(e) => handleVariantChange(part.id, e.target.value)}>
-                    {part.variants.map((v, i) => <option key={i} value={v.label}>{v.label} - ${v.price.toLocaleString()}</option>)}
-                  </select>
-                ) : (
-                  <input className="w-full border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-300" value={part.spec || ""} onChange={(e) => handleChange(part.id, "spec", e.target.value)}/>
-                )}
+                  <select className="w-full border p-2 rounded text-sm text-blue-700 font-bold bg-white" value={part.selectedVariantLabel || ""} onChange={(e) => handleVariantChange(part.id, e.target.value)}>{part.variants.map((v, i) => <option key={i} value={v.label}>{v.label} - ${v.price.toLocaleString()}</option>)}</select>
+                ) : <input className="w-full border p-2 rounded text-sm outline-none focus:ring-2 focus:ring-blue-300" value={part.spec || ""} onChange={(e) => handleChange(part.id, "spec", e.target.value)}/>}
              </div>
              <div className="col-span-1"><input className="w-full border p-2 rounded text-sm text-center" value={part.unit || ""} onChange={(e) => handleChange(part.id, "unit", e.target.value)}/></div>
              <div className="col-span-2"><input type="number" className="w-full border p-2 rounded text-sm text-right" value={part.price || 0} onChange={(e) => handleChange(part.id, "price", e.target.value)}/></div>
@@ -2103,39 +1897,21 @@ function LeakagePartsEditor({ parts, updateQuote }) {
     </div>
   );
 }
-/***********************************************************
- * P5 — App 根元件 (精簡版：統一調用 AppProvider 邏輯)
- ***********************************************************/
-function App() {
-  // 直接從 Context 拿，不要在這邊重複寫 const deleteQuote = ...
-  const { 
-    quotes, activeQuoteId, setActiveQuoteId, 
-    deleteQuote, duplicateQuote, applyMode, loadFromCloud 
-  } = React.useContext(AppContext);
 
+function App() {
+  const { quotes, activeQuoteId, setActiveQuoteId, deleteQuote, duplicateQuote, loadFromCloud } = React.useContext(AppContext);
   return (
     <div className="min-h-screen bg-gray-50 flex print:block print:bg-white">
         <aside className="w-96 bg-white p-6 shadow-lg flex-shrink-0 text-lg sticky top-0 h-screen overflow-y-auto no-print">
             <h1 className="text-2xl font-extrabold mb-6 text-center text-blue-700 italic border-b-2 pb-2">工程報價系統</h1>
-            <CompanySelector />
-            <ModeSelector applyMode={applyMode} />
-            <button onClick={loadFromCloud} className="w-full mb-6 py-2 border-2 border-blue-500 text-blue-600 rounded-md font-bold hover:bg-blue-50 transition text-sm">
-              🔄 從雲端同步最新資料
-            </button>
+            <CompanySelector /><ModeSelector />
+            <button onClick={loadFromCloud} className="w-full mb-6 py-2 border-2 border-blue-500 text-blue-600 rounded-md font-bold hover:bg-blue-50 transition text-sm">🔄 從雲端同步最新資料</button>
             <QuoteList quotes={quotes} activeId={activeQuoteId} selectQuote={setActiveQuoteId} deleteQuote={deleteQuote} duplicateQuote={duplicateQuote} />
         </aside>
-        <div className="flex-grow p-8 text-base print:p-0">
-            <QuoteEditor /> 
-        </div>
+        <div className="flex-grow p-8 text-base print:p-0"><QuoteEditor /></div>
     </div>
   );
 }
-/***********************************************************
- * P6 — React 18 啟動
- ***********************************************************/
+
 const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(
-  <AppProvider>
-    <App />
-  </AppProvider>
-);
+root.render(<AppProvider><App /></AppProvider>);
