@@ -1263,6 +1263,86 @@ function CustomerSearchInput({ value, onChange, onSelect }) {
     </div>
   );
 }
+function RichTextEditor({ value, onChange, rows = 8 }) {
+  const editorRef = React.useRef(null);
+  const [isReady, setIsReady] = React.useState(false);
+
+  // 初始載入時設定 HTML 內容
+  React.useEffect(() => {
+    if (editorRef.current && !isReady) {
+      editorRef.current.innerHTML = value || "";
+      setIsReady(true);
+    }
+  }, []);
+
+  // 當外部 value 改變時（例如切換報價單），同步更新
+  React.useEffect(() => {
+    if (editorRef.current && isReady) {
+      // 避免游標位置跑掉：只有內容真的不一樣才更新
+      if (editorRef.current.innerHTML !== (value || "")) {
+        editorRef.current.innerHTML = value || "";
+      }
+    }
+  }, [value]);
+
+  const execCmd = (command, val = null) => {
+    editorRef.current.focus();
+    document.execCommand(command, false, val);
+  };
+
+  const applyColor = (color) => {
+    editorRef.current.focus();
+    document.execCommand("foreColor", false, color);
+  };
+
+  const handleInput = () => {
+    if (onChange) onChange(editorRef.current.innerHTML);
+  };
+
+  const TOOLBAR_BTN = "px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 transition font-bold";
+
+  return (
+    <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+      {/* 工具列 */}
+      <div className="flex flex-wrap items-center gap-1 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
+        <button type="button" className={TOOLBAR_BTN} style={{fontWeight:"900"}} onClick={() => execCmd("bold")} title="粗體 (Ctrl+B)">B</button>
+        <button type="button" className={TOOLBAR_BTN} style={{fontStyle:"italic"}} onClick={() => execCmd("italic")} title="斜體 (Ctrl+I)">I</button>
+        <button type="button" className={TOOLBAR_BTN} style={{textDecoration:"underline"}} onClick={() => execCmd("underline")} title="底線 (Ctrl+U)">U</button>
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+        {/* 顏色按鈕 */}
+        {[
+          { color: "#dc2626", label: "紅" },
+          { color: "#2563eb", label: "藍" },
+          { color: "#16a34a", label: "綠" },
+          { color: "#d97706", label: "橙" },
+          { color: "#000000", label: "黑" },
+        ].map(({ color, label }) => (
+          <button
+            key={color}
+            type="button"
+            onClick={() => applyColor(color)}
+            title={`${label}色文字`}
+            className="w-6 h-6 rounded border border-gray-300 hover:scale-110 transition-transform flex items-center justify-center text-white text-[10px] font-bold"
+            style={{ backgroundColor: color }}
+          >
+            A
+          </button>
+        ))}
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+        <button type="button" className={TOOLBAR_BTN + " text-xs"} onClick={() => execCmd("removeFormat")} title="清除格式">清除</button>
+      </div>
+      {/* 可編輯區域 */}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        className="w-full outline-none px-3 py-2 text-sm bg-white"
+        style={{ minHeight: `${rows * 1.6}rem`, whiteSpace: "pre-wrap", lineHeight: "1.6" }}
+      />
+    </div>
+  );
+}    
 /***********************************************************
  * P4-3 — QuoteEditor (整合印章日期選取功能)
  ***********************************************************/
@@ -1366,7 +1446,15 @@ function QuoteEditor() {
 
                 {/* 備註與付款條件 */}
                 <div className="mt-10 grid grid-cols-2 gap-8">
-                    <div><h3 className="font-bold text-lg mb-2">備註（不含稅）</h3><textarea value={activeQuote.notes} onChange={(e) => handleChange("notes", e.target.value)} rows="8" className="w-full border rounded-lg px-3 py-2" /></div>
+                    <div>
+  <h3 className="font-bold text-lg mb-2">備註（不含稅）</h3>
+  <RichTextEditor
+    key={activeQuote.id + "_notes"}
+    value={activeQuote.notes}
+    onChange={(html) => handleChange("notes", html)}
+    rows={8}
+  />
+</div>
                     <div><h3 className="font-bold text-lg mb-2">付款條件</h3><textarea value={activeQuote.payment} onChange={(e) => handleChange("payment", e.target.value)} rows="8" className="w-full border rounded-lg px-3 py-2" /></div>
                 </div>
 
@@ -1838,7 +1926,10 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
               <tr>
                 <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
                   <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px" }}>備註：</strong>
-                  <div style={{ fontSize: "16px", whiteSpace: "pre-wrap" }}>{quote.notes}</div>
+                  <div style={{ fontSize: "16px", whiteSpace: "<div
+  style={{ fontSize: "16px", lineHeight: "1.6" }}
+  dangerouslySetInnerHTML={{ __html: quote.notes || "" }}
+/>pre-wrap" }}>{quote.notes}</div>
                 </td>
                 <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
                   <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px" }}>付款條件：</strong>
