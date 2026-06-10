@@ -1926,10 +1926,10 @@ function PrintLayout({ quote, totalAmount, negotiatedAmount, isPreview }) {
               <tr>
                 <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
                   <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px" }}>備註：</strong>
-                  <div style={{ fontSize: "16px", whiteSpace: "<div
+                  <div
   style={{ fontSize: "16px", lineHeight: "1.6" }}
   dangerouslySetInnerHTML={{ __html: quote.notes || "" }}
-/>pre-wrap" }}>{quote.notes}</div>
+/>
                 </td>
                 <td style={{ ...TH_TD, width: "50%", verticalAlign: "top" }}>
                   <strong style={{ fontSize: "22px", display: "block", marginBottom: "10px" }}>付款條件：</strong>
