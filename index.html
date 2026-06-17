@@ -386,6 +386,7 @@ function AppProvider({ children }) {
   const [specItems, setSpecItems] = React.useState([]);
   // ⭐ 1. 新增：客戶資料狀態
   const [customers, setCustomers] = React.useState([]); 
+  const [saveStatus, setSaveStatus] = React.useState("saved");
 
  /***********************************************************
    * ☁️ 雲端同步核心功能 (Cloud Module)
@@ -597,9 +598,13 @@ const duplicateQuote = React.useCallback(async (id) => {
     setQuotes(prev => {
       const newState = prev.map(q => q.id === id ? { ...q, ...data } : q);
       const updatedItem = newState.find(q => q.id === id);
-      if (updatedItem) syncToCloud(updatedItem); 
+      if (updatedItem) syncToCloud(updatedItem);
       return newState;
     });
+    // 觸發儲存提示
+    setSaveStatus("saving");
+    clearTimeout(window.__saveTimer__);
+    window.__saveTimer__ = setTimeout(() => setSaveStatus("saved"), 800);
   }, [syncToCloud]);
 
   /* ========================================================
@@ -678,9 +683,9 @@ const duplicateQuote = React.useCallback(async (id) => {
     activeQuote, activeQuoteId, setActiveQuoteId,
     specItems, customers, loadSpecItems,
     createQuote, deleteQuote, updateQuote, applyMode,
-    duplicateQuote, loadFromCloud, syncToCloud 
+    duplicateQuote, loadFromCloud, syncToCloud,
+    saveStatus, setSaveStatus
   };
-
   window.__APP_CONTEXT__ = value;
 
   return (
@@ -1360,7 +1365,7 @@ function RichTextEditor({ value, onChange, rows = 8 }) {
  * P4-3 — QuoteEditor (整合印章日期選取功能)
  ***********************************************************/
 function QuoteEditor() {
-    const { activeQuote, updateQuote, customers } = React.useContext(AppContext);
+   const { activeQuote, updateQuote, customers, saveStatus } = React.useContext(AppContext);
     const componentRef = React.useRef(null);
 
     // 1. 防呆檢查
@@ -1415,9 +1420,18 @@ function QuoteEditor() {
         <div className="quote-editor-root-container">
             {/* A. 編輯介面區 */}
             <div className="p-8 bg-gray-100 rounded-xl shadow-xl no-print">
-                <h1 className="text-3xl font-bold mb-6 border-b pb-3">
+                <div className="flex items-center justify-between border-b pb-3 mb-6">
+                  <h1 className="text-3xl font-bold">
                     編輯報價單：{activeQuote.title || "未命名"}
-                </h1>
+                  </h1>
+                  <div className={`flex items-center gap-2 text-sm font-medium px-3 py-1.5 rounded-full transition-all ${
+                    saveStatus === "saving"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-green-100 text-green-700"
+                  }`}>
+                    {saveStatus === "saving" ? "⏳ 儲存中..." : "✅ 已自動儲存"}
+                  </div>
+                </div>
 
                 {/* 客戶資料區 */}
                 <div className="bg-white p-4 rounded-lg mb-6 border border-gray-300 shadow-sm text-sm">
