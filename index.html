@@ -1049,7 +1049,21 @@ function QuoteItem({ item, index, updateItem, deleteItem }) {
              {(Number(item.qty || 0) * Number(item.price || 0)).toLocaleString()}
           </div>
         </div>
-
+{/* 🔒 內部成本備註 */}
+        <div className="col-span-12 mt-1">
+          <label className="flex items-center gap-2 text-xs font-bold text-red-700 mb-1">
+            🔒 內部成本備註
+            <span className="font-normal text-red-400">（不列印 · 不匯出給客戶）</span>
+          </label>
+          <textarea
+            className="w-full border-2 border-red-200 bg-red-50 rounded px-3 py-2 text-sm focus:ring-1 focus:ring-red-400 outline-none text-red-900 placeholder-red-300"
+            rows="3"
+            value={item.internalCost || ""}
+            onChange={(e) => handleChange("internalCost", e.target.value)}
+            placeholder="例：3人加班=31500、吊車=20000、馬達=36000... 此欄僅內部可見"
+          />
+        </div>
+        
         {/* 8. 品牌/產地 (Variants) */}
         {Array.isArray(item.variants) && item.variants.length > 0 && (
            <div className="col-span-12 md:col-span-6">
@@ -1385,7 +1399,8 @@ function QuoteEditor() {
             price: 0,
             subItems: [],
             remarks: "",
-            specMaterial: ""
+            specMaterial: "",
+            internalCost: ""
         };
         updateQuote(activeQuote.id, { items: [...activeQuote.items, newItem] });
     };
@@ -1535,7 +1550,7 @@ function ExportButton() {
     rows[r++] = ["工程地點", activeQuote.location];
     rows[r++] = [];
 
-    rows[r++] = ["項次","品名","規格 / 補充內容","單位","數量","單價","金額(小計)","備註","用料明細"];
+    rows[r++] = ["項次","品名","規格 / 補充內容","單位","數量","單價","金額(小計)","備註","用料明細","🔒內部成本備註(僅內部)"];
 
     let index = 1;
     activeQuote.items.forEach(item => {
@@ -1548,7 +1563,8 @@ function ExportButton() {
         item.price || "",
         calcAmount(item),
         item.remarks || "",
-        item.specMaterial || ""
+        item.specMaterial || "",
+        item.internalCost || ""
       ];
 
       if (item.specMaterial) {
@@ -1590,7 +1606,7 @@ function ExportButton() {
       { s: { r: 5, c: 1 }, e: { r: 5, c: 8 } },
     ];
     
-    ws["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 42 }, { wch: 8 }, { wch: 8 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 32 }];
+   ws["!cols"] = [{ wch: 12 }, { wch: 26 }, { wch: 42 }, { wch: 8 }, { wch: 8 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 32 }, { wch: 40 }];
 
     Object.keys(ws).forEach(key => {
       if (ws[key]?.v && typeof ws[key].v === "number") ws[key].z = "#,##0";
